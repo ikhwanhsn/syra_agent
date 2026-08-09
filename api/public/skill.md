@@ -1,6 +1,6 @@
 # Syra — agent skill
 
-Syra is **machine money for agents** on Solana — a pay-per-call x402 API rail (also Base / Algorand). Most routes are **permissionless x402** (pay with USDC, no identity).
+Syra is **machine money for agents** — a pay-per-call x402 API rail across Solana, Base, multi-chain EVM (PayAI/Dexter), Algorand, BSC B402, and OKX X Layer when enabled. Most routes are **permissionless x402** (pay with USDC or the rail stablecoin, no identity).
 
 **Canonical installable skill (repo):** `.agents/skills/syra/SKILL.md`  
 **Full API reference:** https://api.syraa.fun/llms-full.txt  
@@ -93,12 +93,15 @@ MCP free helpers: `syra_agentscore_discover`, `syra_agentscore_check`.
 
 ## Payment rails
 
-- **Syra API**: x402 Solana USDC + Base USDC (+ optional BSC B402) + Algorand USDC
+- **Syra API (server 402 accepts)**: Solana + Base USDC; PayAI/Dexter multi-chain (Polygon, Arbitrum, Avalanche, Sei, SKALE, Optimism, World, Monad, Robinhood, …); BSC B402; Algorand (GoPlausible); OKX X Layer (USDT0) when enabled
+- **Facilitator failover**: Dexter → GoPlausible → PayAI (live: `GET /x402/capabilities`)
+- **MCP/SDK auto-pay signers today**: Solana (default), Base, Algorand — other accepts need a matching x402 client
+- **Agent execution wallets**: `solana` | `base` | `bsc` (`GET /agent/chains`)
 - **External AgentScore merchants**: may require MPP (Tempo/Solana) or Base x402 — use `@agent-score/pay` for multi-rail checkout when Syra agent wallet is Solana-only
 
 ## Discovery
 
-- x402: `GET /.well-known/x402`, `GET /openapi.json`, `GET /mpp-openapi.json`
+- x402: `GET /.well-known/x402`, `GET /x402/capabilities`, `GET /openapi.json`, `GET /mpp-openapi.json`
 - MPP: `GET /mpp/health` (legacy `/mpp/v1/health` → 308 redirect)
 - This file: `GET /skill.md`
 - Skills list: https://syraa.fun/skills.md

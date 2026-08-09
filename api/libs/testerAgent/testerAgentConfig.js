@@ -11,10 +11,9 @@
  * - `CMC_PAYER_PRIVATE_KEY` — required for Base GET /news E2E when `includeBasePaidNewsE2E` is true.
  * - `TESTER_AGENT_CRON_SECRET` / `TESTER_AGENT_SKIP_BUYBACK_SECRET` — auth + buyback skip for probes.
  *
- * **Corbits facilitator** (default Syra x402 stack) runs `/accepts` then `/settle` per paid request; see
- * https://docs.corbits.dev/facilitator/how-it-works.md — Mintlify index: https://docs.corbits.dev/llms.txt .
- * Published Corbits docs do **not** give numeric RPS; bursts of sequential paid probes still trigger HTTP 429
- * from `facilitator.corbits.dev`, so the tester uses spacing + retries below.
+ * Default x402 stack (Dexter → GoPlausible → PayAI) runs `/accepts` then `/settle` per paid request.
+ * Bursts of sequential paid probes can still trigger HTTP 429 from facilitators, so the tester uses
+ * spacing + retries below.
  */
 
 /** Public API origin for scheduled probes and health x402 monitor (no trailing slash). */
@@ -43,7 +42,7 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
    */
   smokeConcurrency: 24,
   /**
-   * Pause between paid probes when `interProbeDelayMs` is 0 (ms). Increase if Corbits still returns 429
+   * Pause between paid probes when `interProbeDelayMs` is 0 (ms). Increase if facilitators still return 429
    * after retries (each probe opens a new payment / facilitator round-trip).
    * 3× baseline (was 2200 ms): faster Solana paid catalog cadence.
    */
@@ -74,7 +73,7 @@ export const TESTER_AGENT_CONFIG = Object.freeze({
   stopSuiteOnRateLimit429: true,
   /**
    * When `@x402/fetch` throws during payment construction (e.g. facilitator HTTP 429), retry that probe only.
-   * Exponential backoff: base × 2^attempt + small jitter (Corbits docs do not specify caps).
+   * Exponential backoff: base × 2^attempt + small jitter.
    */
   facilitatorRetryMaxAttempts: 6,
   facilitatorRetryBaseDelayMs: 2000,

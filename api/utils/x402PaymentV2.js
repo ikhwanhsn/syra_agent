@@ -27,18 +27,12 @@ import bs58 from "bs58";
 import {
   getX402ResourceServer,
   ensureX402ResourceServerInitialized,
-  getX402ResourceServerCorbits,
-  ensureX402CorbitsResourceServerInitialized,
   getX402ResourceServerDexter,
   ensureX402DexterResourceServerInitialized,
   getX402ResourceServerGoplausible,
   ensureX402GoplausibleResourceServerInitialized,
 } from "./x402ResourceServer.js";
 import { X402_API_PRICE_USD, resolveEffectivePriceUsdAsync, applyDexterNetworkPriceFloor } from "../config/x402Pricing.js";
-import {
-  getCorbitsPayToAddresses,
-  getEnabledCorbitsNetworks,
-} from "../config/corbitsX402Networks.js";
 import {
   getDexterPayToAddresses,
   getEnabledDexterNetworks,
@@ -180,7 +174,6 @@ function resolveInboundFacilitatorFromFlags(req, { useAlgorandFacilitator, useB4
   if (useB402Facilitator) return "b402";
   if (useOkxFacilitator) return "okx";
   const profile = resolveResourceServerProfile(req);
-  if (profile === "corbits") return "corbits";
   if (profile === "dexter") return "dexter";
   if (profile === "goplausible") return "goplausible";
   return "payai";
@@ -340,13 +333,11 @@ const DEFAULT_FACILITATOR_ORDER = Object.freeze(["dexter", "goplausible", "payai
 
 /**
  * Init / offer order: preferred profile first, then remaining in Dexter→GoPlausible→PayAI.
- * Corbits stays pinned (dedicated rail).
  * @param {string} profile
- * @returns {Array<'payai'|'corbits'|'dexter'|'goplausible'>}
+ * @returns {Array<'payai'|'dexter'|'goplausible'>}
  */
 function facilitatorInitOrder(profile) {
   const p = String(profile || "dexter").trim().toLowerCase();
-  if (p === "corbits") return ["corbits"];
   const preferred = DEFAULT_FACILITATOR_ORDER.includes(/** @type {'dexter'|'goplausible'|'payai'} */ (p))
     ? p
     : "dexter";
@@ -533,7 +524,7 @@ function isFacilitatorError(msg) {
     /transaction_simulation|simulation[_\s-]*failed|simulation failed/i.test(s) ||
     /\bRPC\b.*\b(error|fail)/i.test(s) ||
     /verify_timeout|settle_timeout/i.test(s) ||
-    // Corbits / strict facilitators when PAYMENT-SIGNATURE omits resource (client or discovery mismatch)
+    // Strict facilitators when PAYMENT-SIGNATURE omits resource (client or discovery mismatch)
     /missing\s+resource\s+context|v1\s+adapter/i.test(s)
   );
 }
@@ -678,7 +669,7 @@ function ensureEvmEip712Domain(requirements) {
 }
 
 /**
- * PayAI/Corbits facilitators do not list BSC (eip155:56); append B402 accept when enabled.
+ * PayAI/Dexter facilitators do not list BSC (eip155:56); append B402 accept when enabled.
  * @param {object[]} requirements
  * @param {string} microUnits
  * @param {number} maxTimeoutSeconds
@@ -742,7 +733,7 @@ function resolveAlgorandNetworksForPayTo(payTo) {
 }
 
 /**
- * GoPlausible facilitator does not list Algorand on PayAI/Corbits — append AVM accepts when enabled.
+ * GoPlausible facilitator does not list Algorand on PayAI/Dexter — append AVM accepts when enabled.
  * Uses AVM resource server so feePayer and other facilitator extras are included.
  * Lab Algorand PayTo override is preferred over env ALGORAND_PAYTO.
  * @param {object[]} requirements
@@ -891,7 +882,7 @@ function getB402OfferConfig() {
 }
 
 /**
- * OKX facilitator owns X Layer — append accepts when enabled; PayAI/Corbits must not offer them.
+ * OKX facilitator owns X Layer — append accepts when enabled; PayAI/Dexter must not offer them.
  * When `ctx.evmPayTo` is set (Labs X Layer tab), that address becomes payTo instead of merchant OKX_X402_PAYTO.
  * @param {object[]} requirements
  * @param {string} microUnits
@@ -1012,7 +1003,7 @@ function appendOkxAcceptedOption(acceptedOptions, expectedMicroUnits, labEvmPayT
   return acceptedOptions;
 }
 
-/** Corbits/PayAI facilitators do not support BSC — never pass B402 options into @x402 resource server. */
+/** PayAI/Dexter facilitators do not support BSC — never pass B402 options into @x402 resource server. */
 function paymentOptionsForFacilitator(bundle, microUnits, maxTimeout, payToOverride = null, priceUsd = null) {
   return buildPaymentOptionsForBundle(bundle, microUnits, maxTimeout, payToOverride, priceUsd).filter(
     (o) =>
@@ -1062,17 +1053,15 @@ function paymentAcceptedMatchesB402(acc) {
   );
 }
 
-/** @param {'payai'|'corbits'|'dexter'|'goplausible'} profile */
+/** @param {'payai'|'dexter'|'goplausible'} profile */
 function getPayToAddressesForProfile(profile) {
-  if (profile === "corbits") return getCorbitsPayToAddresses();
   if (profile === "dexter") return getDexterPayToAddresses();
   if (profile === "goplausible") return getGoplausiblePayToAddresses();
   return getPayaiPayToAddresses();
 }
 
-/** @param {'payai'|'corbits'|'dexter'|'goplausible'} profile */
+/** @param {'payai'|'dexter'|'goplausible'} profile */
 function getEnabledNetworksForProfile(profile) {
-  if (profile === "corbits") return getEnabledCorbitsNetworks();
   if (profile === "dexter") return getEnabledDexterNetworks();
   if (profile === "goplausible") return getEnabledGoplausibleNetworks();
   return getEnabledPayaiNetworks();
@@ -1119,7 +1108,7 @@ function isOwnedByDedicatedRail(caip2) {
 
 /**
  * Atomic amount for a multi-network accept, with Dexter per-chain floor when profile=dexter.
- * @param {'payai'|'corbits'|'dexter'|'goplausible'} profile
+ * @param {'payai'|'dexter'|'goplausible'} profile
  * @param {{ caip2: string, kind: string, decimals?: number }} net
  * @param {string} microUnits - 6-decimal baseline from route price
  * @param {number} priceUsd - route price before per-chain floor
@@ -1142,7 +1131,7 @@ function resolveNetworkOfferAmount(profile, net, microUnits, priceUsd) {
 }
 
 /**
- * Build x402 payment options for a request (multi-network PayAI/Corbits/Dexter or legacy Solana+Base).
+ * Build x402 payment options for a request (multi-network PayAI/Dexter/GoPlausible or legacy Solana+Base).
  * @param {object} bundle
  * @param {string} microUnits
  * @param {number} maxTimeout
@@ -1378,12 +1367,12 @@ async function resolveEffectivePriceUsd(rawPrice, req, _options) {
  * Default x402 verify/settle: health-based Dexter → GoPlausible → PayAI when
  * X402_DEFAULT_FACILITATOR_FAILOVER is enabled (default). Opt in per-request via
  * `options.resourceServerProfile` / `req.x402ResourceServerProfile`, or globally via
- * X402_USE_CORBITS_FACILITATOR / X402_USE_DEXTER_FACILITATOR.
+ * X402_USE_DEXTER_FACILITATOR.
  *
  * Note: the health-based default is applied asynchronously in requirePayment by setting
  * `req.x402ResourceServerProfile` before this sync resolver runs. Sync fallback is Dexter
  * when failover is enabled; kill switch (`X402_DEFAULT_FACILITATOR_FAILOVER=false`) keeps PayAI.
- * @returns {'payai'|'corbits'|'dexter'|'goplausible'}
+ * @returns {'payai'|'dexter'|'goplausible'}
  */
 function resolveResourceServerProfile(req, options) {
   const fromOptions =
@@ -1395,12 +1384,7 @@ function resolveResourceServerProfile(req, options) {
       ? String(req.x402ResourceServerProfile).trim().toLowerCase()
       : "";
   const explicit = fromOptions || fromReq;
-  if (
-    explicit === "corbits" ||
-    explicit === "dexter" ||
-    explicit === "goplausible" ||
-    explicit === "payai"
-  ) {
+  if (explicit === "dexter" || explicit === "goplausible" || explicit === "payai") {
     return explicit;
   }
   if (explicit === "default") {
@@ -1411,7 +1395,6 @@ function resolveResourceServerProfile(req, options) {
     const s = String(v || "").trim().toLowerCase();
     return s === "true" || s === "1";
   };
-  if (truthy(process.env.X402_USE_CORBITS_FACILITATOR)) return "corbits";
   if (truthy(process.env.X402_USE_DEXTER_FACILITATOR)) return "dexter";
   return isDefaultFacilitatorFailoverEnabled() ? "dexter" : "payai";
 }
@@ -1431,7 +1414,6 @@ function hasExplicitResourceServerProfile(req, options) {
       : "";
   const explicit = fromOptions || fromReq;
   if (
-    explicit === "corbits" ||
     explicit === "dexter" ||
     explicit === "goplausible" ||
     explicit === "payai" ||
@@ -1443,15 +1425,11 @@ function hasExplicitResourceServerProfile(req, options) {
     const s = String(v || "").trim().toLowerCase();
     return s === "true" || s === "1";
   };
-  return (
-    truthy(process.env.X402_USE_CORBITS_FACILITATOR) ||
-    truthy(process.env.X402_USE_DEXTER_FACILITATOR)
-  );
+  return truthy(process.env.X402_USE_DEXTER_FACILITATOR);
 }
 
 function getX402BundleForReq(req, options) {
   const profile = resolveResourceServerProfile(req, options);
-  if (profile === "corbits") return getX402ResourceServerCorbits();
   if (profile === "dexter") return getX402ResourceServerDexter();
   if (profile === "goplausible") return getX402ResourceServerGoplausible();
   return getX402ResourceServer();
@@ -1459,16 +1437,14 @@ function getX402BundleForReq(req, options) {
 
 async function ensureX402ForReq(req, options) {
   const profile = resolveResourceServerProfile(req, options);
-  /** @type {Array<'payai'|'corbits'|'dexter'|'goplausible'>} */
+  /** @type {Array<'payai'|'dexter'|'goplausible'>} */
   const order = facilitatorInitOrder(profile);
 
   /** @type {Error | null} */
   let lastErr = null;
   for (const candidate of order) {
     try {
-      if (candidate === "corbits") {
-        await ensureX402CorbitsResourceServerInitialized();
-      } else if (candidate === "dexter") {
+      if (candidate === "dexter") {
         await ensureX402DexterResourceServerInitialized();
       } else if (candidate === "goplausible") {
         await ensureX402GoplausibleResourceServerInitialized();
@@ -1666,7 +1642,7 @@ async function buildPaymentRequired(bundle, req, options, error) {
   // Bind x402 `resource.url` to the URL this HTTP request actually used (ExpressAdapter).
   // Previously we used `${BASE_URL}${options.resource}` when `resource` was set; that breaks
   // server-to-self agent calls (resolveAgentBaseUrl → localhost) while BASE_URL is public:
-  // PAYMENT-SIGNATURE then carried api.syraa.fun but the client retried localhost — Corbits
+  // PAYMENT-SIGNATURE then carried api.syraa.fun but the client retried localhost — facilitators
   // verify rejects that mismatch. Playground always hit the public URL so it worked.
   const resourceUrl = resolvePublicResourceUrl(req, adapter);
   const maxTimeout = paymentOptions.maxTimeoutSeconds ?? 60;
@@ -2447,13 +2423,11 @@ async function tryFacilitatorThenLocalSettle(payload, accepted, req) {
 
   const profile = req?.x402Payment?.resourceServerProfile;
   const { resourceServer } =
-    profile === "corbits"
-      ? getX402ResourceServerCorbits()
-      : profile === "dexter"
-        ? getX402ResourceServerDexter()
-        : profile === "goplausible"
-          ? getX402ResourceServerGoplausible()
-          : getX402ResourceServer();
+    profile === "dexter"
+      ? getX402ResourceServerDexter()
+      : profile === "goplausible"
+        ? getX402ResourceServerGoplausible()
+        : getX402ResourceServer();
   let settlePayload = payload;
   const bazaarOpts = resolveBazaarSettleOptions(req);
   if (bazaarOpts?.bazaar) {
@@ -2834,7 +2808,7 @@ export function runBuybackForRequest(req) {
 /**
  * Get the x402 resource server (for routes that need to call settlePayment manually).
  * Prefer using settlePaymentAndSetResponse(res, req) after success.
- * @param {import('express').Request} [req] - When set, uses the same facilitator as requirePayment (Corbits vs default).
+ * @param {import('express').Request} [req] - When set, uses the same facilitator as requirePayment.
  */
 export function getX402Handler(req) {
   const { resourceServer } = getX402BundleForReq(req);

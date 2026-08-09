@@ -12,10 +12,6 @@ import { builderCodeResourceServerExtension } from "@x402/extensions/builder-cod
 import dotenv from "dotenv";
 import { createPayAiFacilitatorAuthHeaders } from "./payaiFacilitatorAuth.js";
 import {
-  getCorbitsEvmUsdcAsset,
-  getEnabledCorbitsNetworks,
-} from "../config/corbitsX402Networks.js";
-import {
   getDexterEvmUsdcAsset,
   getEnabledDexterNetworks,
   getDexterNetworkByCaip2,
@@ -33,7 +29,6 @@ import {
 } from "../config/payaiX402Networks.js";
 import {
   FACILITATOR_URL_PAYAI,
-  CORBITS_FACILITATOR_URL,
   SOLANA_PAYTO,
   EVM_PAYTO,
   BASE_PAYTO,
@@ -132,25 +127,18 @@ function newFacilitatorClient(url) {
 }
 
 /**
- * [Corbits facilitator](https://docs.corbits.dev/facilitator/overview) — no PayAI JWT.
- * Payment flow: https://docs.corbits.dev/facilitator/how-it-works.md (`/accepts`, `/settle`). Burst traffic can 429; throttle clients / retries in callers (e.g. tester agent).
- */
-const corbitsFacilitatorUrl = CORBITS_FACILITATOR_URL;
-
-/**
  * [Dexter facilitator](https://dexter.cash/facilitator) — free public x402 facilitator (no PayAI JWT).
  * @see https://github.com/Dexter-DAO
  */
 const dexterFacilitatorUrl = env("DEXTER_FACILITATOR_URL") || "https://x402.dexter.cash";
 
-/** @typedef {'payai'|'corbits'|'dexter'|'goplausible'} X402NetworkProfile */
+/** @typedef {'payai'|'dexter'|'goplausible'} X402NetworkProfile */
 
 /**
  * @param {X402NetworkProfile} profile
- * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/corbitsX402Networks.js').CorbitsX402Network[] | import('../config/dexterX402Networks.js').DexterX402Network[] | import('../config/goplausibleX402Networks.js').GoplausibleX402Network[]}
+ * @returns {import('../config/payaiX402Networks.js').PayaiX402Network[] | import('../config/dexterX402Networks.js').DexterX402Network[] | import('../config/goplausibleX402Networks.js').GoplausibleX402Network[]}
  */
 function getEnabledNetworksForProfile(profile) {
-  if (profile === "corbits") return getEnabledCorbitsNetworks();
   if (profile === "dexter") return getEnabledDexterNetworks();
   if (profile === "goplausible") return getEnabledGoplausibleNetworks();
   return getEnabledPayaiNetworks();
@@ -162,7 +150,6 @@ function getEnabledNetworksForProfile(profile) {
  * @returns {string | null}
  */
 function getEvmUsdcForProfile(profile, caip2) {
-  if (profile === "corbits") return getCorbitsEvmUsdcAsset(caip2);
   if (profile === "dexter") return getDexterEvmUsdcAsset(caip2);
   if (profile === "goplausible") return getGoplausibleEvmUsdcAsset(caip2);
   return getPayaiEvmUsdcAsset(caip2);
@@ -241,9 +228,6 @@ function buildResourceServerBundle(
 let resourceServerInstance = null;
 let initPromise = null;
 
-let resourceServerCorbitsInstance = null;
-let initPromiseCorbits = null;
-
 let resourceServerDexterInstance = null;
 let initPromiseDexter = null;
 
@@ -278,24 +262,6 @@ export function getX402ResourceServer() {
     networkProfile: "payai",
   });
   return resourceServerInstance;
-}
-
-/**
- * Second singleton for experiments: verify/settle only via Corbits facilitator (no PayAI auth).
- * Same payTo / networks as default — clients still pay your SOLANA_PAYTO / BASE_PAYTO.
- * @see https://docs.corbits.dev/facilitator/overview
- */
-export function getX402ResourceServerCorbits() {
-  if (resourceServerCorbitsInstance) {
-    return resourceServerCorbitsInstance;
-  }
-  const clients = [new HTTPFacilitatorClient({ url: corbitsFacilitatorUrl })];
-  const server = new x402ResourceServer(clients);
-  resourceServerCorbitsInstance = buildResourceServerBundle(server, {
-    multiNetwork: true,
-    networkProfile: "corbits",
-  });
-  return resourceServerCorbitsInstance;
 }
 
 /**
@@ -351,12 +317,6 @@ export async function ensureX402ResourceServerInitialized() {
   await initPromise;
 }
 
-/** Initialize Corbits-backed resource server (for route experiments such as GET /news). */
-export {
-  CORBITS_X402_NETWORKS,
-  getEnabledCorbitsNetworks,
-  getCorbitsPayToAddresses,
-} from "../config/corbitsX402Networks.js";
 export {
   DEXTER_X402_NETWORKS,
   getEnabledDexterNetworks,
@@ -372,17 +332,6 @@ export {
   getEnabledPayaiNetworks,
   getPayaiPayToAddresses,
 } from "../config/payaiX402Networks.js";
-
-export async function ensureX402CorbitsResourceServerInitialized() {
-  const { resourceServer } = getX402ResourceServerCorbits();
-  if (!initPromiseCorbits) {
-    initPromiseCorbits = resourceServer.initialize().catch((e) => {
-      initPromiseCorbits = null;
-      throw e;
-    });
-  }
-  await initPromiseCorbits;
-}
 
 /** Initialize Dexter-backed resource server (x402 Labs `/insights/*`). */
 export async function ensureX402DexterResourceServerInitialized() {

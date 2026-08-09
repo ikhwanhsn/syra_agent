@@ -1002,7 +1002,7 @@ export function formatToolResultForLlm(data, toolId, maxToolResultChars = MAX_TO
       // fallback to raw below
     }
   }
-  // Jupiter trending (Corbits): only present real API data
+  // Jupiter trending: only present real API data
   if (toolId === 'trending-jupiter' && data && typeof data === 'object') {
     const mints = Array.isArray(data.contractAddresses) ? data.contractAddresses : [];
     if (mints.length === 0 && !data.tokenSummary && !data.newsSummary) {

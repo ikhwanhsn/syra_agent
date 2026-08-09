@@ -168,7 +168,7 @@ describe("facilitatorInitOrder", () => {
       "payai",
     ]);
     assert.deepEqual(facilitatorInitOrder("payai"), ["payai", "dexter", "goplausible"]);
-    assert.deepEqual(facilitatorInitOrder("corbits"), ["corbits"]);
+    assert.deepEqual(facilitatorInitOrder("corbits"), ["dexter", "goplausible", "payai"]);
     assert.deepEqual(facilitatorInitOrder(""), ["dexter", "goplausible", "payai"]);
   });
 });

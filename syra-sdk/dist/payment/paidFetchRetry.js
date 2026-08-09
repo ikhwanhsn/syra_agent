@@ -24,20 +24,20 @@ function isTransientPaidFacilitatorError(status, msg) {
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
-async function paidFetchWithCorbits429Backoff(paymentFetch, url, init) {
-    for (let attempt = 0; attempt < FACILITATOR_429_MAX_ATTEMPTS; attempt++) {
-        try {
-            return await paymentFetch(url, init);
-        }
-        catch (error) {
-            if (!facilitatorErrorLooks429(error) || attempt === FACILITATOR_429_MAX_ATTEMPTS - 1) {
-                throw error;
-            }
-            const delay = Math.round(FACILITATOR_429_BASE_DELAY_MS * 2 ** attempt + Math.random() * 400);
-            await sleep(delay);
-        }
+async function paidFetchWithFacilitator429Backoff(paymentFetch, url, init) {
+  for (let attempt = 0; attempt < FACILITATOR_429_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await paymentFetch(url, init);
     }
-    throw new Error("x402 payment fetch: Corbits 429 retries exhausted");
+    catch (error) {
+      if (!facilitatorErrorLooks429(error) || attempt === FACILITATOR_429_MAX_ATTEMPTS - 1) {
+        throw error;
+      }
+      const delay = Math.round(FACILITATOR_429_BASE_DELAY_MS * 2 ** attempt + Math.random() * 400);
+      await sleep(delay);
+    }
+  }
+  throw new Error("x402 payment fetch: facilitator 429 retries exhausted");
 }
 export function wrapPaidFetchWithRetries(paymentFetch) {
     return async (input, init) => {
@@ -46,7 +46,7 @@ export function wrapPaidFetchWithRetries(paymentFetch) {
         let lastError;
         for (let attempt = 0; attempt <= FACILITATOR_PAID_402_MAX_RETRIES; attempt++) {
             try {
-                const res = await paidFetchWithCorbits429Backoff(paymentFetch, url, init);
+                const res = await paidFetchWithFacilitator429Backoff(paymentFetch, url, init);
                 lastResponse = res;
                 if (res.ok || res.status !== 402)
                     return res;

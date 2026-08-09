@@ -695,7 +695,7 @@ if (response.status === 402) {
 \`\`\`
 
 > [!TIP]
-> x402 is chain-agnostic at the protocol layer. Syra supports settlement on Base and Solana, with more networks on the roadmap.
+> x402 is chain-agnostic at the protocol layer. Syra settles on Solana and Base plus PayAI/Dexter multi-chain EVM (Polygon, Arbitrum, Avalanche, Sei, SKALE, and more), BSC B402, Algorand, and OKX X Layer when enabled.
 
 ## MPP: Multi-Party Payments
 

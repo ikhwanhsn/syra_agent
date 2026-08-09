@@ -275,7 +275,20 @@ curl -i "${BASE_URL}/news?ticker=BTC" \\
         <ol>
           <li>
             Make the request without payment. The API responds <strong>402</strong> with an <code>accepts</code> array
-            describing supported networks and USDC price.
+            describing supported networks and price (see{" "}
+            <Link to="/docs/api/x402-api-standard" className="text-primary hover:underline">
+              x402 Payment Flow
+            </Link>{" "}
+            and{" "}
+            <a
+              href={`${BASE_URL}/x402/capabilities`}
+              className="text-primary hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              /x402/capabilities
+            </a>
+            ).
           </li>
           <li>Pick one offer and use an x402 client to build, sign, and encode a payment payload.</li>
           <li>

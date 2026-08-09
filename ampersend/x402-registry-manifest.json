@@ -26,9 +26,9 @@
     "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
     "assetLabel": "USDC",
     "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
-    "gatewayUrl": "https://api.syraa.fun",
-    "discoveryUrl": "https://api.syraa.fun/.well-known/x402",
-    "openapiUrl": "https://api.syraa.fun/openapi.json",
+    "gatewayUrl": "http://localhost:3000",
+    "discoveryUrl": "http://localhost:3000/.well-known/x402",
+    "openapiUrl": "http://localhost:3000/openapi.json",
     "bazaarNetwork": "eip155:8453",
     "facilitators": [
       "dexter",
@@ -55,7 +55,10 @@
       "facilitator": "https://facilitator.payai.network"
     },
     "agent402": {
-      "note": "Auto-indexed from CDP Bazaar + on-chain USDC to payTo",
+      "note": "POST https://agent402.tools/api/index/register with { origin }; also auto-indexed from Base USDC settlements to payTo",
+      "register": "https://agent402.tools/api/index/register",
+      "script": "npm run register-agent402",
+      "marketplace": "https://agent402.tools/marketplace",
       "leaderboard": "https://agent402.tools/leaderboard"
     },
     "x402stats": {
@@ -77,5 +80,5 @@
       "discovery": "https://api.syraa.fun/openapi.json"
     }
   },
-  "updatedAt": "2026-08-07T01:03:41.371Z"
+  "updatedAt": "2026-08-09T17:28:57.086Z"
 }

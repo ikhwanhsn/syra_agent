@@ -22,7 +22,7 @@ export const ARBITRUM_SEPOLIA_USDC = "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d
 /** Celo USDC. */
 export const CELO_USDC = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C";
 
-/** Primary Solana merchant payTo (PayAI / Corbits / Dexter / Goplausible). */
+/** Primary Solana merchant payTo (PayAI / Dexter / Goplausible). */
 export const SOLANA_PAYTO = "53JhuF8bgxvUQ59nDG6kWs4awUQYCS3wswQmUsV5uC7t";
 /** Base / EVM merchant payTo (PayAI multi-network). */
 export const EVM_PAYTO = "0xB8B34bB10fABf2e4b2c2cD19fAe916da161C8445";
@@ -38,7 +38,6 @@ export const CELO_PAYTO = "0xD85Ec8eCD3C04c4843d4E354f4Dd95A081007DFA";
 export const B402_PAY_TO = "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734";
 
 export const FACILITATOR_URL_PAYAI = "https://facilitator.payai.network";
-export const CORBITS_FACILITATOR_URL = "https://facilitator.corbits.dev";
 export const GOPLAUSIBLE_FACILITATOR_URL = "https://facilitator.goplausible.xyz";
 export const B402_BASE_URL = "https://api.commonservice.io";
 export const CELO_FACILITATOR_URL = "https://api.x402.celo.org";
@@ -98,7 +97,6 @@ export function getPayToAddresses() {
 /**
  * @returns {{
  *   payai: string,
- *   corbits: string,
  *   goplausible: string,
  *   b402: string,
  *   celo: string,
@@ -107,7 +105,6 @@ export function getPayToAddresses() {
 export function getFacilitatorUrls() {
   return {
     payai: FACILITATOR_URL_PAYAI,
-    corbits: CORBITS_FACILITATOR_URL,
     goplausible: GOPLAUSIBLE_FACILITATOR_URL,
     b402: B402_BASE_URL,
     celo: CELO_FACILITATOR_URL,

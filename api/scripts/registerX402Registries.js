@@ -1,15 +1,17 @@
 /**
- * Register Syra with x402 discovery registries (CDP Bazaar, PayAI, Ampersend).
+ * Register Syra with x402 discovery registries (CDP Bazaar, PayAI, Ampersend, Agent402).
  *
  * Usage:
  *   node -r dotenv/config scripts/registerX402Registries.js
  *   node -r dotenv/config scripts/registerX402Registries.js --ampersend --pay
+ *   node -r dotenv/config scripts/registerX402Registries.js --agent402
  *   node -r dotenv/config scripts/registerX402Registries.js --validate
  *   node -r dotenv/config scripts/registerX402Registries.js --validate --local
  *   node -r dotenv/config scripts/registerX402Registries.js --validate --base-url=https://api.syraa.fun
  *
  * @see https://docs.x402.org/extensions/bazaar
  * @see https://docs.payai.network/x402/sellers
+ * @see https://agent402.tools/sell
  */
 import dotenv from "dotenv";
 import fs from "node:fs";
@@ -28,6 +30,7 @@ const VALIDATE_LOCAL = process.argv.includes("--local");
 const VALIDATE_PRODUCTION =
   process.argv.includes("--production") || (VALIDATE && !VALIDATE_LOCAL);
 const RUN_AMPERSEND = process.argv.includes("--ampersend") || process.argv.includes("--pay");
+const RUN_AGENT402 = process.argv.includes("--agent402");
 
 /** Manifest / payTo config uses env BASE_URL (may be localhost in dev). */
 const BASE_URL = String(process.env.BASE_URL || PRODUCTION_BASE).replace(/\/+$/, "");
@@ -225,7 +228,10 @@ function writeRegistryManifest() {
         facilitator: "https://facilitator.payai.network",
       },
       agent402: {
-        note: "Auto-indexed from CDP Bazaar + on-chain USDC to payTo",
+        note: "POST https://agent402.tools/api/index/register with { origin }; also auto-indexed from Base USDC settlements to payTo",
+        register: "https://agent402.tools/api/index/register",
+        script: "npm run register-agent402",
+        marketplace: "https://agent402.tools/marketplace",
         leaderboard: "https://agent402.tools/leaderboard",
       },
       x402stats: {
@@ -300,10 +306,24 @@ async function main() {
     });
   }
 
+  if (RUN_AGENT402) {
+    log("Delegating to registerAgent402.js …");
+    const { spawn } = await import("node:child_process");
+    await new Promise((resolve, reject) => {
+      const child = spawn(
+        process.execPath,
+        ["-r", "dotenv/config", path.resolve(__dirname, "registerAgent402.js")],
+        { stdio: "inherit", cwd: path.resolve(__dirname, "..") },
+      );
+      child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`agent402 exit ${code}`))));
+    });
+  }
+
   log("Registry checklist:");
   log(`  CDP Bazaar payTo: ${manifest.networks.find((n) => n.caip2 === "eip155:8453")?.payTo ?? "NOT SET"}`);
   log(`  Discovery: ${manifest.discovery_url}`);
   log(`  Metrics: ${manifest.metrics_url}`);
+  log(`  Agent402: ${manifest.registries.agent402.script}`);
   log("Done.");
 }
 

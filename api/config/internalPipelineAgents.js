@@ -77,7 +77,7 @@ export const AGENT_TEAM_CRAWL_PER_SITE_LIMIT = 30;
 
 /** One recent-search call (OR of former dual queries) — fewer X API reads per run. */
 export const X402_X_TRENDS_SEARCH_QUERY = Object.freeze(
-  '(x402 -is:retweet lang:en) OR (("x402" OR payai OR corbits) (payment OR facilitator OR micropayment) -is:retweet lang:en)',
+  '(x402 -is:retweet lang:en) OR (("x402" OR payai OR dexter OR goplausible) (payment OR facilitator OR micropayment) -is:retweet lang:en)',
 );
 
 /** @deprecated Use {@link X402_X_TRENDS_SEARCH_QUERY}; kept for callers expecting an array. */

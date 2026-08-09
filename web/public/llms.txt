@@ -48,13 +48,21 @@ npm packages (for agents)
 
 Payments and access
 -------------------
-Many API routes use HTTP 402 and the x402 (micropayment) model (Solana USDC default; Base and Algorand also supported).
+Many API routes use HTTP 402 and the x402 (micropayment) model.
 
-MCP auto-pay: configure a payer env on the MCP process. On HTTP 402 the server signs PAYMENT-SIGNATURE and retries.
+Server 402 accepts (live: GET https://api.syraa.fun/x402/capabilities):
+- Core USDC: Solana, Base
+- Multi-chain USDC via PayAI/Dexter: Polygon, Arbitrum, Avalanche, Sei, SKALE, Optimism, World Chain, Monad, Robinhood Chain (and documented testnets in non-prod)
+- Also when enabled: BSC B402, Algorand (GoPlausible), OKX X Layer (USDT0)
+- Facilitator failover: Dexter → GoPlausible → PayAI
+
+MCP/SDK auto-pay signers today (configure a payer env; on 402 the client signs PAYMENT-SIGNATURE and retries):
 - Solana (default): SYRA_PAYER_KEYPAIR
 - Base: X402_PREFERRED_NETWORK=base + SYRA_EVM_PAYER_PRIVATE_KEY
 - Algorand: X402_PREFERRED_NETWORK=algorand + SYRA_ALGORAND_PAYER_PRIVATE_KEY
+For other accepts, use a matching x402 client or pick an offer those signers can pay.
 Without a payer, production MCP tool calls may return 402 with pricing. Local testing: SYRA_USE_DEV_ROUTES=true against a local API.
+Agent execution wallets: solana | base | bsc (GET /agent/chains).
 
 Tool naming: MCP tools use syra_{pillar}_{toolId} (example: syra_spend_news). Escape hatch: syra_call_tool with { toolId, params }. See https://syraa.fun/skills.md for the curated list.
 

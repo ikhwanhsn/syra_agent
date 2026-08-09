@@ -356,8 +356,7 @@ function facilitatorErrorLooks429(e) {
 }
 
 /**
- * Corbits facilitator (and peers) may return 429 under burst; docs describe flow, not numeric RPS
- * (https://docs.corbits.dev/facilitator/how-it-works.md). Retries one probe’s payment fetch only.
+ * Facilitators may return 429 under burst. Retries one probe’s payment fetch only.
  * @param {(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>} inner
  */
 function wrapPaymentFetchWithFacilitator429Backoff(inner) {

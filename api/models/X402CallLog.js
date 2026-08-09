@@ -20,8 +20,9 @@ const DIRECTIONS = ['inbound', 'outbound'];
 
 const FACILITATORS = [
   'payai',
-  'corbits',
+  'corbits', // historical only; Corbits facilitator removed
   'dexter',
+  'goplausible',
   'celo',
   'b402',
   'algorand',

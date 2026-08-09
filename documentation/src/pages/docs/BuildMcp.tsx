@@ -149,6 +149,19 @@ export default function BuildMcp() {
             <code>SYRA_USE_DEV_ROUTES=true</code> — local API without payment
           </li>
         </ul>
+        <p>
+          MCP auto-pay covers Solana / Base / Algorand. Syra 402 <code>accepts</code> can also include PayAI/Dexter
+          multi-chain EVM, BSC B402, and OKX X Layer. Facilitator failover: Dexter → GoPlausible → PayAI. Live:{" "}
+          <a
+            href={`${SYRA_API_URL}/x402/capabilities`}
+            className="text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {SYRA_API_URL}/x402/capabilities
+          </a>
+          .
+        </p>
       </DocSection>
 
       <DocSection id="tools" title="Tool naming" prose>

@@ -24,7 +24,7 @@ Shipped milestones are tracked in the [Changelog](/docs/changelog). The quarters
 
 ### Spend (x402)
 
-- x402 payment rail on Solana and Base (MPP, Tempo where applicable)
+- x402 payment rails: Solana, Base, PayAI/Dexter multi-chain EVM, BSC B402, Algorand (GoPlausible), OKX X Layer; facilitator failover Dexter → GoPlausible → PayAI (MPP/Tempo where applicable)
 - 200+ paid API routes — intelligence, market data, and partner gateways
 - **API Marketplace** — browse Core vs Partners, per-route detail pages, agent manifests, Integrate (SDK/MCP) and Custom tester tabs
 - Data-provider routes: DexScreener, GeckoTerminal, DefiLlama, RugCheck, Pyth Hermes

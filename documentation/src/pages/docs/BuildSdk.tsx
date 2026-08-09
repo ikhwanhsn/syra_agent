@@ -31,7 +31,8 @@ export default function BuildSdk() {
       <DocSection id="what" title="What you get" prose>
         <ul>
           <li>
-            Auto-pay client for Solana, Base, and Algorand USDC rails
+            Auto-pay client for Solana, Base, and Algorand USDC rails (server 402 may also offer PayAI/Dexter
+            multi-chain, B402, and OKX X Layer)
           </li>
           <li>
             Low-level payment fetch via <code>@syra-ai/sdk/payment</code>
@@ -95,7 +96,16 @@ if (news.success) {
           </li>
         </ul>
         <p>
-          Discovery:{" "}
+          Server accepts are broader than these signers. Live networks and facilitator failover:{" "}
+          <a
+            href={`${SYRA_API_URL}/x402/capabilities`}
+            className="text-primary hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {SYRA_API_URL}/x402/capabilities
+          </a>
+          . Discovery:{" "}
           <a
             href={`${SYRA_API_URL}/.well-known/x402`}
             className="text-primary hover:underline"
@@ -104,6 +114,11 @@ if (news.success) {
           >
             {SYRA_API_URL}/.well-known/x402
           </a>
+          . See{" "}
+          <Link to="/docs/api/x402-api-standard" className="text-primary hover:underline">
+            x402 Payment Flow
+          </Link>
+          .
         </p>
       </DocSection>
 

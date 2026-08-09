@@ -147,7 +147,7 @@ Restart Claude Desktop after editing.
 ## Features
 
 - **257 tools** codegen from Syra `agentTools` (47 curated or full profile)
-- **x402 v2 auto-pay** via `@x402/fetch` + `PAYMENT-SIGNATURE` (Solana / Base / Algorand)
+- **x402 v2 auto-pay** via `@x402/fetch` + `PAYMENT-SIGNATURE` (Solana / Base / Algorand signers; server may also offer PayAI/Dexter multi-chain, B402, OKX)
 - **`syra_call_tool`** escape hatch for any toolId when using curated profile
 - **Agent-direct bridge** — web-search, Nansen, GMGN, etc. via API MCP bridge
 - **Configurable base URL** — production or local API
@@ -181,7 +181,7 @@ Tools return the raw API body on **200**. Non-200 responses include status + bod
 | `syra_invest_bankr_prompt` | `bankr-prompt` | invest | Submit a natural language prompt to Bankr agent (body: prompt, optional threadId). Returns jobId; poll bankr-job tool with jobId for result. |
 | `syra_invest_giza_agent` | `giza-agent` | invest | Get or create Giza smart account (deposit address) for an owner EOA. Params: owner (0x... address) |
 | `syra_invest_giza_protocols` | `giza-protocols` | invest | List DeFi protocols available for a token on Giza (e.g. USDC on Base). Params: token (contract address 0x...) |
-| `syra_invest_jupiter_swap_order` | `jupiter-swap-order` | invest | Jupiter Ultra swap order on Solana (Corbits): returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet). |
+| `syra_invest_jupiter_swap_order` | `jupiter-swap-order` | invest | Jupiter Ultra swap order on Solana: returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet). |
 | `syra_invest_rise_borrow_quote` | `rise-borrow-quote` | invest | Get RISE borrow capacity and optional required deposit |
 | `syra_invest_rise_buy_token` | `rise-buy-token` | invest | Build RISE buy transaction (wallet, market, cashIn, minTokenOut) |
 | `syra_invest_rise_deposit_and_borrow` | `rise-deposit-and-borrow` | invest | Build RISE deposit+borrow transaction (wallet, market, borrowAmount) |
@@ -252,7 +252,9 @@ Escape hatch (always registered): **`syra_call_tool`** with `{ toolId, params }`
 | Production, no payer | — | Tools return 402 body |
 | Local testing | `SYRA_USE_DEV_ROUTES=true` + local API | Paths become `.../dev` |
 
-Supported rails: **Solana USDC** (default), **Base USDC**, **Algorand USDC**.
+**MCP auto-pay signers:** Solana USDC (default), Base USDC, Algorand USDC.
+
+**Server 402 accepts** (live: `GET https://api.syraa.fun/x402/capabilities`): Solana + Base; PayAI/Dexter multi-chain (Polygon, Arbitrum, Avalanche, Sei, SKALE, Optimism, World, Monad, Robinhood, …); BSC B402; Algorand; OKX X Layer when enabled. Facilitator failover: Dexter → GoPlausible → PayAI.
 
 ---
 

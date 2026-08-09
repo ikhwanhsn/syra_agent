@@ -29,8 +29,8 @@ describe("settlement.js", () => {
     const urls = getFacilitatorUrls();
     assert.equal(urls.payai, FACILITATOR_URL_PAYAI);
     assert.match(urls.payai, /^https:\/\//);
-    assert.match(urls.corbits, /^https:\/\//);
     assert.match(urls.goplausible, /^https:\/\//);
+    assert.equal("corbits" in urls, false);
   });
 
   it("payai module shares settlement payTo", () => {

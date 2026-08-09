@@ -65,10 +65,29 @@ Safe retry semantics
 - HTTP 5xx with body containing "Payment was NOT charged": safe to retry without double-billing.
 - Trust X-Payment-Response success=true for on-chain settlement confirmation.
 
-Networks (preferred order)
---------------------------
-1. Base Mainnet (eip155:8453) — USDC — primary x402 volume rail
+Networks (server 402 accepts)
+-----------------------------
+Live status: GET /x402/capabilities (preferredNetworks, B402/Algorand/OKX flags, facilitator failover).
+
+Core USDC:
+1. Base Mainnet (eip155:8453) — USDC
 2. Solana Mainnet (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) — USDC
+
+Multi-chain USDC (PayAI and/or Dexter facilitators; exact offers are in each 402 `accepts` array):
+- Polygon (eip155:137), Arbitrum One (eip155:42161), Avalanche (eip155:43114)
+- Sei (eip155:1329, PayAI), SKALE Europa (eip155:1187947933)
+- Optimism (eip155:10), World Chain (eip155:480), Monad (eip155:143)
+- Robinhood Chain (eip155:4663, USDG)
+- Non-prod may include documented testnets
+
+Additional rails (when enabled):
+- BNB Smart Chain via Binance B402 (eip155:56)
+- Algorand Mainnet via GoPlausible AVM (USDC ASA)
+- OKX X Layer (eip155:196, USDT0)
+
+Facilitator failover (verify/settle): Dexter → GoPlausible → PayAI
+MCP/SDK auto-pay signers today: Solana (default), Base, Algorand
+Agent execution wallets (GET /agent/chains): solana | base | bsc
 
 Paid HTTP resources (see /.well-known/x402 for full list)
 ---------------------------------------------------------

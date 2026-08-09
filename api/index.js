@@ -206,11 +206,18 @@ import {
 } from "./libs/b402KeyMaterial.js";
 import { isB402Enabled } from "./config/b402Networks.js";
 import { getAlgorandPublicStatus, isAlgorandEnabled } from "./config/algorandX402Networks.js";
-import { getOkxX402PublicStatus } from "./config/okxX402Networks.js";
+import { getOkxX402PublicStatus, isOkxX402Enabled } from "./config/okxX402Networks.js";
 import { startupInfo, startupVerbose, startupWarn } from "./utils/startupLog.js";
 import { startMemoryHygiene } from "./utils/memoryHygiene.js";
 import { withSingleFlight } from "./utils/singleFlight.js";
-import { SYRA_META_DESCRIPTION, SYRA_TAGLINE } from "./config/syraBranding.js";
+import {
+  SYRA_AGENT_DESCRIPTION,
+  SYRA_BAZAAR_DOCS_URL,
+  SYRA_BAZAAR_ICON_URL,
+  SYRA_BAZAAR_SERVICE_NAME,
+  SYRA_META_DESCRIPTION,
+  SYRA_TAGLINE,
+} from "./config/syraBranding.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1232,9 +1239,6 @@ app.get("/", (req, res) => {
 │  └────────────────────────────────────────────────────────────────────────┘  │
 │                                                                              │
 │  ┌─ Data Providers ───────────────────────────────────────────────────────┐  │
-│  │  GET    /v1/corbits              [AVAILABLE SOON]                      │  │
-│  │         → On-chain metrics and market data                             │  │
-│  │                                                                        │  │
 │  │  GET    /v1/nansen               [AVAILABLE SOON]                      │  │
 │  │         → Smart money flow analysis and whale tracking                 │  │
 │  └────────────────────────────────────────────────────────────────────────┘  │
@@ -1715,11 +1719,23 @@ app.get("/.well-known/x402", async (req, res) => {
       "- **Algorand Mainnet (AVM)**: `algorand:wGHE2Pwdvd7S12BL5FaOP20EGYesN73ktiC1qzkkit8=` - USDC ASA (31566704) via GoPlausible facilitator",
     );
   }
+  if (isOkxX402Enabled()) {
+    paymentNetworkLines.push(
+      "- **X Layer (OKX)**: `eip155:196` - USDT0 payments via OKX x402 facilitator",
+    );
+  }
 
   return discoveryJsonCache.send(
     "well-known-x402",
     () => ({
       version: 1, // Discovery document version (not x402 protocol version)
+      // Seller branding for Agent402 / marketplace crawlers (displayName, description).
+      name: SYRA_BAZAAR_SERVICE_NAME,
+      description: SYRA_AGENT_DESCRIPTION,
+      url: "https://syraa.fun",
+      website: "https://syraa.fun",
+      documentation: SYRA_BAZAAR_DOCS_URL,
+      image: SYRA_BAZAAR_ICON_URL,
       resources: [...resources, ...creatorSkillResources],
       resourceDetails,
       metrics: `${X402_BASE}/api/metrics`,

@@ -366,7 +366,7 @@ export async function executeAgentToolCall(input) {
       }
     }
 
-    // Jupiter Ultra (Corbits): same mint/amount normalizer; taker defaults to agent wallet.
+    // Jupiter Ultra: same mint/amount normalizer; taker defaults to agent wallet.
     if (tool.id === 'jupiter-swap-order') {
       const fromLlm = normalizeJupiterSwapParams(params);
       if (fromLlm) {

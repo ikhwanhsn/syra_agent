@@ -319,7 +319,7 @@ export const X402_API_PRICE_STABLEENRICH_0495_USD = passthrough(0.0495);
 export const X402_API_PRICE_STABLEENRICH_05_USD = passthrough(0.05);
 export const X402_API_PRICE_STABLEENRICH_10_USD = passthrough(0.1);
 
-/** Jupiter swap order (buy/sell token via Corbits Jupiter Ultra) */
+/** Jupiter swap order (buy/sell token via Jupiter Ultra) */
 export const X402_API_PRICE_JUPITER_SWAP_USD = price(0.02);
 
 /** Jupiter Swap V1 quote with referral platform fee — Tier 1 */

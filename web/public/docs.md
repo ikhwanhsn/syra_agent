@@ -43,7 +43,9 @@ This file mirrors the **structure of the public documentation** published at [do
 
 - [API reference overview](https://docs.syraa.fun/docs/api-reference)
 - [Syra Marketplace (Web UI)](https://docs.syraa.fun/docs/api/syra-marketplace)
-- [x402 Payment Flow](https://docs.syraa.fun/docs/api/x402-api-standard)
+- [x402 Payment Flow](https://docs.syraa.fun/docs/api/x402-api-standard), supported networks (Solana, Base, PayAI/Dexter multi-chain, B402, Algorand, OKX X Layer) and facilitator failover Dexter → GoPlausible → PayAI
+- Live payment capabilities: [https://api.syraa.fun/x402/capabilities](https://api.syraa.fun/x402/capabilities)
+- Discovery document: [https://api.syraa.fun/.well-known/x402](https://api.syraa.fun/.well-known/x402)
 
 ### All endpoints
 

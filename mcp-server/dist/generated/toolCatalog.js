@@ -601,7 +601,7 @@ export const MCP_TOOL_CATALOG = [
         "access": "agent-direct",
         "method": "GET",
         "name": "Jupiter swap order",
-        "description": "Jupiter Ultra swap order on Solana (Corbits): returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet).",
+        "description": "Jupiter Ultra swap order on Solana: returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet).",
         "priceUsd": 0.0002,
         "curated": true
     },

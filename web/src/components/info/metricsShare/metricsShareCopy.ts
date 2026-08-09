@@ -376,7 +376,7 @@ These are the APIs agents pay for most. Product signal in USDC.
     const stats = bulletStats(topItems(section, 5));
     return `Syra x402 reliability, NETWORK + FACILITATOR HEALTH.
 
-Success rates by chain and payment facilitator. PayAI, Corbits, Solana, Base, all tracked.
+Success rates by chain and payment facilitator. PayAI, Dexter, Solana, Base, all tracked.
 
 ${stats}
 

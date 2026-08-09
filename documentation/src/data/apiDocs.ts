@@ -97,11 +97,11 @@ const STANDARD_AUTH_NOTE =
  */
 const STANDARD_PAYMENT_FLOW_STEPS = {
   step1:
-    "Make the request without payment. The API responds 402 with `{ x402Version: 1, error, accepts: [...] }`. Each `accepts[i]` describes one offer: `scheme: \"exact\"`, `network` (\"solana\" or \"base\"), `asset` (USDC mint/contract), `maxAmountRequired` (price in micro-units, USDC has 6 decimals), `payTo`, `resource`, `maxTimeoutSeconds`, and an `outputSchema`.",
+    "Make the request without payment. The API responds 402 with `{ x402Version: 1, error, accepts: [...] }`. Each `accepts[i]` describes one offer: `scheme: \"exact\"`, `network` (CAIP-2, e.g. Solana mainnet, `eip155:8453` Base, or other enabled rails), `asset` (USDC mint/contract or rail stablecoin), `maxAmountRequired` (price in atomic units; USDC is usually 6 decimals), `payTo`, `resource`, `maxTimeoutSeconds`, and an `outputSchema`. Live list: `GET /x402/capabilities` and the `accepts` array on each 402.",
   step2:
     "Pick one offer and have an x402 client (e.g. `x402-solana` / `@x402/core`) build, sign, and base64-encode a payment payload that satisfies it. The signed payload is the value of the `X-PAYMENT` header.",
   step3:
-    "Replay the original request with `X-PAYMENT: <encoded payload>`. On success the API verifies and settles the payment via the configured facilitator (PayAI), returns 200 with the JSON body, and includes an `X-PAYMENT-RESPONSE: <base64 JSON>` header confirming settlement.",
+    "Replay the original request with `X-PAYMENT: <encoded payload>`. On success the API verifies and settles via the active facilitator (default failover: Dexter → GoPlausible → PayAI; Algorand via GoPlausible AVM; B402 and OKX X Layer when enabled), returns 200 with the JSON body, and includes an `X-PAYMENT-RESPONSE: <base64 JSON>` header confirming settlement.",
 } as const;
 
 /** Per-endpoint x402 flow builder — same canonical text, route-specific 402 body. */
@@ -151,7 +151,25 @@ export const apiDocs: Record<string, ApiDoc> = {
     "${BASE_URL}/health"
   ],
   "ownershipProofs": ["<EVM proof>", "<SVM proof>"],
-  "instructions": "# SYRA API Documentation\\n\\nVisit https://docs.syraa.fun for full documentation.\\n\\n## Supported Payment Networks\\n- Base Mainnet (EVM): eip155:8453 - USDC payments\\n- Solana Mainnet (SVM): solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp - USDC payments\\n\\n## Authentication\\nNo API key required. All endpoints use x402 protocol (HTTP 402) for payment."
+  "instructions": "# SYRA API Documentation\\n\\nVisit https://docs.syraa.fun for full documentation.\\n\\n## Supported Payment Networks\\n- Solana, Base, and multi-chain USDC rails (PayAI / Dexter)\\n- BNB Smart Chain (B402), Algorand (GoPlausible), OKX X Layer when enabled\\n- Live status: GET /x402/capabilities\\n\\n## Facilitator failover\\nDexter → GoPlausible → PayAI\\n\\n## Authentication\\nNo API key required. All endpoints use x402 protocol (HTTP 402) for payment."
+}`,
+      },
+      {
+        method: "GET",
+        path: "/x402/capabilities",
+        description:
+          "Live payment-network status (no secrets): preferred networks, B402, Algorand, OKX X Layer flags, and default facilitator failover order. Always free.",
+        requestExample: `curl ${BASE_URL}/x402/capabilities`,
+        responseExample: `{
+  "success": true,
+  "data": {
+    "enabled": { "b402": true, "algorand": true, "xlayer": true, "dexter": true },
+    "defaultFacilitatorFailover": ["dexter", "goplausible", "payai"],
+    "preferredNetworks": [
+      { "caip2": "eip155:8453", "label": "Base", "asset": "USDC", "priority": 1 },
+      { "caip2": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "label": "Solana", "asset": "USDC", "priority": 2 }
+    ]
+  }
 }`,
       },
       {
@@ -174,7 +192,7 @@ export const apiDocs: Record<string, ApiDoc> = {
         method: "GET",
         path: "/<paid-endpoint>",
         description:
-          "Step 2 — replay the same request with `X-PAYMENT: <base64 signed payload>` produced by an x402 client for one of the offered networks. On success the API returns 200 plus an `X-PAYMENT-RESPONSE` header confirming on-chain settlement via the PayAI facilitator.",
+          "Step 2 — replay the same request with `X-PAYMENT: <base64 signed payload>` produced by an x402 client for one of the offered networks. On success the API returns 200 plus an `X-PAYMENT-RESPONSE` header confirming on-chain settlement (Dexter → GoPlausible → PayAI failover by default).",
         requestExample: `curl -i "${BASE_URL}/news?ticker=BTC" \\
   -H "X-PAYMENT: $(node ./scripts/sign-x402.js --network solana --resource '${BASE_URL}/news?ticker=BTC' --amount 10000)"`,
         responseExample: `HTTP/1.1 200 OK
@@ -197,11 +215,21 @@ X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
       {
         title: "Supported networks and assets",
         content:
-          "Two networks are accepted on every paid route. Solana mainnet — `network: \"solana\"`, `asset: " +
+          "Paid routes advertise one or more offers in `accepts[]`. Pick any offer your wallet can pay. Live flags and preferred order: `GET " +
+          BASE_URL +
+          "/x402/capabilities`. Discovery copy: `GET " +
+          BASE_URL +
+          "/.well-known/x402`.\n\n" +
+          "**Core USDC rails (always primary):** Solana mainnet (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`, mint `" +
           USDC_SOLANA_MAINNET +
-          "` (USDC SPL mint, 6 decimals). Base mainnet — `network: \"base\"`, `asset: " +
+          "`) and Base (`eip155:8453`, `" +
           USDC_BASE_MAINNET +
-          "` (USDC ERC-20, 6 decimals). Pick whichever offer matches your wallet — the API verifies and settles via the PayAI facilitator (`FACILITATOR_URL_PAYAI`).",
+          "`).\n\n" +
+          "**Multi-chain USDC (PayAI and/or Dexter facilitators):** Polygon (`eip155:137`), Arbitrum One (`eip155:42161`), Avalanche (`eip155:43114`), Sei (`eip155:1329`, PayAI), SKALE Europa (`eip155:1187947933`), Optimism (`eip155:10`, Dexter), World Chain (`eip155:480`), Monad (`eip155:143`), Robinhood Chain (`eip155:4663`, USDG). Non-production APIs may also offer documented testnets.\n\n" +
+          "**Additional rails:** BNB Smart Chain via Binance B402 (`eip155:56`); Algorand Mainnet via GoPlausible AVM (USDC ASA); OKX facilitator on X Layer (`eip155:196`, USDT0) when enabled.\n\n" +
+          "**Facilitator failover (verify/settle):** Dexter → GoPlausible → PayAI (health-based). Same API URL; settlement address and gas floor come from the active facilitator.\n\n" +
+          "**MCP / SDK auto-pay signers today:** Solana (default), Base, and Algorand. For other `accepts`, use a matching x402 client or choose an offer those signers can pay.\n\n" +
+          "**Agent execution wallets** (`GET /agent/chains`): Solana, Base (limited), BNB Chain.",
       },
       {
         title: "How `maxAmountRequired` is computed",
@@ -230,7 +258,7 @@ X-PAYMENT-RESPONSE: eyJzdWNjZXNzIjp0cnVlfQ==
       {
         title: "Free routes that look paid",
         content:
-          "Discovery (`/.well-known/x402`, `/openapi.json`, `/mpp-openapi.json`), `/health`, and the dashboard/preview helpers (`/dashboard-summary`, `/preview/*`, `/binance-ticker`) are intentionally free and do not return 402. The trusted-origin gateway also injects an internal API key for browser calls from syraa.fun (including /marketplace and /overview) — never embed an API key in client bundles.",
+          "Discovery (`/.well-known/x402`, `/x402/capabilities`, `/openapi.json`, `/mpp-openapi.json`), `/health`, and the dashboard/preview helpers (`/dashboard-summary`, `/preview/*`, `/binance-ticker`) are intentionally free and do not return 402. The trusted-origin gateway also injects an internal API key for browser calls from syraa.fun (including /marketplace and /overview) — never embed an API key in client bundles.",
       },
       {
         title: "Rate limits",
@@ -733,7 +761,7 @@ curl "${BASE_URL}/trending-headline?ticker=BTC"`,
   "analytics-summary": doc({
     title: "Analytics Summary API",
     overview:
-      "Aggregated analytics in one paid request: Jupiter trending (Corbits), Nansen smart money (netflow, holdings, historical holdings, DEX trades, DCAs), and Binance correlation (Pearson on OHLC). Uses the x402 payment protocol.",
+      "Aggregated analytics in one paid request: Jupiter trending, Nansen smart money (netflow, holdings, historical holdings, DEX trades, DCAs), and Binance correlation (Pearson on OHLC). Uses the x402 payment protocol.",
     price: "See x402 response for current price (typically higher than single-endpoint calls).",
     endpoints: [
       {

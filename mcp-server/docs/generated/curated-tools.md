@@ -11,7 +11,7 @@
 | `syra_invest_bankr_prompt` | `bankr-prompt` | invest | Submit a natural language prompt to Bankr agent (body: prompt, optional threadId). Returns jobId; poll bankr-job tool with jobId for result. |
 | `syra_invest_giza_agent` | `giza-agent` | invest | Get or create Giza smart account (deposit address) for an owner EOA. Params: owner (0x... address) |
 | `syra_invest_giza_protocols` | `giza-protocols` | invest | List DeFi protocols available for a token on Giza (e.g. USDC on Base). Params: token (contract address 0x...) |
-| `syra_invest_jupiter_swap_order` | `jupiter-swap-order` | invest | Jupiter Ultra swap order on Solana (Corbits): returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet). |
+| `syra_invest_jupiter_swap_order` | `jupiter-swap-order` | invest | Jupiter Ultra swap order on Solana: returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet). |
 | `syra_invest_rise_borrow_quote` | `rise-borrow-quote` | invest | Get RISE borrow capacity and optional required deposit |
 | `syra_invest_rise_buy_token` | `rise-buy-token` | invest | Build RISE buy transaction (wallet, market, cashIn, minTokenOut) |
 | `syra_invest_rise_deposit_and_borrow` | `rise-deposit-and-borrow` | invest | Build RISE deposit+borrow transaction (wallet, market, borrowAmount) |

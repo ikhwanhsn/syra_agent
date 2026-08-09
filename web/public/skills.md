@@ -67,6 +67,8 @@ The repository `mcp-server` exposes **257 codegen tools** from `api/config/agent
 | `SYRA_MCP_API_KEY` | Agent-direct tools via `POST /mcp/tools/call` on the API |
 | `SYRA_USE_DEV_ROUTES=true` | Local `/dev` paths (no payment) |
 
+**Server accepts vs auto-pay:** Syra 402 `accepts` can include Solana, Base, PayAI/Dexter multi-chain EVM (Polygon, Arbitrum, Avalanche, Sei, SKALE, Optimism, World, Monad, Robinhood, …), BSC B402, Algorand, and OKX X Layer when enabled. Facilitator failover is Dexter → GoPlausible → PayAI. MCP auto-pay signers today cover Solana / Base / Algorand; for other offers use a matching x402 client. Live: `GET https://api.syraa.fun/x402/capabilities`.
+
 Tool names follow `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`, `syra_invest_giza_protocols`). Escape hatch: **`syra_call_tool`** with `{ toolId, params }`.
 
 ### Curated tools (default profile)
@@ -83,7 +85,7 @@ Tool names follow `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`, `syra_invest
 | `syra_invest_bankr_prompt` | `bankr-prompt` | invest | Submit a natural language prompt to Bankr agent (body: prompt, optional threadId). Returns jobId; poll bankr-job tool with jobId for result. |
 | `syra_invest_giza_agent` | `giza-agent` | invest | Get or create Giza smart account (deposit address) for an owner EOA. Params: owner (0x... address) |
 | `syra_invest_giza_protocols` | `giza-protocols` | invest | List DeFi protocols available for a token on Giza (e.g. USDC on Base). Params: token (contract address 0x...) |
-| `syra_invest_jupiter_swap_order` | `jupiter-swap-order` | invest | Jupiter Ultra swap order on Solana (Corbits): returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet). |
+| `syra_invest_jupiter_swap_order` | `jupiter-swap-order` | invest | Jupiter Ultra swap order on Solana: returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet). |
 | `syra_invest_rise_borrow_quote` | `rise-borrow-quote` | invest | Get RISE borrow capacity and optional required deposit |
 | `syra_invest_rise_buy_token` | `rise-buy-token` | invest | Build RISE buy transaction (wallet, market, cashIn, minTokenOut) |
 | `syra_invest_rise_deposit_and_borrow` | `rise-deposit-and-borrow` | invest | Build RISE deposit+borrow transaction (wallet, market, borrowAmount) |

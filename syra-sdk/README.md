@@ -26,7 +26,7 @@ Solana · Base · Algorand
 
 | Capability | Detail |
 |------------|--------|
-| **Auto-pay client** | `createSyraPaidClient()` wires Solana / Base / Algorand signers |
+| **Auto-pay client** | `createSyraPaidClient()` wires Solana / Base / Algorand signers (server 402 may also offer PayAI/Dexter multi-chain, B402, OKX; see `/x402/capabilities`) |
 | **Manual signer** | Pass a custom `SyraPaymentSigner` for production wallets |
 | **Low-level fetch** | `@syra-ai/sdk/payment` — x402-wrapped `fetch` only |
 | **Typed responses** | All methods return `{ success, data?, error? }` |

@@ -120,6 +120,21 @@ BlockRun-style traction and onboarding endpoints (no API key):
 
 **Open-source payer:** [`packages/syra-x402-payer`](../packages/syra-x402-payer) (`@syra-ai/x402-payer`, MIT).
 
+### Payment networks and facilitators
+
+Server 402 `accepts` (live: `GET /x402/capabilities`):
+
+| Layer | Networks |
+|-------|----------|
+| Core USDC | Solana, Base |
+| PayAI / Dexter multi-chain | Polygon, Arbitrum, Avalanche, Sei, SKALE, Optimism, World Chain, Monad, Robinhood Chain (+ documented testnets in non-prod) |
+| Additional rails | BSC B402, Algorand (GoPlausible AVM), OKX X Layer (USDT0) when enabled |
+| Facilitator failover | Dexter → GoPlausible → PayAI |
+| MCP/SDK auto-pay signers | Solana (default), Base, Algorand |
+| Agent execution wallets | `solana` \| `base` \| `bsc` (`GET /agent/chains`) |
+
+Docs: [x402 Payment Flow](https://docs.syraa.fun/docs/api/x402-api-standard).
+
 ---
 
 ## MPP discovery (MPPscan / AgentCash)
@@ -128,7 +143,8 @@ BlockRun-style traction and onboarding endpoints (no API key):
 
 **Catalog:**
 
-- **`GET /.well-known/x402`** — x402 resource list (unchanged).
+- **`GET /.well-known/x402`** — x402 resource list + supported payment network instructions.
+- **`GET /x402/capabilities`** — live payment networks, B402/Algorand/OKX flags, facilitator failover (`dexter` → `goplausible` → `payai`).
 - **`GET /openapi.json`** — **OpenAPI 3.1** gateway catalog (10+ operations: `/api/signal`, `/info`, `/preview/*`, `/dashboard-summary`, `/binance-ticker`, `/prediction-game/health`, x402 **`/news`**, **`/sentiment`**, **`/event`**, **`/health`**, **`/brain`**, etc.). Standard schema only (no `info.guidance`). Same as repo-root `openapi.json` (`npm run openapi` in `api/`).
 - **`GET /mpp-openapi.json`** — full **OpenAPI 3.1** MPP discovery document: one entry per paid route (from **agent tools** + [`x402DiscoveryResourcePaths.js`](./config/x402DiscoveryResourcePaths.js)), with `info.guidance`, `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), **`402`**, optional **query parameters** (GET) and **JSON requestBody** (POST) to satisfy discovery validators.
 - **`GET` / `POST` [`/mpp/v1/health`](https://api.syraa.fun/mpp/v1/health)** — MPP-branded health check (same tier as `/health`). Legacy `/mpp/v1/check-status` → 308 to `/mpp/v1/health`.
@@ -280,6 +296,26 @@ Email **ampersend@edgeandnode.com** or join **@ampersendbuilders** on Telegram w
 
 ---
 
+## Agent402.tools seller index
+
+[Agent402](https://agent402.tools/sell) crawls `GET /.well-known/x402` and lists Syra in the Smart Order Router / marketplace. Discovery branding (`name`, `description`, `url`, `documentation`, `image`) comes from [`config/syraBranding.js`](./config/syraBranding.js).
+
+### Register / verify
+
+```bash
+cd api
+npm run register-agent402          # POST https://agent402.tools/api/index/register
+npm run register-agent402:check    # assert origin present, health=1, routable
+# or via registries helper:
+node -r dotenv/config scripts/registerX402Registries.js --agent402
+```
+
+Override origin with `--origin=https://api.syraa.fun` or `AGENT402_ORIGIN` / `SYRA_PUBLIC_API_URL`.
+
+Leaderboard rank follows on-chain Base USDC settlements to `BASE_PAYTO` (not self-reported). Marketplace: https://agent402.tools/marketplace
+
+---
+
 ## Register Syra on SAID Protocol
 
 [SAID Protocol](https://www.saidprotocol.com/docs) provides persistent, verifiable on-chain identity for AI agents on Solana (program `5dpw6KEQPn248pnkkaYyWfHwu2nfb3LUMbTucb6LaA8G`).
@@ -412,7 +448,7 @@ Treasury-paid enrichment requires **`AGENT_PRIVATE_KEY`** (or payer keypair) wit
 
 ## Jupiter Swap API — referral / platform fees
 
-Direct Jupiter V1 swaps (`api.jup.ag/swap/v1`) used by **LP agent live sidecar swaps** (`api/libs/lpRealSidecarSwap.js`), **SYRA buyback** (`api/utils/buybackSYRA.js`), and the **jupiter-swap-order** Swap V1 fallback can route a platform fee to your Jupiter referral account. The same referral account is passed to **Jupiter Ultra** (`jupiter-swap-order` primary path via Corbits) as `referralAccount` + `referralFee`.
+Direct Jupiter V1 swaps (`api.jup.ag/swap/v1`) used by **LP agent live sidecar swaps** (`api/libs/lpRealSidecarSwap.js`), **SYRA buyback** (`api/utils/buybackSYRA.js`), and the **jupiter-swap-order** Swap V1 fallback can route a platform fee to your Jupiter referral account. The same referral account is passed to **Jupiter Ultra** (`jupiter-swap-order` primary path) as `referralAccount` + `referralFee`.
 
 **Env (optional — defaults are set in code):**
 

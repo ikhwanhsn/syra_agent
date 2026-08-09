@@ -30,7 +30,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function paidFetchWithCorbits429Backoff(
+async function paidFetchWithFacilitator429Backoff(
   paymentFetch: typeof fetch,
   url: string,
   init?: RequestInit,
@@ -46,7 +46,7 @@ async function paidFetchWithCorbits429Backoff(
       await sleep(delay);
     }
   }
-  throw new Error("x402 payment fetch: Corbits 429 retries exhausted");
+  throw new Error("x402 payment fetch: facilitator 429 retries exhausted");
 }
 
 export function wrapPaidFetchWithRetries(paymentFetch: typeof fetch): typeof fetch {
@@ -57,7 +57,7 @@ export function wrapPaidFetchWithRetries(paymentFetch: typeof fetch): typeof fet
 
     for (let attempt = 0; attempt <= FACILITATOR_PAID_402_MAX_RETRIES; attempt++) {
       try {
-        const res = await paidFetchWithCorbits429Backoff(paymentFetch, url, init);
+        const res = await paidFetchWithFacilitator429Backoff(paymentFetch, url, init);
         lastResponse = res;
         if (res.ok || res.status !== 402) return res;
 

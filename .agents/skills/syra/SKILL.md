@@ -3,7 +3,7 @@ name: syra
 description: >
   Syra pay-per-call crypto intelligence for agents — x402 APIs, MCP tools, and typed SDK.
   Use when the user or agent needs crypto research (news, sentiment, signals, smart money),
-  Solana/Base/Algorand micropayments on HTTP 402, Syra MCP setup, or @syra-ai/sdk / @syra-ai/x402-payer.
+  Solana/Base/Algorand micropayments on HTTP 402 (plus multi-chain PayAI/Dexter accepts, B402, OKX X Layer), Syra MCP setup, or @syra-ai/sdk / @syra-ai/x402-payer.
 version: 0.1.0
 ---
 
@@ -75,6 +75,8 @@ const news = await syra.get("/news", { ticker: "BTC" });
 | Local (no pay) | `SYRA_USE_DEV_ROUTES=true` + local `SYRA_API_BASE_URL` |
 
 MCP injects `PAYMENT-SIGNATURE` on 402 when a payer is configured.
+
+**Server accepts (broader than MCP auto-pay):** Solana, Base, PayAI/Dexter multi-chain (Polygon, Arbitrum, Avalanche, Sei, SKALE, Optimism, World, Monad, Robinhood, …), BSC B402, Algorand, OKX X Layer when enabled. Facilitator failover: Dexter → GoPlausible → PayAI. Live: `GET https://api.syraa.fun/x402/capabilities`. For non-Solana/Base/Algorand accepts, use a matching x402 client.
 
 ## MCP tool naming
 

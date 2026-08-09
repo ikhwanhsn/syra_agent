@@ -226,7 +226,7 @@ export const AGENT_TOOLS = [
     displayPriceUsd: X402_DISPLAY_PRICE_JUPITER_SWAP_USD,
     name: 'Jupiter swap order',
     description:
-      'Jupiter Ultra swap order on Solana (Corbits): returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet).',
+      'Jupiter Ultra swap order on Solana: returns a base64 transaction to sign. Params: inputMint, outputMint, amount (smallest units), taker (defaults to agent wallet).',
   },
   {
     id: 'trending-headline',
@@ -1954,7 +1954,7 @@ export const AGENT_TOOL_SELECTION_GROUPS = [
     userIntentLabel: 'swap, trade, buy, or sell tokens',
     toolIds: ['pumpfun-agents-swap', 'jupiter-swap-order', 'squid-route'],
     docForLlm:
-      'Same-chain Solana: **pumpfun-agents-swap** (pump.fun / fun-block) or **jupiter-swap-order** (Jupiter Ultra / Corbits). Cross-chain: **squid-route** (Squid Router). Pick one from the user’s words (Solana same-chain vs bridge/cross-chain).',
+      'Same-chain Solana: **pumpfun-agents-swap** (pump.fun / fun-block) or **jupiter-swap-order** (Jupiter Ultra). Cross-chain: **squid-route** (Squid Router). Pick one from the user’s words (Solana same-chain vs bridge/cross-chain).',
   },
 ];
 

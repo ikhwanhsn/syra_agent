@@ -130,7 +130,7 @@ const RPC_URL = RPC_PRIMARY_URL;
 /**
  * RPC for @x402/svm ExactSvmScheme (fetchMint, blockhash). Must allow blockchain JSON-RPC.
  * Never prefer SOLANA_RPC_READ_ONLY_URL here — Alchemy "Data" / read-only endpoints return 403 / -32052
- * for getAccountInfo (USDC mint), breaking Corbits-paid calls. Internal tester uses ExactSvmScheme(signer)
+ * for getAccountInfo (USDC mint), breaking x402-paid calls. Internal tester uses ExactSvmScheme(signer)
  * with no rpcUrl → public mainnet-beta; we mirror that when no full blockchain URL is set.
  */
 const RPC_X402_EXACT_PRIMARY =
@@ -234,7 +234,7 @@ function getSvmRpcUrlForX402() {
   return _useFallbackRpc ? RPC_X402_EXACT_FALLBACK : RPC_X402_EXACT_PRIMARY;
 }
 
-/** Corbits facilitator may return 429 under burst — same backoff idea as libs/testerAgent/tests.js */
+/** Facilitators may return 429 under burst — same backoff idea as libs/testerAgent/tests.js */
 const FACILITATOR_429_MAX_ATTEMPTS = 6;
 const FACILITATOR_429_BASE_DELAY_MS = 2000;
 
@@ -298,7 +298,7 @@ function sleepBackoffMs(ms, signal) {
 /**
  * @param {(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>} paymentFetch
  */
-async function paidFetchWithCorbits429Backoff(paymentFetch, url, init) {
+async function paidFetchWithFacilitator429Backoff(paymentFetch, url, init) {
   for (let attempt = 0; attempt < FACILITATOR_429_MAX_ATTEMPTS; attempt++) {
     try {
       return await paymentFetch(url, init);
@@ -310,7 +310,7 @@ async function paidFetchWithCorbits429Backoff(paymentFetch, url, init) {
       await sleepBackoffMs(delay, init?.signal);
     }
   }
-  throw new Error('Corbits payment fetch: retries exhausted');
+  throw new Error('x402 payment fetch: facilitator 429 retries exhausted');
 }
 
 /**
@@ -380,7 +380,7 @@ function registerRequiredExtensionsHook(client) {
 
 /**
  * Same stack as the internal tester agent (`getNansenPaymentFetch`): @x402/fetch + x402Client + ExactSvmScheme.
- * Uses facilitator-provided `extra.feePayer` and @solana/kit wire format so Corbits verify matches (avoids "Invalid transaction" from hand-built web3.js txs).
+ * Uses facilitator-provided `extra.feePayer` and @solana/kit wire format so facilitator verify matches (avoids "Invalid transaction" from hand-built web3.js txs).
  * Also populates required v2 extensions (e.g. Birdeye's `payment-identifier.id`) before encoding the PAYMENT-SIGNATURE header.
  */
 async function createX402WrapFetchFromSigner(signer, fetchFn) {
@@ -580,7 +580,7 @@ async function callX402V2WithPaymentWrap(createPaymentFetch, opts, fetchFn = glo
 
   async function fetchPaidOnce() {
     const paymentFetch = await createPaymentFetch();
-    const res = await paidFetchWithCorbits429Backoff(paymentFetch, initialUrl, initOpts);
+    const res = await paidFetchWithFacilitator429Backoff(paymentFetch, initialUrl, initOpts);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const errMsg =
@@ -723,7 +723,7 @@ export async function pay402AndRetry(keypair, opts, fetchFn = globalThis.fetch) 
 
   async function attemptOnce() {
     const paymentFetch = await createX402WrapFetch(keypair, fetchFn);
-    const res = await paidFetchWithCorbits429Backoff(paymentFetch, url, init);
+    const res = await paidFetchWithFacilitator429Backoff(paymentFetch, url, init);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err =
