@@ -1,5 +1,7 @@
 [
   {
+    "operation": "update",
+    "id": "<SERVICE_ID>",
     "serviceName": "Syra Signal Copy-Trade",
     "serviceDescription": "Auto-copy service that turns Syra's pay-per-call crypto intelligence into X Layer / Solana DEX buy/sell signals on liquid majors, sending signals throughout the subscription and executing through Onchain OS under my settings.\nExample: [Onchain Signal] X Layer | BUY WETH | Contract: 0x... | 3420-3450 USDT | Slippage <=1% | Position 5% | Valid 2h\nBefore subscribing, complete in order; skip none:\n1. Verify the Onchain OS wallet's login status, target network, balance, and DEX access; help configure missing items.\n2. Ask whether to enable auto-copy; obtain my confirmation.\n3. If enabled, let me choose a fixed USDT amount or available-balance percentage per trade.\n4. Let me set maximum slippage and allowed auto-copy networks.\n5. Show all settings and subscription details. Do not publish the task, create the subscription, or pay until I explicitly say \"Confirm subscription.\"\nAfter subscription, monitor the order, parse signals, and trade automatically under my confirmed settings.",
     "serviceType": "A2A",

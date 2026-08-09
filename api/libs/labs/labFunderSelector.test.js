@@ -6,8 +6,11 @@ import assert from 'node:assert/strict';
 import {
   pickRichestFunder,
   pickAlgorandFunderPreferGasReady,
+  pickEvmFunderPreferGasReady,
+  lendableEvmNative,
   normalizeLabAddress,
   ALGORAND_FUNDER_MIN_FEE_ALGO,
+  EVM_FUNDER_MIN_NATIVE,
 } from './labFunderSelector.js';
 
 describe('normalizeLabAddress', () => {
@@ -196,5 +199,83 @@ describe('pickAlgorandFunderPreferGasReady', () => {
       { minUsdc: 0.01, minNative: 0, reserveUsdc: 0 },
     );
     assert.equal(r.address, 'PAYTO_OK');
+  });
+});
+
+describe('lendableEvmNative', () => {
+  test('keeps one fee-floor spare', () => {
+    assert.ok(
+      Math.abs(lendableEvmNative(0.0002, EVM_FUNDER_MIN_NATIVE) - (0.0002 - EVM_FUNDER_MIN_NATIVE)) <
+        1e-12,
+    );
+  });
+
+  test('returns 0 when below spare', () => {
+    assert.equal(lendableEvmNative(EVM_FUNDER_MIN_NATIVE / 2, EVM_FUNDER_MIN_NATIVE), 0);
+  });
+});
+
+describe('pickEvmFunderPreferGasReady', () => {
+  test('xlayer: prefers gas-ready USDT0 wallet over OKB-poor richer PayTo', () => {
+    const r = pickEvmFunderPreferGasReady(
+      [
+        {
+          address: '0xpaytorichusdt000000000000000000000001',
+          usdc: 1.64,
+          native: 0,
+          role: 'payto',
+        },
+        {
+          address: '0xpayergasready000000000000000000000002',
+          usdc: 0.76,
+          native: EVM_FUNDER_MIN_NATIVE,
+          role: 'payer',
+        },
+      ],
+      { chain: 'xlayer', minUsdc: 0.01, minNative: 0, reserveUsdc: 0.01 },
+    );
+    assert.equal(r.address, '0xpayergasready000000000000000000000002');
+  });
+
+  test('xlayer: falls back to USDT0-rich OKB-poor when no gas-ready funder exists', () => {
+    const r = pickEvmFunderPreferGasReady(
+      [
+        {
+          address: '0xpaytorichusdt000000000000000000000001',
+          usdc: 1.64,
+          native: 0,
+          role: 'payto',
+        },
+        {
+          address: '0xpayerokbonly000000000000000000000003',
+          usdc: 0,
+          native: 0.01,
+          role: 'payer',
+        },
+      ],
+      { chain: 'xlayer', minUsdc: 0.01, minNative: 0, reserveUsdc: 0 },
+    );
+    assert.equal(r.address, '0xpaytorichusdt000000000000000000000001');
+  });
+
+  test('base: still picks richest when it is gas-ready', () => {
+    const r = pickEvmFunderPreferGasReady(
+      [
+        {
+          address: '0xpaytook000000000000000000000000000001',
+          usdc: 1.64,
+          native: EVM_FUNDER_MIN_NATIVE,
+          role: 'payto',
+        },
+        {
+          address: '0xpayerok000000000000000000000000000002',
+          usdc: 0.76,
+          native: EVM_FUNDER_MIN_NATIVE,
+          role: 'payer',
+        },
+      ],
+      { chain: 'base', minUsdc: 0.01, minNative: 0, reserveUsdc: 0 },
+    );
+    assert.equal(r.address, '0xpaytook000000000000000000000000000001');
   });
 });

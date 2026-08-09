@@ -4,8 +4,8 @@
  *
  * Treasury circuit breaker: preflight assessLabTreasury once per tick. When no payer/payto
  * funder can fund any call, try deposit-hub distribute (if enabled + hub funded), then
- * auto-pause with a single once-per-episode (treasury) log. Chronic underfund disables
- * autoCallEnabled after TREASURY_CHRONIC_DISABLE_MS.
+ * auto-pause with a single once-per-episode (treasury) log. Chronic underfund escalates
+ * recheck cadence (does NOT flip autoCallEnabled — that stranded Labs permanently).
  */
 import { listActivePayerWallets } from './labWalletService.js';
 import { runLabX402Payment, getLabX402Settings } from './labX402Payer.js';
@@ -15,13 +15,14 @@ import { ensurePayerFundedForNextCall } from './labX402Refund.js';
 import { distributeLabDeposit } from './labDepositDistributor.js';
 import {
   assessLabTreasury,
-  disableLabAutoCallForChronicTreasury,
+  ensureLabAutoCallEnabledForTreasuryWatch,
   markTreasuryAlertLogged,
   pauseLabAutoCallForTreasury,
-  resumeLabAutoCallFromTreasury,
-  shouldChronicDisableAutoCall,
+  recoverLabAutoCallFromTreasury,
+  shouldEscalateTreasuryRecheck,
   shouldLogTreasuryEpisodeAlert,
-  TREASURY_PAUSE_RECHECK_MS,
+  shouldSoftSkipTreasuryAssessment,
+  treasuryPauseRecheckDelayMs,
 } from './labTreasuryGuard.js';
 import { LAB_X402_CHAINS, normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 import { startupVerbose } from '../../utils/startupLog.js';
@@ -43,6 +44,16 @@ function computeJitteredDelay(baseMs, jitterPct) {
   const jitter = (jitterPct / 100) * baseMs;
   const offset = (Math.random() * 2 - 1) * jitter;
   return Math.max(60_000, Math.round(baseMs + offset));
+}
+
+/**
+ * Pure mid-tick decision: never sticky-pause when capacity still says canFundAny.
+ * @param {{ canFundAny?: boolean }} midAssessment
+ * @returns {'skip_payer' | 'pause_treasury'}
+ */
+export function decideMidTickTreasurySkipAction(midAssessment) {
+  if (midAssessment?.canFundAny) return 'skip_payer';
+  return 'pause_treasury';
 }
 
 /**
@@ -107,7 +118,8 @@ async function logAggregatedTreasuryAlert(args) {
 }
 
 /**
- * When treasury cannot fund: try hub distribute, chronic-disable, or pause + once-per-episode log.
+ * When treasury cannot fund: try hub distribute, pause + once-per-episode log.
+ * Chronic pause escalates recheck cadence (never disables autoCallEnabled).
  *
  * `allowAlreadyFundedRecovery` (default true): an already-fundable assessment counts as
  * recovered. Mid-tick PayTo exhaustion sets this false so a rich sibling payer cannot
@@ -124,6 +136,7 @@ async function logAggregatedTreasuryAlert(args) {
  * @returns {Promise<{
  *   recovered: boolean;
  *   disabled: boolean;
+ *   chronicEscalated: boolean;
  *   assessment: object;
  * }>}
  */
@@ -133,10 +146,10 @@ async function handleTreasuryUnderfunded(args) {
   let assessment = args.assessment;
 
   if (assessment.canFundAny && allowAlreadyFundedRecovery) {
-    if (settings.autoCallPausedReason) {
-      await resumeLabAutoCallFromTreasury(chain);
+    if (settings.autoCallPausedReason || !settings.autoCallEnabled) {
+      await recoverLabAutoCallFromTreasury(chain);
     }
-    return { recovered: true, disabled: false, assessment };
+    return { recovered: true, disabled: false, chronicEscalated: false, assessment };
   }
 
   if (assessment.hubHasFunds && settings.depositDistributeEnabled !== false) {
@@ -156,28 +169,23 @@ async function handleTreasuryUnderfunded(args) {
       priceMultiplier,
     });
     if (assessment.canFundAny) {
-      if (settings.autoCallPausedReason) {
-        console.info(
-          `[lab-x402-scheduler] ${chain} treasury recovered via hub distribute; resuming`,
-        );
-        await resumeLabAutoCallFromTreasury(chain);
-      }
-      return { recovered: true, disabled: false, assessment };
+      console.info(
+        `[lab-x402-scheduler] ${chain} treasury recovered via hub distribute; resuming`,
+      );
+      await recoverLabAutoCallFromTreasury(chain);
+      return { recovered: true, disabled: false, chronicEscalated: false, assessment };
     }
   }
 
-  if (
-    settings.autoCallPausedReason &&
-    shouldChronicDisableAutoCall(settings.autoCallPausedAt)
-  ) {
+  const chronicEscalated = shouldEscalateTreasuryRecheck(settings.autoCallPausedAt);
+  if (chronicEscalated) {
     console.warn(
-      `[lab-x402-scheduler] ${chain} chronic treasury underfund; disabling auto-call`,
+      `[lab-x402-scheduler] ${chain} chronic treasury underfund; slowing recheck (keeping auto-call enabled)`,
     );
-    await disableLabAutoCallForChronicTreasury(
-      chain,
-      assessment.reason || 'payto_underfunded',
-    );
-    return { recovered: false, disabled: true, assessment };
+    // Heal any prior chronic-disable dead-end so rechecks continue.
+    if (!settings.autoCallEnabled) {
+      await ensureLabAutoCallEnabledForTreasuryWatch(chain);
+    }
   }
 
   console.warn(
@@ -190,7 +198,7 @@ async function handleTreasuryUnderfunded(args) {
     settings,
     payerCount,
   });
-  return { recovered: false, disabled: false, assessment };
+  return { recovered: false, disabled: false, chronicEscalated, assessment };
 }
 
 /**
@@ -207,10 +215,12 @@ async function scheduleNext(chain, opts = {}) {
   try {
     const settings = await getLabX402Settings(c);
     if (!settings.autoCallEnabled) return;
-    const delay = opts.forceSlowRecheck
-      ? TREASURY_PAUSE_RECHECK_MS
-      : settings.autoCallPausedReason
-        ? TREASURY_PAUSE_RECHECK_MS
+    const delay =
+      opts.forceSlowRecheck || settings.autoCallPausedReason
+        ? treasuryPauseRecheckDelayMs({
+            autoCallPausedAt: settings.autoCallPausedAt,
+            forceSlowRecheck: opts.forceSlowRecheck,
+          })
         : computeJitteredDelay(settings.intervalMs, settings.jitterPct);
     timerByChain.set(
       c,
@@ -226,6 +236,66 @@ async function scheduleNext(chain, opts = {}) {
       }, 300_000),
     );
   }
+}
+
+/**
+ * Boot heal: recover fundable treasuries; re-enable watch if prior chronic disable
+ * left autoCallEnabled false while still paused.
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ */
+async function healChainTreasuryOnBoot(chain) {
+  const c = normalizeLabChain(chain);
+  try {
+    const settings = await getLabX402Settings(c);
+    const stuckPaused = Boolean(settings.autoCallPausedReason);
+    const stuckDisabled =
+      !settings.autoCallEnabled &&
+      (Boolean(settings.autoCallPausedReason) || Boolean(settings.autoCallPausedAt));
+
+    if (!stuckPaused && !stuckDisabled) {
+      scheduleNext(c);
+      return;
+    }
+
+    const payers = await listActivePayerWallets(c);
+    let assessment = await assessLabTreasury(c, {
+      payerCount: payers.length,
+      priceMultiplier: settings.priceMultiplier,
+    });
+
+    if (
+      !assessment.canFundAny &&
+      assessment.hubHasFunds &&
+      settings.depositDistributeEnabled !== false
+    ) {
+      console.info(`[lab-x402-scheduler] ${c} boot heal: hub has funds; distributing`);
+      try {
+        await distributeLabDeposit(c, { force: true });
+      } catch (e) {
+        console.warn(
+          `[lab-x402-scheduler] ${c} boot heal distribute failed:`,
+          e?.message || e,
+        );
+      }
+      assessment = await assessLabTreasury(c, {
+        payerCount: payers.length,
+        priceMultiplier: settings.priceMultiplier,
+      });
+    }
+
+    if (assessment.canFundAny) {
+      console.info(`[lab-x402-scheduler] ${c} boot heal: treasury fundable; recovering auto-call`);
+      await recoverLabAutoCallFromTreasury(c);
+    } else if (!settings.autoCallEnabled) {
+      console.info(
+        `[lab-x402-scheduler] ${c} boot heal: re-enabling auto-call watch while still paused`,
+      );
+      await ensureLabAutoCallEnabledForTreasuryWatch(c);
+    }
+  } catch (e) {
+    console.warn(`[lab-x402-scheduler] ${c} boot heal failed:`, e?.message || e);
+  }
+  scheduleNext(c);
 }
 
 /**
@@ -258,6 +328,13 @@ async function tick(chain) {
     });
 
     if (!assessment.canFundAny) {
+      if (shouldSoftSkipTreasuryAssessment(assessment)) {
+        console.warn(
+          `[lab-x402-scheduler] ${c} treasury assessment RPC degraded (${assessment.error}); soft-skip (no pause)`,
+        );
+        forceSlowRecheck = true;
+        return;
+      }
       const result = await handleTreasuryUnderfunded({
         chain: c,
         assessment,
@@ -265,7 +342,6 @@ async function tick(chain) {
         payerCount: payers.length,
         priceMultiplier: settings.priceMultiplier,
       });
-      if (result.disabled) return;
       if (!result.recovered) {
         forceSlowRecheck = true;
         return;
@@ -273,10 +349,10 @@ async function tick(chain) {
       assessment = result.assessment;
     }
 
-    // Treasury healthy: clear any prior pause so we run at normal cadence.
-    if (settings.autoCallPausedReason) {
+    // Treasury healthy: clear any prior pause and ensure auto-call stays enabled.
+    if (settings.autoCallPausedReason || !settings.autoCallEnabled) {
       console.info(`[lab-x402-scheduler] ${c} treasury recovered; resuming auto-call`);
-      await resumeLabAutoCallFromTreasury(c);
+      await recoverLabAutoCallFromTreasury(c);
     }
 
     for (const payer of payers) {
@@ -289,32 +365,55 @@ async function tick(chain) {
           priceMultiplier: settings.priceMultiplier,
         });
         if (!funding.canPay) {
-          // Shared treasury exhaustion: break the loop and pause (do not spam N rows).
+          // Shared treasury skip reasons: re-assess. Capacity truth wins over one failed top-up.
           if (TREASURY_SKIP_REASONS.has(String(funding.reason || ''))) {
-            console.warn(
-              `[lab-x402-scheduler] ${c} mid-tick treasury exhaustion (${funding.reason}); pausing`,
-            );
             const midSettings = await getLabX402Settings(c);
             const midAssessment = await assessLabTreasury(c, {
               payerCount: payers.length,
               priceMultiplier: settings.priceMultiplier,
             });
+            if (shouldSoftSkipTreasuryAssessment(midAssessment)) {
+              console.warn(
+                `[lab-x402-scheduler] ${c} mid-tick assessment RPC degraded; soft-skip (no pause)`,
+              );
+              forceSlowRecheck = true;
+              break;
+            }
+            const midAction = decideMidTickTreasurySkipAction(midAssessment);
+            if (midAction === 'skip_payer') {
+              console.warn(
+                `[lab-x402-scheduler] ${c} mid-tick top-up failed (${funding.reason}) but treasury canFundAny; skipping payer (no pause)`,
+              );
+              await logLabX402Call({
+                payerAddress: payer.address,
+                endpoint: '(funding)',
+                priceUsd: 0,
+                chain: c,
+                status: 'error',
+                error: formatFundingSkipError({
+                  reason: funding.reason,
+                  error: funding.error,
+                  includeTopUpHint: false,
+                }),
+                trigger: 'scheduler',
+              }).catch(() => {});
+              continue;
+            }
+            console.warn(
+              `[lab-x402-scheduler] ${c} mid-tick treasury exhaustion (${funding.reason}); pausing`,
+            );
             const result = await handleTreasuryUnderfunded({
               chain: c,
               assessment: {
                 ...midAssessment,
-                canFundAny: false,
                 reason: midAssessment.reason || funding.reason,
                 hubHasFunds: midAssessment.hubHasFunds,
               },
               settings: midSettings,
               payerCount: payers.length,
               priceMultiplier: settings.priceMultiplier,
-              // PayTo top-up path failed; do not treat a rich sibling payer as recovery.
-              allowAlreadyFundedRecovery: false,
             });
             if (result.recovered) {
-              // Only via successful hub distribute.
               assessment = result.assessment;
               continue;
             }
@@ -359,11 +458,12 @@ async function tick(chain) {
 
 /**
  * Start the lab x402 scheduler for all chains. Safe to call once at boot.
+ * Runs a treasury heal per chain so prior chronic-disable dead-ends self-recover.
  */
 export function startLabX402Scheduler() {
   startupVerbose('[lab-x402-scheduler] started (solana + base + algorand + xlayer)');
   for (const chain of LAB_X402_CHAINS) {
-    scheduleNext(chain);
+    void healChainTreasuryOnBoot(chain);
   }
 }
 
@@ -386,7 +486,9 @@ export const __test = {
   tick,
   scheduleNext,
   handleTreasuryUnderfunded,
+  healChainTreasuryOnBoot,
   logAggregatedTreasuryAlert,
+  decideMidTickTreasurySkipAction,
   TREASURY_SKIP_REASONS,
   computeJitteredDelay,
 };

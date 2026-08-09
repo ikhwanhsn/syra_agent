@@ -88,6 +88,7 @@ const labX402SettingsSchema = new mongoose.Schema(
     /**
      * Treasury circuit-breaker pause (does not flip autoCallEnabled).
      * Scheduler treats autoCallEnabled && !autoCallPausedReason as active.
+     * Chronic underfund escalates recheck cadence; it must never leave autoCallEnabled false.
      */
     autoCallPausedReason: { type: String, default: null },
     autoCallPausedAt: { type: Date, default: null },

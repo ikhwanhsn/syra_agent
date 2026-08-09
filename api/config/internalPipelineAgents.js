@@ -3,13 +3,19 @@
  * Most knobs are constants; OpenRouter model can be overridden with {@link INTERNAL_TEAM_OPENROUTER_MODEL_ENV}.
  */
 
-import { OPENROUTER_DEFAULT_MODEL } from "./openrouterModels.js";
+import {
+  OPENROUTER_CHEAPEST_MODEL,
+  OPENROUTER_DEFAULT_MODEL,
+} from "./openrouterModels.js";
 
 /** Env name: optional OpenRouter slug for all internal-team pipelines (15 agents). */
 export const INTERNAL_TEAM_OPENROUTER_MODEL_ENV = "INTERNAL_TEAM_OPENROUTER_MODEL";
 
-/** Pipeline-only OpenRouter slug; null falls through to env then {@link OPENROUTER_DEFAULT_MODEL}. */
-export const INTERNAL_PIPELINE_OPENROUTER_MODEL = null;
+/**
+ * Pipeline-only OpenRouter slug for news / scouts / BTC3 macro LLM steps.
+ * Defaults to the cheapest OpenRouter route; override with {@link INTERNAL_TEAM_OPENROUTER_MODEL_ENV}.
+ */
+export const INTERNAL_PIPELINE_OPENROUTER_MODEL = OPENROUTER_CHEAPEST_MODEL;
 
 /**
  * Per-page markdown cap fed to internal-team LLMs (smaller ⇒ fewer input tokens / lower cost).

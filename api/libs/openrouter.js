@@ -1,4 +1,5 @@
 import {
+  OPENROUTER_CHEAPEST_MODEL,
   OPENROUTER_DEFAULT_MODEL,
   OPENROUTER_MODELS,
   isAllowedOpenRouterModel,
@@ -39,6 +40,8 @@ function resolveOpenRouterModelId(modelId) {
   const id = modelId.trim();
   if (LEGACY_MODEL_MAP[id]) return LEGACY_MODEL_MAP[id];
   if (isAllowedOpenRouterModel(id)) return id;
+  // Internal pipelines may use the free router; not part of the chat allowlist.
+  if (id === OPENROUTER_CHEAPEST_MODEL) return id;
   return OPENROUTER_DEFAULT_MODEL;
 }
 

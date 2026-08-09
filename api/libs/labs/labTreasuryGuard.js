@@ -19,6 +19,8 @@ import {
 import {
   loadFunderCandidates,
   pickRichestFunder,
+  lendableEvmNative,
+  EVM_FUNDER_MIN_NATIVE,
 } from './labFunderSelector.js';
 import {
   FUNDER_SPARE_MIN_FEE_MICRO,
@@ -38,8 +40,14 @@ export const TREASURY_PAUSE_RECHECK_MS = 15 * 60_000;
  */
 export const TREASURY_ALERT_THROTTLE_MS = 30 * 60_000;
 
-/** After continuous treasury pause this long, flip autoCallEnabled off. */
+/**
+ * After continuous treasury pause this long, escalate to a slower recheck cadence
+ * (does NOT flip autoCallEnabled — that was a dead-end that stranded Labs).
+ */
 export const TREASURY_CHRONIC_DISABLE_MS = 6 * 60 * 60_000;
+
+/** Recheck interval once pause has been continuous for TREASURY_CHRONIC_DISABLE_MS. */
+export const TREASURY_CHRONIC_RECHECK_MS = 60 * 60_000;
 
 /** Min native gas reserve for Solana PayTo refunds (SOL). */
 const PAYTO_MIN_SOL = 0.003;
@@ -370,7 +378,12 @@ export async function assessLabTreasury(chain, opts = {}) {
       payerCount,
       payToOptedIn: c === 'algorand' ? false : null,
       chain: c,
-      borrowableNative: c === 'algorand' ? hubNative : 0,
+      borrowableNative:
+        c === 'algorand'
+          ? hubNative
+          : c === 'base' || c === 'xlayer'
+            ? lendableEvmNative(hubNative, EVM_FUNDER_MIN_NATIVE)
+            : 0,
     });
     return {
       chain: c,
@@ -396,8 +409,8 @@ export async function assessLabTreasury(chain, opts = {}) {
     };
   }
 
-  // Algorand: gas can be borrowed onto the funder from siblings / hub mid-tick.
-  // Count only lendable ALGO after min-fee spare (matches PayTo(min) borrow path).
+  // Gas can be borrowed onto the funder from siblings / hub mid-tick.
+  // Algorand: lendable ALGO after min-fee spare. EVM: lendable ETH/OKB after one fee spare.
   let borrowableNative = 0;
   if (c === 'algorand') {
     const funderNorm = String(funderAddress || '').toLowerCase();
@@ -418,6 +431,18 @@ export async function assessLabTreasury(chain, opts = {}) {
         FUNDER_SPARE_MIN_FEE_MICRO,
       );
       borrowableNative += Number(hubLendableMicro) / Number(MICRO_ALGO);
+    }
+  } else if (c === 'base' || c === 'xlayer') {
+    const funderNorm = String(funderAddress || '').toLowerCase();
+    for (const cand of candidates) {
+      const addr = String(cand.address || '').toLowerCase();
+      if (!addr || (funderNorm && addr === funderNorm)) continue;
+      const n = Number(cand.native);
+      if (!Number.isFinite(n) || n <= 0) continue;
+      borrowableNative += lendableEvmNative(n, EVM_FUNDER_MIN_NATIVE);
+    }
+    if (Number.isFinite(hubNative) && hubNative > 0) {
+      borrowableNative += lendableEvmNative(hubNative, EVM_FUNDER_MIN_NATIVE);
     }
   }
 
@@ -498,6 +523,7 @@ export async function pauseLabAutoCallForTreasury(chain, reason) {
 /**
  * Clear treasury pause so scheduler resumes at normal cadence.
  * Also clears the episode alert gate so a future underfund can log once again.
+ * Does not change autoCallEnabled (use recoverLabAutoCallFromTreasury to re-enable).
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  */
 export async function resumeLabAutoCallFromTreasury(chain) {
@@ -515,23 +541,121 @@ export async function resumeLabAutoCallFromTreasury(chain) {
 }
 
 /**
- * Disable auto-call after chronic treasury underfunding (stops 15-min rechecks).
+ * Clear treasury pause AND re-enable auto-call.
+ * Use after fundable recovery so prior chronic-disable dead-ends cannot strand Labs.
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
- * @param {string} [reason]
  */
-export async function disableLabAutoCallForChronicTreasury(chain, reason) {
+export async function recoverLabAutoCallFromTreasury(chain) {
   const key = settingsKeyForChain(chain);
   await LabX402Settings.findOneAndUpdate(
     { singletonKey: key },
     {
       $set: {
-        autoCallEnabled: false,
+        autoCallEnabled: true,
+        autoCallPausedReason: null,
+        autoCallPausedAt: null,
+        treasuryLastAlertAt: null,
+      },
+      $setOnInsert: { singletonKey: key },
+    },
+    { upsert: true },
+  );
+}
+
+/**
+ * Re-enable auto-call watch without clearing a treasury pause.
+ * Used to heal settings previously stuck by chronic disable while still underfunded.
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ */
+export async function ensureLabAutoCallEnabledForTreasuryWatch(chain) {
+  const key = settingsKeyForChain(chain);
+  await LabX402Settings.updateOne(
+    { singletonKey: key, autoCallEnabled: false },
+    { $set: { autoCallEnabled: true } },
+  );
+}
+
+/**
+ * @deprecated No longer used by the scheduler. Chronic underfund escalates recheck
+ * cadence instead of flipping autoCallEnabled off (that stranded Labs permanently).
+ * Kept for import compatibility; prefer ensureLabAutoCallEnabledForTreasuryWatch.
+ * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
+ * @param {string} [reason]
+ */
+export async function disableLabAutoCallForChronicTreasury(chain, reason) {
+  // Soft no-op: keep/refresh pause reason but do NOT disable autoCallEnabled.
+  const key = settingsKeyForChain(chain);
+  await LabX402Settings.findOneAndUpdate(
+    { singletonKey: key },
+    {
+      $set: {
         autoCallPausedReason: String(reason || 'payto_underfunded').slice(0, 200),
       },
       $setOnInsert: { singletonKey: key },
     },
     { upsert: true },
   );
+}
+
+/**
+ * True when assessment failed due to RPC/timeout and balances look untrusted.
+ * Scheduler must soft-skip (not pause) so Algod flakes do not start the chronic clock.
+ *
+ * @param {{
+ *   error?: string;
+ *   canFundAny?: boolean;
+ *   funderUsdc?: number;
+ *   payToUsdc?: number;
+ *   funderNative?: number;
+ *   payToSpendableNative?: number;
+ *   hubUsdc?: number;
+ *   hubNative?: number;
+ * } | null | undefined} assessment
+ * @returns {boolean}
+ */
+export function shouldSoftSkipTreasuryAssessment(assessment) {
+  if (!assessment || assessment.canFundAny) return false;
+  const err = String(assessment.error || '').toLowerCase();
+  if (!err) return false;
+  const degraded =
+    err.includes('timeout') ||
+    err.includes('algod') ||
+    err.includes('econnreset') ||
+    err.includes('econnrefused') ||
+    err.includes('enotfound') ||
+    err.includes('fetch failed') ||
+    err.includes('socket') ||
+    err.includes('network');
+  if (!degraded) return false;
+  const usdc = Number(assessment.funderUsdc ?? assessment.payToUsdc ?? 0);
+  const native = Number(assessment.funderNative ?? assessment.payToSpendableNative ?? 0);
+  const hubUsdc = Number(assessment.hubUsdc ?? 0);
+  const hubNative = Number(assessment.hubNative ?? 0);
+  const anyBalance =
+    (Number.isFinite(usdc) && usdc > 0) ||
+    (Number.isFinite(native) && native > 0) ||
+    (Number.isFinite(hubUsdc) && hubUsdc > 0) ||
+    (Number.isFinite(hubNative) && hubNative > 0);
+  return !anyBalance;
+}
+
+/**
+ * Pure: delay for next tick while treasury is paused.
+ * Escalates to TREASURY_CHRONIC_RECHECK_MS after continuous pause.
+ *
+ * @param {{
+ *   autoCallPausedAt?: Date | string | null;
+ *   forceSlowRecheck?: boolean;
+ *   nowMs?: number;
+ * }} input
+ * @returns {number}
+ */
+export function treasuryPauseRecheckDelayMs(input = {}) {
+  const nowMs = Number.isFinite(input.nowMs) ? Number(input.nowMs) : Date.now();
+  if (shouldEscalateTreasuryRecheck(input.autoCallPausedAt, nowMs)) {
+    return TREASURY_CHRONIC_RECHECK_MS;
+  }
+  return TREASURY_PAUSE_RECHECK_MS;
 }
 
 /**
@@ -570,11 +694,14 @@ export function shouldLogTreasuryEpisodeAlert(input = {}) {
 }
 
 /**
+ * True when continuous pause is long enough to escalate recheck cadence.
+ * Formerly flipped autoCallEnabled off; that stranded Labs — do not reintroduce.
+ *
  * @param {Date | string | null | undefined} autoCallPausedAt
  * @param {number} [nowMs]
  * @returns {boolean}
  */
-export function shouldChronicDisableAutoCall(autoCallPausedAt, nowMs = Date.now()) {
+export function shouldEscalateTreasuryRecheck(autoCallPausedAt, nowMs = Date.now()) {
   if (!autoCallPausedAt) return false;
   const t =
     autoCallPausedAt instanceof Date
@@ -583,6 +710,9 @@ export function shouldChronicDisableAutoCall(autoCallPausedAt, nowMs = Date.now(
   if (!Number.isFinite(t)) return false;
   return nowMs - t >= TREASURY_CHRONIC_DISABLE_MS;
 }
+
+/** @deprecated Use shouldEscalateTreasuryRecheck — chronic no longer disables auto-call. */
+export const shouldChronicDisableAutoCall = shouldEscalateTreasuryRecheck;
 
 /**
  * Legacy time-based throttle (kept for unit tests / callers that still use it).

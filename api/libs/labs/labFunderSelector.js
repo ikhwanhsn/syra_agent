@@ -21,6 +21,23 @@ import {
 export const ALGORAND_FUNDER_MIN_FEE_ALGO =
   Number(PAYTO_USDC_REFUND_MIN_FEE_MICRO) / Number(MICRO_ALGO);
 
+/** Min native gas for a "gas-ready" Base (ETH) or X Layer (OKB) funder. */
+export const EVM_FUNDER_MIN_NATIVE = 0.00005;
+
+/**
+ * Pure: native a wallet can lend after keeping one fee-floor spare.
+ * @param {number} native
+ * @param {number} [spare=EVM_FUNDER_MIN_NATIVE]
+ * @returns {number}
+ */
+export function lendableEvmNative(native, spare = EVM_FUNDER_MIN_NATIVE) {
+  const n = Number(native);
+  const s = Number(spare);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  const spareOk = Number.isFinite(s) && s > 0 ? s : 0;
+  return Math.max(0, n - spareOk);
+}
+
 /**
  * Normalize address for equality (EVM is case-insensitive).
  * @param {string} a
@@ -147,6 +164,48 @@ export function pickAlgorandFunderPreferGasReady(candidates, opts = {}) {
     zeroReserveForPayTo: opts.zeroReserveForPayTo,
     chain: 'algorand',
     requireOptedIn: true,
+  };
+
+  const gasReady = pickRichestFunder(candidates, {
+    ...base,
+    minNative: preferredMinNative,
+  });
+  if (gasReady) return gasReady;
+
+  return pickRichestFunder(candidates, {
+    ...base,
+    minNative: fallbackMinNative,
+  });
+}
+
+/**
+ * Base / X Layer: prefer a USDC/USDT0 funder that already has native gas,
+ * then fall back to richest stablecoin (fee ETH/OKB borrowed onto that wallet).
+ *
+ * @param {Parameters<typeof pickRichestFunder>[0]} candidates
+ * @param {Omit<Parameters<typeof pickRichestFunder>[1], 'requireOptedIn'> & {
+ *   preferredMinNative?: number;
+ *   chain?: 'base' | 'xlayer' | string;
+ * }} [opts]
+ * @returns {ReturnType<typeof pickRichestFunder>}
+ */
+export function pickEvmFunderPreferGasReady(candidates, opts = {}) {
+  const chainRaw = String(opts.chain || 'base').toLowerCase();
+  const chain = chainRaw === 'xlayer' ? 'xlayer' : 'base';
+  const preferredMinNative = Number.isFinite(Number(opts.preferredMinNative))
+    ? Math.max(0, Number(opts.preferredMinNative))
+    : EVM_FUNDER_MIN_NATIVE;
+  const fallbackMinNative = Number.isFinite(Number(opts.minNative))
+    ? Math.max(0, Number(opts.minNative))
+    : 0;
+
+  const base = {
+    excludeAddress: opts.excludeAddress,
+    minUsdc: opts.minUsdc,
+    reserveUsdc: opts.reserveUsdc,
+    zeroReserveForPayTo: opts.zeroReserveForPayTo,
+    chain,
+    requireOptedIn: false,
   };
 
   const gasReady = pickRichestFunder(candidates, {
@@ -325,10 +384,14 @@ export async function resolveRichestFunder(chain, opts = {}) {
     chain: c,
     requireOptedIn: c === 'algorand',
   };
-  const picked =
-    c === 'algorand'
-      ? pickAlgorandFunderPreferGasReady(candidates, pickOpts)
-      : pickRichestFunder(candidates, pickOpts);
+  let picked;
+  if (c === 'algorand') {
+    picked = pickAlgorandFunderPreferGasReady(candidates, pickOpts);
+  } else if (c === 'base' || c === 'xlayer') {
+    picked = pickEvmFunderPreferGasReady(candidates, pickOpts);
+  } else {
+    picked = pickRichestFunder(candidates, pickOpts);
+  }
 
   if (!picked) return null;
 

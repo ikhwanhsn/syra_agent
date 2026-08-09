@@ -34,7 +34,9 @@ export function getTreasuryBannerView(
     | "recommendedTopUpAlgo"
     | "topUp"
     | "fundableCalls"
-  >,
+  > & {
+    autoCallEnabled?: boolean;
+  },
   chain: LabChain,
 ): TreasuryBannerView {
   const native = nativeLabel(chain);
@@ -47,7 +49,9 @@ export function getTreasuryBannerView(
   );
   const reason = String(treasury.reason || "payto_underfunded");
 
-  if (treasury.canFundAny && !treasury.paused) {
+  const autoCallEnabled = treasury.autoCallEnabled !== false;
+
+  if (treasury.canFundAny && !treasury.paused && autoCallEnabled) {
     return {
       tone: "healthy",
       title: "Treasury healthy",
@@ -59,11 +63,16 @@ export function getTreasuryBannerView(
     };
   }
 
-  if (treasury.paused && treasury.canFundAny) {
+  // Fundable but paused, or fundable but auto-call was chronically disabled.
+  if (treasury.canFundAny && (treasury.paused || !autoCallEnabled)) {
     return {
       tone: "recoverable",
-      title: "Auto-call paused; treasury looks fundable",
-      body: "Balances can fund at least one call. Resume auto-call to clear the pause (no USDC top-up required).",
+      title: !autoCallEnabled
+        ? "Auto-call off; treasury looks fundable"
+        : "Auto-call paused; treasury looks fundable",
+      body: !autoCallEnabled
+        ? "Balances can fund at least one call. Resume auto-call to re-enable the scheduler (no USDC top-up required)."
+        : "Balances can fund at least one call. Resume auto-call to clear the pause (no USDC top-up required).",
       showUsdcTopUp: false,
       showNativeTopUp: false,
       needUsdc: 0,

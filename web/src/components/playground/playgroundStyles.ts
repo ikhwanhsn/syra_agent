@@ -121,7 +121,8 @@ export const playgroundEmptyStateClass = cn(
 );
 
 export const playgroundSkeletonCardClass = cn(
-  "rounded-2xl border border-border/40 bg-muted/20",
+  "rounded-2xl border border-border/50 bg-gradient-to-b from-card/95 via-card/90 to-muted/[0.03]",
+  "shadow-[0_1px_0_0_hsl(var(--border)/0.45),0_16px_40px_-28px_rgba(0,0,0,0.55)]",
   "animate-pulse",
 );
 

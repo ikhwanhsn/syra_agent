@@ -13,6 +13,7 @@
  *
  * Requires Mongo + agent secret encryption env (same as API) when EXECUTE=1.
  */
+import dns from 'node:dns';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,6 +21,13 @@ import algosdk from 'algosdk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+  dns.setDefaultResultOrder('ipv4first');
+} catch {
+  /* ignore */
+}
 
 const EXECUTE = String(process.env.EXECUTE || '').trim() === '1';
 
@@ -71,7 +79,17 @@ async function main() {
   );
 
   if (assessment.canFundAny) {
-    console.log('[fund-algorand-lab-treasury] PayTo can already fund calls. Nothing to do.');
+    const { recoverLabAutoCallFromTreasury } = await import('../libs/labs/labTreasuryGuard.js');
+    const { getLabX402Settings } = await import('../libs/labs/labX402Payer.js');
+    const settings = await getLabX402Settings('algorand');
+    if (settings.autoCallPausedReason || !settings.autoCallEnabled) {
+      await recoverLabAutoCallFromTreasury('algorand');
+      console.log(
+        '[fund-algorand-lab-treasury] PayTo can fund calls; cleared pause and re-enabled auto-call.',
+      );
+    } else {
+      console.log('[fund-algorand-lab-treasury] PayTo can already fund calls. Nothing to do.');
+    }
     await mongoose.connection.close().catch(() => {});
     process.exit(0);
   }
@@ -207,6 +225,11 @@ async function main() {
     payToSpendableAlgo: after.payToSpendableAlgo,
     reason: after.reason,
   });
+  if (after.canFundAny) {
+    const { recoverLabAutoCallFromTreasury } = await import('../libs/labs/labTreasuryGuard.js');
+    await recoverLabAutoCallFromTreasury('algorand');
+    console.log('[fund-algorand-lab-treasury] recovered auto-call (pause cleared, enabled=true)');
+  }
   await mongoose.connection.close().catch(() => {});
   process.exit(after.canFundAny ? 0 : 1);
 }

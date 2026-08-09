@@ -18,6 +18,7 @@ import {
   createPublicClient,
   http,
   parseUnits,
+  parseEther,
   formatEther,
   formatUnits,
 } from 'viem';
@@ -32,8 +33,16 @@ import {
   getAlgorandUsdcAsaId,
   isAlgorandAddressOptedInUsdc,
   ensureAlgorandLabWalletUsdcOptIn,
+  getActiveDepositWalletDoc,
+  evmAccountFromLabWalletDoc,
 } from './labWalletService.js';
-import { resolveRichestFunder } from './labFunderSelector.js';
+import {
+  resolveRichestFunder,
+  listActiveLabFundableWallets,
+  lendableEvmNative,
+  EVM_FUNDER_MIN_NATIVE,
+  normalizeLabAddress,
+} from './labFunderSelector.js';
 import { pickSolanaConnectionForReads, isSolanaRpcRetryableError } from '../solanaServerRpc.js';
 import { confirmSolanaTransaction, isSolanaTxConfirmedOnAnyRpc } from '../solanaConfirm.js';
 import {
@@ -86,29 +95,27 @@ export const PAYTO_INSUFFICIENT_FUNDS = 'PAYTO_INSUFFICIENT_FUNDS';
 /** Minimum SOL a funder needs to cover fees + possible ATA rent for a refund transfer. */
 const FUNDER_MIN_SOL_FOR_REFUND = 0.003;
 /** Minimum ETH a Base funder needs for gas on a USDC transfer. */
-const FUNDER_MIN_ETH_FOR_REFUND = 0.00005;
+const FUNDER_MIN_ETH_FOR_REFUND = EVM_FUNDER_MIN_NATIVE;
 /** Minimum OKB an X Layer funder needs for gas on a USDT0 transfer. */
-const FUNDER_MIN_OKB_FOR_REFUND = 0.00005;
+const FUNDER_MIN_OKB_FOR_REFUND = EVM_FUNDER_MIN_NATIVE;
 
 /**
  * @param {'solana' | 'base' | 'algorand' | 'xlayer'} chain
  * @returns {number}
  */
 function minNativeForFunder(chain) {
-  if (chain === 'algorand') {
-    // Fallback floor for two-pass Algorand selection in resolveRichestFunder:
-    // prefer gas-ready wallets first; only then allow USDC-rich / ALGO-poor
-    // and borrow fee ALGO via ensurePayToAlgoForUsdcRefund.
+  if (chain === 'algorand' || chain === 'base' || chain === 'xlayer') {
+    // Fallback floor for two-pass selection in resolveRichestFunder:
+    // prefer gas-ready wallets first; only then allow stablecoin-rich / gas-poor
+    // and borrow fee native via ensurePayToAlgoForUsdcRefund / ensureEvmFunderNativeForRefund.
     return 0;
   }
-  if (chain === 'base') return FUNDER_MIN_ETH_FOR_REFUND;
-  if (chain === 'xlayer') return FUNDER_MIN_OKB_FOR_REFUND;
   return FUNDER_MIN_SOL_FOR_REFUND;
 }
 
 /**
  * Map a proactive top-up exception to a stable funding skip reason.
- * ALGO fee / min-balance failures must not look like USDC underfunding.
+ * Native fee / gas failures must not look like USDC/USDT0 underfunding.
  *
  * @param {unknown} errOrMsg
  * @returns {'usdc_opt_in_required' | 'payto_native_underfunded' | 'payto_underfunded' | 'topup_failed'}
@@ -122,12 +129,134 @@ export function classifyLabTopUpFailureReason(errOrMsg) {
   if (
     /insufficient_algo_for_usdc_refund/i.test(msg) ||
     /funder ALGO insufficient for USDC refund fees/i.test(msg) ||
-    /payTo ALGO below min-balance/i.test(msg)
+    /payTo ALGO below min-balance/i.test(msg) ||
+    /insufficient_okb_for_usdt0_refund/i.test(msg) ||
+    /insufficient_eth_for_usdc_refund/i.test(msg) ||
+    /funder OKB .* for gas/i.test(msg) ||
+    /funder ETH .* for gas/i.test(msg)
   ) {
     return 'payto_native_underfunded';
   }
   if (String(msg).includes(PAYTO_INSUFFICIENT_FUNDS)) return 'payto_underfunded';
   return 'topup_failed';
+}
+
+/**
+ * Borrow ETH/OKB onto an EVM funder from deposit hub then sibling lab wallets
+ * until the funder meets the refund gas floor.
+ *
+ * @param {'base' | 'xlayer'} chain
+ * @param {string} funderAddress
+ * @returns {Promise<{ ok: boolean; funded: boolean; from?: string; amount?: number; already?: boolean; error?: string }>}
+ */
+export async function ensureEvmFunderNativeForRefund(chain, funderAddress) {
+  const c = chain === 'xlayer' ? 'xlayer' : 'base';
+  const receiver = String(funderAddress || '').trim();
+  if (!receiver || !/^0x[0-9a-fA-F]{40}$/.test(receiver)) {
+    return { ok: false, funded: false, error: 'invalid_funder' };
+  }
+
+  const minNative = c === 'xlayer' ? FUNDER_MIN_OKB_FOR_REFUND : FUNDER_MIN_ETH_FOR_REFUND;
+  const nativeLabel = c === 'xlayer' ? 'OKB' : 'ETH';
+  const failCode =
+    c === 'xlayer' ? 'insufficient_okb_for_usdt0_refund' : 'insufficient_eth_for_usdc_refund';
+
+  const publicClient = c === 'xlayer' ? getXlayerPublicClient() : getBasePublicClient();
+  const createWallet =
+    c === 'xlayer' ? createXlayerWalletClient : createBaseWalletClient;
+
+  let balWei;
+  try {
+    balWei = await publicClient.getBalance({
+      address: /** @type {`0x${string}`} */ (receiver),
+    });
+  } catch (e) {
+    return { ok: false, funded: false, error: e?.message || String(e) };
+  }
+
+  const bal = Number(formatEther(balWei));
+  if (bal >= minNative) {
+    return { ok: true, funded: false, already: true };
+  }
+
+  const need = minNative - bal;
+  const needWei = parseEther(need.toFixed(18));
+  const spare = EVM_FUNDER_MIN_NATIVE;
+  const receiverNorm = normalizeLabAddress(receiver, c);
+
+  /** @type {Array<{ address: string; account: import('viem').Account; native: number }>} */
+  const lenders = [];
+
+  try {
+    const hubDoc = await getActiveDepositWalletDoc(c);
+    if (hubDoc?.encryptedSecret && hubDoc.address) {
+      const addr = String(hubDoc.address).trim();
+      if (normalizeLabAddress(addr, c) !== receiverNorm) {
+        const hubBal = await getLabWalletBalances(addr, c);
+        lenders.push({
+          address: addr,
+          account: /** @type {import('viem').Account} */ (evmAccountFromLabWalletDoc(hubDoc)),
+          native: Number(hubBal?.nativeBalance) || 0,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn(`[labX402Refund] ${c} hub load for gas borrow failed:`, e?.message || e);
+  }
+
+  try {
+    const docs = await listActiveLabFundableWallets(c);
+    for (const doc of docs) {
+      const addr = String(doc.address || '').trim();
+      if (!addr || !doc.encryptedSecret) continue;
+      if (normalizeLabAddress(addr, c) === receiverNorm) continue;
+      if (lenders.some((l) => normalizeLabAddress(l.address, c) === normalizeLabAddress(addr, c))) {
+        continue;
+      }
+      try {
+        const wbal = await getLabWalletBalances(addr, c);
+        lenders.push({
+          address: addr,
+          account: /** @type {import('viem').Account} */ (evmAccountFromLabWalletDoc(doc)),
+          native: Number(wbal?.nativeBalance) || 0,
+        });
+      } catch {
+        /* skip */
+      }
+    }
+  } catch (e) {
+    console.warn(`[labX402Refund] ${c} sibling load for gas borrow failed:`, e?.message || e);
+  }
+
+  lenders.sort((a, b) => b.native - a.native);
+
+  for (const lender of lenders) {
+    const lendable = lendableEvmNative(lender.native, spare);
+    if (lendable < need) continue;
+    try {
+      const walletClient = createWallet(lender.account);
+      const hash = await walletClient.sendTransaction({
+        to: /** @type {`0x${string}`} */ (receiver),
+        value: needWei,
+      });
+      await publicClient.waitForTransactionReceipt({ hash });
+      console.info(
+        `[labX402Refund] borrowed ${need.toFixed(6)} ${nativeLabel} from ${lender.address.slice(0, 8)}… → ${receiver.slice(0, 8)}…`,
+      );
+      return { ok: true, funded: true, from: lender.address, amount: need };
+    } catch (e) {
+      console.warn(
+        `[labX402Refund] ${c} gas borrow from ${lender.address} failed:`,
+        e?.message || e,
+      );
+    }
+  }
+
+  return {
+    ok: false,
+    funded: false,
+    error: `${failCode}: funder ${nativeLabel} ${bal.toFixed(6)} < needed ${minNative}; no sibling/hub could lend`,
+  };
 }
 
 /**
@@ -533,7 +662,7 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
   ]);
 
   const usdcBalance = Number(formatUnits(/** @type {bigint} */ (usdcBal), 6));
-  const ethBalance = Number(formatEther(ethBal));
+  let ethBalance = Number(formatEther(ethBal));
 
   if (usdcBalance < sendAmount) {
     throw new Error(
@@ -541,9 +670,22 @@ async function refundUsdcToPayerBase(payerAddress, amountUsd) {
     );
   }
   if (ethBalance < FUNDER_MIN_ETH_FOR_REFUND) {
-    throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: funder ETH ${ethBalance.toFixed(6)} < needed ${FUNDER_MIN_ETH_FOR_REFUND} for gas`,
-    );
+    const gasSeed = await ensureEvmFunderNativeForRefund('base', funderAddr);
+    if (!gasSeed.ok) {
+      throw new Error(
+        gasSeed.error ||
+          `insufficient_eth_for_usdc_refund: funder ETH ${ethBalance.toFixed(6)} < needed ${FUNDER_MIN_ETH_FOR_REFUND}`,
+      );
+    }
+    const ethBalAfter = await publicClient.getBalance({
+      address: /** @type {`0x${string}`} */ (funderAddr),
+    });
+    ethBalance = Number(formatEther(ethBalAfter));
+    if (ethBalance < FUNDER_MIN_ETH_FOR_REFUND) {
+      throw new Error(
+        `insufficient_eth_for_usdc_refund: funder ETH ${ethBalance.toFixed(6)} < needed ${FUNDER_MIN_ETH_FOR_REFUND} for gas`,
+      );
+    }
   }
 
   let lastErr;
@@ -637,12 +779,25 @@ async function refundUsdt0ToPayerXLayer(payerAddress, amountUsd, opts = {}) {
   ]);
 
   const usdt0Balance = Number(formatUnits(/** @type {bigint} */ (usdt0Bal), 6));
-  const okbBalance = Number(formatEther(okbBal));
+  let okbBalance = Number(formatEther(okbBal));
 
   if (okbBalance < FUNDER_MIN_OKB_FOR_REFUND) {
-    throw new Error(
-      `${PAYTO_INSUFFICIENT_FUNDS}: funder OKB ${okbBalance.toFixed(6)} < needed ${FUNDER_MIN_OKB_FOR_REFUND} for gas`,
-    );
+    const gasSeed = await ensureEvmFunderNativeForRefund('xlayer', funderAddr);
+    if (!gasSeed.ok) {
+      throw new Error(
+        gasSeed.error ||
+          `insufficient_okb_for_usdt0_refund: funder OKB ${okbBalance.toFixed(6)} < needed ${FUNDER_MIN_OKB_FOR_REFUND}`,
+      );
+    }
+    const okbBalAfter = await publicClient.getBalance({
+      address: /** @type {`0x${string}`} */ (funderAddr),
+    });
+    okbBalance = Number(formatEther(okbBalAfter));
+    if (okbBalance < FUNDER_MIN_OKB_FOR_REFUND) {
+      throw new Error(
+        `insufficient_okb_for_usdt0_refund: funder OKB ${okbBalance.toFixed(6)} < needed ${FUNDER_MIN_OKB_FOR_REFUND} for gas`,
+      );
+    }
   }
 
   const reserve = funder.role === 'payto' ? 0 : minAmountUsd;

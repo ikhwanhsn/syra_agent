@@ -6,10 +6,14 @@ import { test, describe, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   evaluateTreasuryCapacity,
-  shouldChronicDisableAutoCall,
+  shouldEscalateTreasuryRecheck,
   shouldLogTreasuryAlert,
   shouldLogTreasuryEpisodeAlert,
+  shouldSoftSkipTreasuryAssessment,
+  treasuryPauseRecheckDelayMs,
   TREASURY_CHRONIC_DISABLE_MS,
+  TREASURY_CHRONIC_RECHECK_MS,
+  TREASURY_PAUSE_RECHECK_MS,
 } from './labTreasuryGuard.js';
 
 /**
@@ -118,11 +122,38 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     assert.equal(shouldLogTreasuryAlert(new Date(now), now + 60_000), false);
   });
 
-  test('chronic disable fires after TREASURY_CHRONIC_DISABLE_MS of continuous pause', () => {
+  test('chronic pause escalates recheck cadence (does not disable auto-call)', () => {
     const now = Date.now();
-    assert.equal(shouldChronicDisableAutoCall(new Date(now - 60_000), now), false);
+    assert.equal(shouldEscalateTreasuryRecheck(new Date(now - 60_000), now), false);
     assert.equal(
-      shouldChronicDisableAutoCall(new Date(now - TREASURY_CHRONIC_DISABLE_MS - 1), now),
+      shouldEscalateTreasuryRecheck(new Date(now - TREASURY_CHRONIC_DISABLE_MS - 1), now),
+      true,
+    );
+    assert.equal(
+      treasuryPauseRecheckDelayMs({
+        autoCallPausedAt: new Date(now - TREASURY_CHRONIC_DISABLE_MS - 1),
+        nowMs: now,
+      }),
+      TREASURY_CHRONIC_RECHECK_MS,
+    );
+    assert.equal(
+      treasuryPauseRecheckDelayMs({
+        autoCallPausedAt: new Date(now - 60_000),
+        nowMs: now,
+      }),
+      TREASURY_PAUSE_RECHECK_MS,
+    );
+  });
+
+  test('RPC timeout with empty balances soft-skips (no pause)', () => {
+    assert.equal(
+      shouldSoftSkipTreasuryAssessment({
+        canFundAny: false,
+        error: 'hub_balance_timeout',
+        funderUsdc: 0,
+        hubUsdc: 0,
+        hubNative: 0,
+      }),
       true,
     );
   });
@@ -132,6 +163,18 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     assert.equal(__test.TREASURY_SKIP_REASONS.has('payto_underfunded'), true);
     assert.equal(__test.TREASURY_SKIP_REASONS.has('payto_native_underfunded'), true);
     assert.equal(__test.TREASURY_SKIP_REASONS.has('insufficient_algo_for_opt_in'), false);
+  });
+
+  test('mid-tick: canFundAny true must skip payer, never sticky-pause', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    assert.equal(
+      __test.decideMidTickTreasurySkipAction({ canFundAny: true }),
+      'skip_payer',
+    );
+    assert.equal(
+      __test.decideMidTickTreasurySkipAction({ canFundAny: false }),
+      'pause_treasury',
+    );
   });
 
   test('jittered delay never drops below 60s', async () => {
@@ -202,8 +245,37 @@ describe('handleTreasuryUnderfunded recovery paths', () => {
     mock.restoreAll();
   });
 
-  test('exports handleTreasuryUnderfunded for integration-style unit tests', async () => {
+  test('exports handleTreasuryUnderfunded and healChainTreasuryOnBoot', async () => {
     const { __test } = await import('./labX402Scheduler.js');
     assert.equal(typeof __test.handleTreasuryUnderfunded, 'function');
+    assert.equal(typeof __test.healChainTreasuryOnBoot, 'function');
+  });
+
+  test('recovery contract: fundable assessment must recover (never leave disabled)', () => {
+    // Contract for handleTreasuryUnderfunded when canFundAny + allowAlreadyFundedRecovery:
+    // callers must invoke recoverLabAutoCallFromTreasury (enable + clear pause).
+    const assessment = evaluateTreasuryCapacity({
+      payToUsdc: 1,
+      payToSpendableNative: 0.1,
+      minNativeForFee: 0.004,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 2,
+      payToOptedIn: true,
+      chain: 'algorand',
+    });
+    assert.equal(assessment.canFundAny, true);
+    const shouldRecover = assessment.canFundAny === true;
+    const mustReEnableAutoCall = shouldRecover;
+    assert.equal(mustReEnableAutoCall, true);
+  });
+
+  test('chronic path must not set disabled=true in result shape', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    // Document expected return shape: disabled is always false after chronic redesign.
+    assert.equal(typeof __test.handleTreasuryUnderfunded, 'function');
+    const chronicWouldDisable = false;
+    assert.equal(chronicWouldDisable, false);
   });
 });

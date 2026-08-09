@@ -3,7 +3,11 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampXlayerPayToUsdt0RefundAmount } from './labX402Refund.js';
+import {
+  clampXlayerPayToUsdt0RefundAmount,
+  classifyLabTopUpFailureReason,
+  PAYTO_INSUFFICIENT_FUNDS,
+} from './labX402Refund.js';
 
 describe('clampXlayerPayToUsdt0RefundAmount', () => {
   test('sends full amount when PayTo has enough USDT0', () => {
@@ -81,5 +85,40 @@ describe('clampXlayerPayToUsdt0RefundAmount', () => {
     });
     assert.equal(clamp.ok, false);
     assert.equal(clamp.reason, 'payto_underfunded');
+  });
+});
+
+describe('classifyLabTopUpFailureReason (xlayer/base gas)', () => {
+  test('maps OKB gas failures to payto_native_underfunded', () => {
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        'insufficient_okb_for_usdt0_refund: funder OKB 0.000000 < needed 0.000050; no sibling/hub could lend',
+      ),
+      'payto_native_underfunded',
+    );
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        `${PAYTO_INSUFFICIENT_FUNDS}: funder OKB 0.000010 < needed 0.000050 for gas`,
+      ),
+      'payto_native_underfunded',
+    );
+  });
+
+  test('maps ETH gas failures to payto_native_underfunded', () => {
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        'insufficient_eth_for_usdc_refund: funder ETH 0.000000 < needed 0.000050',
+      ),
+      'payto_native_underfunded',
+    );
+  });
+
+  test('maps true USDT0 shortfalls to payto_underfunded', () => {
+    assert.equal(
+      classifyLabTopUpFailureReason(
+        `${PAYTO_INSUFFICIENT_FUNDS}: no lab wallet with enough USDT0 to fund payer`,
+      ),
+      'payto_underfunded',
+    );
   });
 });

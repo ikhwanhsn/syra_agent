@@ -110,6 +110,53 @@ function AgentDiscoveryStrip() {
   );
 }
 
+export function MarketplaceBrowseHeaderSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse" aria-hidden>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="h-7 w-44 rounded-md bg-muted/50 sm:h-8 sm:w-52" />
+            <div className="h-4 w-14 rounded-md bg-muted/35" />
+            <div className="h-5 w-12 rounded-full bg-muted/40" />
+          </div>
+          <div className="mt-2 h-4 w-full max-w-md rounded-md bg-muted/30" />
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="h-9 w-36 rounded-xl bg-muted/40" />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border/50 bg-muted/15 px-3.5 py-3 sm:px-4">
+        <div className="h-3 w-28 rounded-md bg-muted/40" />
+        <div className="mt-2 h-3 w-full max-w-sm rounded-md bg-muted/30" />
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <li key={i} className="inline-flex items-center gap-0.5">
+              <div className="h-8 w-[5.5rem] rounded-lg border border-border/50 bg-background/70" />
+              <div className="h-8 w-8 rounded-lg bg-muted/30" />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="h-11 min-w-0 flex-1 rounded-xl border border-border/50 bg-muted/25" />
+        <div
+          className={cn(
+            playgroundSegmentedRoot(3),
+            "h-11 w-full shrink-0 sm:w-auto sm:min-w-[13rem]",
+          )}
+        >
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="min-h-9 rounded-lg bg-muted/35" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function MarketplaceBrowseHeader({
   search,
   onSearchChange,

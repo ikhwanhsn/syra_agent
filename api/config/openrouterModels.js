@@ -5,6 +5,13 @@
  */
 export const OPENROUTER_DEFAULT_MODEL = 'google/gemini-2.5-flash-lite';
 
+/**
+ * Cheapest OpenRouter text route ($0 free-model router).
+ * Used by internal background pipelines (news, scouts, BTC3 macro LLM steps).
+ * @see https://openrouter.ai/openrouter/free
+ */
+export const OPENROUTER_CHEAPEST_MODEL = 'openrouter/free';
+
 /** @typedef {{ id: string; name: string; contextWindow: string; capabilities: string[] }} OpenRouterModelConfig */
 
 /** @type {OpenRouterModelConfig[]} */

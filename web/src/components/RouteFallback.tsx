@@ -9,7 +9,7 @@ import {
   InvestPageSkeleton,
   SpendPageSkeleton,
 } from "@/components/pillars/PillarPageSkeletons";
-import { PlaygroundCatalogSkeleton } from "@/components/playground/PlaygroundCatalogSkeleton";
+import { PlaygroundCatalogPageSkeleton } from "@/components/playground/PlaygroundCatalogSkeleton";
 import { PumpfunAnalysisSkeleton } from "@/components/pumpfun/PumpfunAnalysisSkeleton";
 import { TreasuryPanelSkeleton } from "@/components/treasury/TreasurySkeleton";
 import { BtcAgentExperimentPageSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
@@ -267,7 +267,7 @@ function skeletonForPath(pathname: string) {
   if (root === "analyzer" || root === "pumpfun") return <PumpfunAnalysisSkeleton />;
   if (root === "lp") return <LpPoolsContentSkeleton />;
   if (root === "articles") return <ArticlesPageSkeleton />;
-  if (root === "marketplace" || root === "playground") return <PlaygroundCatalogSkeleton />;
+  if (root === "marketplace" || root === "playground") return <PlaygroundCatalogPageSkeleton />;
   if (root === "rewards") return <RewardsPageSkeleton />;
   if (root === "staking") return <StreamflowPageSkeleton />;
   if (root === "organize") {
@@ -306,14 +306,25 @@ function skeletonForPath(pathname: string) {
   return <GenericPageSkeleton />;
 }
 
+function pathUsesSelfPaddedSkeleton(pathname: string) {
+  const root = pathname.split("/").filter(Boolean)[0] ?? "";
+  return root === "marketplace" || root === "playground";
+}
+
 /**
  * Suspense fallback for lazy route chunks.
  * Keeps shell chrome visible; shows a path-matched content skeleton.
  */
 export function RouteFallback() {
   const { pathname } = useLocation();
+  const selfPadded = pathUsesSelfPaddedSkeleton(pathname);
   return (
-    <div className="w-full flex-1 py-4 sm:py-6" role="status" aria-live="polite" aria-busy="true">
+    <div
+      className={cn("w-full flex-1", !selfPadded && "py-4 sm:py-6")}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
       {skeletonForPath(pathname)}
     </div>
   );

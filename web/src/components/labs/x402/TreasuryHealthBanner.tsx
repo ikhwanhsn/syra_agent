@@ -191,7 +191,7 @@ export function TreasuryHealthBanner({
               Distribute from hub
             </Button>
           ) : null}
-          {treasury.paused || !treasury.canFundAny ? (
+          {treasury.paused || !treasury.canFundAny || !treasury.autoCallEnabled ? (
             <Button
               size="sm"
               variant="outline"
@@ -200,7 +200,7 @@ export function TreasuryHealthBanner({
               onClick={onResume}
               title={
                 treasury.canFundAny
-                  ? "Clear treasury pause and resume auto-call"
+                  ? "Clear treasury pause and re-enable auto-call"
                   : "Fund any lab wallet or the deposit hub before resuming"
               }
             >

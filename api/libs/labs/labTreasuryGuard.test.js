@@ -6,10 +6,15 @@ import assert from 'node:assert/strict';
 import {
   evaluateTreasuryCapacity,
   shouldChronicDisableAutoCall,
+  shouldEscalateTreasuryRecheck,
   shouldLogTreasuryAlert,
   shouldLogTreasuryEpisodeAlert,
+  shouldSoftSkipTreasuryAssessment,
+  treasuryPauseRecheckDelayMs,
   TREASURY_ALERT_THROTTLE_MS,
   TREASURY_CHRONIC_DISABLE_MS,
+  TREASURY_CHRONIC_RECHECK_MS,
+  TREASURY_PAUSE_RECHECK_MS,
 } from './labTreasuryGuard.js';
 import { PAYTO_USDC_REFUND_MIN_FEE_MICRO, MICRO_ALGO } from './labAlgorandFeeBuffer.js';
 
@@ -168,6 +173,45 @@ describe('evaluateTreasuryCapacity', () => {
     assert.equal(r.reason, 'payto_not_opted_in_usdc');
   });
 
+  test('xlayer: USDT0-rich + sibling/hub borrowable OKB is fundable', () => {
+    const OKB_FLOOR = 0.00005;
+    const siblingOkb = 0.001;
+    const spare = OKB_FLOOR;
+    const lendable = Math.max(0, siblingOkb - spare);
+    const r = evaluateTreasuryCapacity({
+      payToUsdc: 1.64,
+      payToSpendableNative: 0,
+      borrowableNative: lendable,
+      minNativeForFee: OKB_FLOOR,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 1,
+      chain: 'xlayer',
+    });
+    assert.equal(r.canFundAny, true);
+    assert.equal(r.reason, null);
+  });
+
+  test('xlayer: neither funder OKB nor borrowableNative meets floor → payto_native_underfunded', () => {
+    const OKB_FLOOR = 0.00005;
+    const r = evaluateTreasuryCapacity({
+      payToUsdc: 1.64,
+      payToSpendableNative: 0,
+      borrowableNative: OKB_FLOOR / 2,
+      minNativeForFee: OKB_FLOOR,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 1,
+      chain: 'xlayer',
+    });
+    assert.equal(r.canFundAny, false);
+    assert.equal(r.reason, 'payto_native_underfunded');
+    assert.equal(r.recommendedTopUpUsdc, 0);
+    assert.ok(r.recommendedTopUpNative > 0);
+  });
+
   test('payto_not_opted_in_usdc blocks Algorand even with balances', () => {
     const r = evaluateTreasuryCapacity({
       payToUsdc: 10,
@@ -280,24 +324,87 @@ describe('shouldLogTreasuryEpisodeAlert', () => {
   });
 });
 
-describe('shouldChronicDisableAutoCall', () => {
+describe('shouldEscalateTreasuryRecheck (chronic cadence, not disable)', () => {
   test('false when never paused', () => {
+    assert.equal(shouldEscalateTreasuryRecheck(null), false);
     assert.equal(shouldChronicDisableAutoCall(null), false);
   });
 
   test('false before TREASURY_CHRONIC_DISABLE_MS', () => {
     const now = Date.now();
     assert.equal(
-      shouldChronicDisableAutoCall(new Date(now - TREASURY_CHRONIC_DISABLE_MS + 60_000), now),
+      shouldEscalateTreasuryRecheck(new Date(now - TREASURY_CHRONIC_DISABLE_MS + 60_000), now),
       false,
     );
   });
 
-  test('true after TREASURY_CHRONIC_DISABLE_MS', () => {
+  test('true after TREASURY_CHRONIC_DISABLE_MS (escalates recheck only)', () => {
     const now = Date.now();
     assert.equal(
-      shouldChronicDisableAutoCall(new Date(now - TREASURY_CHRONIC_DISABLE_MS - 1), now),
+      shouldEscalateTreasuryRecheck(new Date(now - TREASURY_CHRONIC_DISABLE_MS - 1), now),
       true,
+    );
+  });
+
+  test('treasuryPauseRecheckDelayMs uses 15m then 1h after chronic', () => {
+    const now = Date.now();
+    assert.equal(
+      treasuryPauseRecheckDelayMs({
+        autoCallPausedAt: new Date(now - 60_000),
+        nowMs: now,
+      }),
+      TREASURY_PAUSE_RECHECK_MS,
+    );
+    assert.equal(
+      treasuryPauseRecheckDelayMs({
+        autoCallPausedAt: new Date(now - TREASURY_CHRONIC_DISABLE_MS - 1),
+        nowMs: now,
+      }),
+      TREASURY_CHRONIC_RECHECK_MS,
+    );
+  });
+});
+
+describe('shouldSoftSkipTreasuryAssessment', () => {
+  test('soft-skips timeout with zero balances', () => {
+    assert.equal(
+      shouldSoftSkipTreasuryAssessment({
+        canFundAny: false,
+        error: 'payto_balance_timeout',
+        funderUsdc: 0,
+        payToUsdc: 0,
+        funderNative: 0,
+        hubUsdc: 0,
+        hubNative: 0,
+      }),
+      true,
+    );
+  });
+
+  test('does not soft-skip when balances are readable', () => {
+    assert.equal(
+      shouldSoftSkipTreasuryAssessment({
+        canFundAny: false,
+        error: 'algod_timeout',
+        funderUsdc: 0,
+        payToUsdc: 0,
+        funderNative: 0,
+        hubUsdc: 2,
+        hubNative: 0,
+      }),
+      false,
+    );
+  });
+
+  test('does not soft-skip underfund without RPC error', () => {
+    assert.equal(
+      shouldSoftSkipTreasuryAssessment({
+        canFundAny: false,
+        reason: 'payto_underfunded',
+        funderUsdc: 0,
+        hubUsdc: 0,
+      }),
+      false,
     );
   });
 });

@@ -31,7 +31,7 @@ import { getMaxBulkCreateCount, logLabX402Call } from '../../libs/labs/labX402Ca
 import { formatFundingSkipError } from '../../libs/labs/labFundingSkipMessage.js';
 import {
   assessLabTreasury,
-  resumeLabAutoCallFromTreasury,
+  recoverLabAutoCallFromTreasury,
 } from '../../libs/labs/labTreasuryGuard.js';
 import { normalizeLabChain } from '../../models/labs/LabX402Settings.js';
 
@@ -308,7 +308,8 @@ export function createLabsX402Router() {
           data: assessment,
         });
       }
-      await resumeLabAutoCallFromTreasury(chain);
+      // Recover clears pause AND re-enables auto-call (prior chronic disable left enabled=false).
+      await recoverLabAutoCallFromTreasury(chain);
       restartLabX402Scheduler(chain);
       const settings = await getLabX402Settings(chain);
       return res.json({
