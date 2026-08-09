@@ -12,10 +12,47 @@ import {
   fundRewardsEpoch,
   buildPublicRewardsSnapshot,
 } from "../libs/syraUsageRewards.js";
+import { getHolderBenefitsStatus } from "../libs/syraHolderFreeQuota.js";
 import { requireSession } from "../utils/requireSession.js";
 
 export function createSyraRewardsRouter() {
   const router = Router();
+
+  /**
+   * GET /rewards/holder-benefits?wallet=...
+   * Free Agent Starter Pack + stake intel quotas + discount / savings snapshot.
+   */
+  router.get("/holder-benefits", async (req, res) => {
+    try {
+      const wallet =
+        (typeof req.query.wallet === "string" && req.query.wallet.trim()) ||
+        (req.get("x-connected-wallet") || "").trim() ||
+        "";
+      if (!wallet) {
+        return res.status(400).json({ success: false, error: "wallet_required" });
+      }
+      let lifetimeSpendUsd = 0;
+      try {
+        const { default: SyraUsageReward } = await import("../models/SyraUsageReward.js");
+        const { isMongooseConnected } = await import("../config/mongoose.js");
+        if (isMongooseConnected()) {
+          const doc = await SyraUsageReward.findOne({ wallet: wallet.trim() })
+            .select("lifetimeSpendUsd")
+            .lean();
+          lifetimeSpendUsd = Number(doc?.lifetimeSpendUsd) || 0;
+        }
+      } catch {
+        lifetimeSpendUsd = 0;
+      }
+      const data = await getHolderBenefitsStatus(wallet, { lifetimeSpendUsd });
+      return res.json({ success: true, data });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
 
   router.get("/summary", async (_req, res) => {
     try {

@@ -21,9 +21,9 @@ export const SYRA_HOLDER_THRESHOLD =
 /** Pricing / utility tiers (human-readable $SYRA — wallet balance OR active stake). */
 export const SYRA_UTILITY_TIERS = Object.freeze([
   { id: 'bronze', min: 10_000, discount: 0.05, label: '5% x402 discount' },
-  { id: 'silver', min: 100_000, discount: 0.1, label: '10% x402 discount + free agent tools' },
-  { id: 'gold', min: 1_000_000, discount: 0.2, label: '20% x402 discount' },
-  { id: 'whale', min: 10_000_000, discount: 0.3, label: '30% x402 discount + unlimited scans' },
+  { id: 'silver', min: 100_000, discount: 0.1, label: '10% x402 discount + Free Agent Starter Pack' },
+  { id: 'gold', min: 1_000_000, discount: 0.2, label: '20% x402 discount + stake intel quotas' },
+  { id: 'whale', min: 10_000_000, discount: 0.3, label: '30% x402 discount' },
 ]);
 
 function fetchWithTimeout(url, init = {}) {
@@ -80,7 +80,8 @@ export function resolveUtilityTierFromAmount(amount) {
 }
 
 /**
- * Check if a wallet holds ≥ SYRA_HOLDER_THRESHOLD and is eligible for free agent/tool usage.
+ * Check if a wallet holds ≥ SYRA_HOLDER_THRESHOLD (wallet balance) for free agent/tool usage.
+ * Prefer {@link isSyraHolderOrStakerEligible} from syraHolderBenefits for hold-or-stake gates.
  * @param {string} walletAddress
  * @returns {Promise<boolean>}
  */

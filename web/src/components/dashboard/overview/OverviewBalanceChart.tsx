@@ -5,6 +5,7 @@ import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
 import { cn } from "@/lib/utils";
 import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
@@ -188,7 +189,7 @@ export function OverviewBalanceChart({
   const chartHeight = compact ? 108 : 240;
 
   const chartPanel = loading ? (
-    <div className="animate-pulse rounded-xl bg-muted/20" style={{ height: chartHeight }} />
+    <Skeleton className="w-full rounded-xl" style={{ height: chartHeight }} />
   ) : showTrend ? (
     <div
       className={cn(
@@ -403,7 +404,7 @@ export function OverviewBalanceChart({
             <div className="min-w-0 space-y-2">
               <p className={overviewKickerClass}>Total balance</p>
               {loading ? (
-                <div className="h-10 w-36 animate-pulse rounded-lg bg-muted/40" />
+                <Skeleton className="h-10 w-36 rounded-lg" />
               ) : (
                 <p className="font-mono text-[2rem] font-semibold leading-none tabular-nums tracking-tight text-foreground">
                   <AnimatedMetric
@@ -483,7 +484,7 @@ export function OverviewBalanceChart({
                   ) : null}
                 </div>
                 {loading ? (
-                  <div className="mt-2 h-10 w-44 animate-pulse rounded-lg bg-muted/50" />
+                  <Skeleton className="mt-2 h-10 w-44 rounded-lg" />
                 ) : (
                   <p className={cn(overviewMetricValueClass, "mt-1 text-3xl sm:text-[2rem]")}>
                     <AnimatedMetric

@@ -21,6 +21,8 @@ const syraUsageRewardSchema = new mongoose.Schema(
     lastSpendAt: { type: Date, default: null },
     lastClaimAt: { type: Date, default: null },
     lastClaimTx: { type: String, default: null },
+    /** Last holder reward points multiplier applied on accrue (1 / 1.1 / 1.25). */
+    lastRewardMultiplier: { type: Number, default: 1 },
   },
   { collection: "syra_usage_rewards", timestamps: true },
 );

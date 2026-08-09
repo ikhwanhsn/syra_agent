@@ -61,9 +61,9 @@ $SYRA supports the live x402 Spend rail and broader platform modules. Agents pay
 | Tier | Min $SYRA (hold or stake) | Discount | Additional benefits |
 | ---- | ------------------------- | -------- | ------------------- |
 | **Bronze** | 10,000 | 5% | — |
-| **Silver** | 100,000 | 10% | Elevated memecoin scan quota when staked |
-| **Gold** | 1,000,000 | 20% | Free agent tools (≥100k holder threshold configurable) |
-| **Whale** | 10,000,000 | 30% | Unlimited memecoin scans when staked |
+| **Silver** | 100,000 | 10% | Free Agent Starter Pack (25 curated tools/day, treasury-paid); stake ≥100k → 15 Pumpfun scans/day + 10 free Tier-2 intel/day; usage reward points ×1.1 |
+| **Gold** | 1,000,000 | 20% | Stake ≥1M → unlimited Pumpfun scans + 3 free Tier-3 / 1 Brain per day; usage reward points ×1.25 |
+| **Whale** | 10,000,000 | 30% | Max fee discount |
 
 Verify buybacks and claim usage rewards: [syraa.fun/token](https://www.syraa.fun/token), [syraa.fun/rewards](https://www.syraa.fun/rewards).
 

@@ -264,6 +264,12 @@ export async function assessLabTreasury(chain, opts = {}) {
   let hubUsdc = 0;
   /** @type {number} */
   let hubNative = 0;
+  /**
+   * Algorand: spendable ALGO on hub (amount − min-balance). Raw hubNative can be
+   * entirely locked as MBR after USDC opt-in — never treat that as borrowable gas.
+   * @type {number}
+   */
+  let hubSpendableNative = 0;
   /** @type {string | undefined} */
   let error;
   /** @type {Array<{ address: string; usdc: number; native: number; role?: string; optedInUsdc?: boolean | null }>} */
@@ -362,10 +368,28 @@ export async function assessLabTreasury(chain, opts = {}) {
       );
       hubUsdc = hubBal?.usdcBalance ?? 0;
       hubNative = hubBal?.nativeBalance ?? 0;
+      if (c === 'algorand') {
+        try {
+          const hubSpendable = await withTimeout(
+            getAlgorandAccountSpendableMicro(hubAddress),
+            ALGOD_TIMEOUT_MS,
+            'hub_spendable_timeout',
+          );
+          hubSpendableNative = Number(hubSpendable.spendableMicro) / Number(MICRO_ALGO);
+        } catch (e) {
+          hubSpendableNative = 0;
+          error = error || e?.message || String(e);
+        }
+      } else {
+        hubSpendableNative = hubNative;
+      }
     }
   } catch (e) {
     error = e?.message || String(e);
   }
+
+  // Capacity / hubHasFunds must use spendable ALGO on Algorand (not MBR-locked raw balance).
+  const hubNativeForCapacity = c === 'algorand' ? hubSpendableNative : hubNative;
 
   if (!payToAddress && !funderAddress) {
     const empty = evaluateTreasuryCapacity({
@@ -373,14 +397,14 @@ export async function assessLabTreasury(chain, opts = {}) {
       payToSpendableNative: 0,
       minNativeForFee: feeFloor,
       hubUsdc,
-      hubNative,
+      hubNative: hubNativeForCapacity,
       minPriceUsd,
       payerCount,
       payToOptedIn: c === 'algorand' ? false : null,
       chain: c,
       borrowableNative:
         c === 'algorand'
-          ? hubNative
+          ? hubSpendableNative
           : c === 'base' || c === 'xlayer'
             ? lendableEvmNative(hubNative, EVM_FUNDER_MIN_NATIVE)
             : 0,
@@ -402,6 +426,7 @@ export async function assessLabTreasury(chain, opts = {}) {
       hubAddress,
       hubUsdc,
       hubNative,
+      hubSpendableNative: c === 'algorand' ? hubSpendableNative : null,
       minPriceUsd,
       payerCount,
       reason: 'no_payto_wallet',
@@ -425,9 +450,9 @@ export async function assessLabTreasury(chain, opts = {}) {
       );
       borrowableNative += Number(lendableMicro) / Number(MICRO_ALGO);
     }
-    if (Number.isFinite(hubNative) && hubNative > 0) {
+    if (Number.isFinite(hubSpendableNative) && hubSpendableNative > 0) {
       const hubLendableMicro = lendableAlgorandMicro(
-        BigInt(Math.round(hubNative * Number(MICRO_ALGO))),
+        BigInt(Math.round(hubSpendableNative * Number(MICRO_ALGO))),
         FUNDER_SPARE_MIN_FEE_MICRO,
       );
       borrowableNative += Number(hubLendableMicro) / Number(MICRO_ALGO);
@@ -451,7 +476,7 @@ export async function assessLabTreasury(chain, opts = {}) {
     payToSpendableNative: funderNative,
     minNativeForFee: feeFloor,
     hubUsdc,
-    hubNative,
+    hubNative: hubNativeForCapacity,
     minPriceUsd,
     payerCount,
     payToOptedIn: c === 'algorand' ? funderOptedInUsdc : null,
@@ -476,6 +501,8 @@ export async function assessLabTreasury(chain, opts = {}) {
     hubAddress,
     hubUsdc,
     hubNative,
+    hubSpendableNative: c === 'algorand' ? hubSpendableNative : null,
+    borrowableNative,
     minPriceUsd,
     payerCount,
     ...(error ? { error } : {}),

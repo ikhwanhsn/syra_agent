@@ -61,7 +61,13 @@ import {
 } from '../../libs/agentPurchVaultClient.js';
 import { getEffectivePriceUsd, X402_PAYSH_FLOOR_USD, PASSTHROUGH_MARGIN } from '../../config/x402Pricing.js';
 import { getEffectiveAgentToolPriceUsd } from '../../libs/pactPricing.js';
-import { SYRA_TOKEN_MINT, isSyraHolderEligible } from '../../libs/syraToken.js';
+import { SYRA_TOKEN_MINT } from '../../libs/syraToken.js';
+import { isSyraHolderOrStakerEligible } from '../../libs/syraHolderBenefits.js';
+import {
+  canTreasuryPayTool,
+  tryConsumeHolderFreeCall,
+} from '../../libs/syraHolderFreeQuota.js';
+import { isExpensivePassthroughTool } from '../../libs/syraHolderBenefits.js';
 import { findVerifiedJupiterToken } from '../../libs/jupiterTokens.js';
 import { resolveAgentBaseUrl } from './utils.js';
 import { recordAgentChatUsage } from '../../libs/agentLeaderboard.js';
@@ -1146,7 +1152,7 @@ async function callToolWithAgentWallet(anonymousId, url, method, query, body, co
 }
 
 /**
- * Call x402 v2 tool with treasury wallet (AGENT_PRIVATE_KEY). Used for 1M+ SYRA holders (free tools).
+ * Call x402 v2 tool with treasury wallet (AGENT_PRIVATE_KEY). Used for capped free holder/staker tools.
  */
 export async function callToolWithTreasury(url, method, query, body) {
   const result = await callX402V2WithTreasury({
@@ -1357,14 +1363,18 @@ router.post('/completion', requireSession({ allowGuest: true }), async (req, res
 
     const capabilitiesList = getCapabilitiesList().join('\n');
 
-    let useTreasuryForTools = false;
+    let holderEligibleForTreasury = false;
+    let holderTreasuryWallet = null;
     if (anonymousId && walletConnected) {
       try {
         let cwTreasury = connectedWalletFromDb;
         if (!cwTreasury) {
           cwTreasury = await getConnectedWalletAddress(anonymousId);
         }
-        useTreasuryForTools = !!(cwTreasury && (await isSyraHolderEligible(cwTreasury)));
+        holderTreasuryWallet = cwTreasury || null;
+        holderEligibleForTreasury = !!(
+          cwTreasury && (await isSyraHolderOrStakerEligible(cwTreasury))
+        );
       } catch (treasuryErr) {
         console.error('[agent/chat/completion] treasury eligibility check failed:', treasuryErr?.message || treasuryErr);
       }
@@ -1433,7 +1443,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       }
       const fundingState = (() => {
         const lowSol = solBalance < 0.005;
-        if (useTreasuryForTools) return lowSol ? 'treasury_low_sol' : 'treasury_eligible';
+        if (holderEligibleForTreasury) return lowSol ? 'treasury_low_sol' : 'treasury_eligible';
         const enoughUsdc = usdcBalance >= 0.05;
         if (lowSol && !enoughUsdc) return 'insufficient_sol_and_usdc';
         if (lowSol) return 'low_sol_for_fees';
@@ -1521,8 +1531,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         content: `[The user asked for something that requires paid tool(s) (${toolIds}), but they have not connected a wallet. Reply that they need to connect their wallet to use tools and get this information. You can mention they can chat about crypto without a wallet, but tools and realtime data require a connected wallet.]`,
       });
     } else if (anonymousId) {
-      const useTreasury = useTreasuryForTools;
       let connectedWallet = connectedWalletFromDb;
+      let lastHolderQuotaRemaining = null;
       try {
         if (connectedWallet == null && walletConnected) {
           connectedWallet = await getConnectedWalletAddress(anonymousId);
@@ -1548,10 +1558,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       } catch (balErr) {
         console.error('[agent/chat/completion] tool balance fetch failed:', balErr?.message || balErr);
       }
-      if (useTreasury) {
-        // Treasury pays the x402 fee but swaps still use the agent wallet; don't cap balances,
-        // just use the actual USDC/SOL values for choosing default from_token.
-      }
+      // Treasury may pay curated tool fees per-call below; swaps still use the agent wallet balances above.
       const toolResults = [];
       const toolErrors = [];
       for (const matched of matchedTools) {
@@ -1566,6 +1573,34 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         if (!tool) continue;
         const effectivePrice = getEffectiveAgentToolPriceUsd(tool, connectedWallet);
         const requiredUsdc = effectivePrice;
+        // Per-tool capped treasury subsidy (Starter Pack / stake intel). Never for expensive passthroughs.
+        let useTreasury = false;
+        if (
+          holderTreasuryWallet &&
+          !tool.nansenPath &&
+          !tool.zerionPath &&
+          !tool.birdeyePath &&
+          !tool.blocksizePath &&
+          !tool.dexterPath &&
+          !tool.stablesocialPath &&
+          !tool.stableenrichPath &&
+          !tool.paysh &&
+          !isExpensivePassthroughTool(matched.toolId)
+        ) {
+          try {
+            const probe = await canTreasuryPayTool(holderTreasuryWallet, matched.toolId);
+            useTreasury = !!probe.allowed;
+            if (probe.holder_quota_remaining != null) {
+              lastHolderQuotaRemaining = probe.holder_quota_remaining;
+            }
+          } catch (quotaErr) {
+            console.warn(
+              '[agent/chat/completion] holder free quota probe failed:',
+              quotaErr?.message || quotaErr,
+            );
+            useTreasury = false;
+          }
+        }
         // pump.fun swap (fun-block): only call upstream after the user confirms via the inline form template.
         if (matched.toolId === 'pumpfun-agents-swap') {
           const isPumpfunSwapFormConfirm =
@@ -1974,24 +2009,38 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           const out = await runAgentPartnerDirectTool(tool.id, params, { host: req.get('host') });
           if (!out.ok) {
             result = { status: out.status ?? 502, error: out.error };
-          } else if (!useTreasury && effectivePrice > 0) {
-            // Settle USDC → Syra treasury on-chain (replaces facilitator x402 hop for migrated tools).
-            const charge = await chargeAgentForInternalTool({
-              anonymousId,
-              priceUsd: effectivePrice,
-              toolId: tool.id,
-              toolPath: tool.path,
-            });
-            if (!charge.success) {
-              result = {
-                status: 402,
-                error: charge.error || 'Failed to charge agent wallet for this tool',
-              };
+          } else {
+            if (useTreasury && holderTreasuryWallet) {
+              const consumed = await tryConsumeHolderFreeCall(
+                holderTreasuryWallet,
+                matched.toolId,
+              );
+              if (consumed.holder_quota_remaining != null) {
+                lastHolderQuotaRemaining = consumed.holder_quota_remaining;
+              }
+              if (!(consumed.allowed && consumed.consumed)) {
+                useTreasury = false;
+              }
+            }
+            if (!useTreasury && effectivePrice > 0) {
+              // Settle USDC → Syra treasury on-chain (replaces facilitator x402 hop for migrated tools).
+              const charge = await chargeAgentForInternalTool({
+                anonymousId,
+                priceUsd: effectivePrice,
+                toolId: tool.id,
+                toolPath: tool.path,
+              });
+              if (!charge.success) {
+                result = {
+                  status: 402,
+                  error: charge.error || 'Failed to charge agent wallet for this tool',
+                };
+              } else {
+                result = { status: out.httpStatus ?? 200, data: out.data };
+              }
             } else {
               result = { status: out.httpStatus ?? 200, data: out.data };
             }
-          } else {
-            result = { status: out.httpStatus ?? 200, data: out.data };
           }
         } else {
           let toolPath = tool.path;
@@ -2016,6 +2065,30 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
           }
           const url = `${resolveAgentBaseUrl(req)}${toolPath}`;
           const method = tool.method || 'GET';
+          if (useTreasury && holderTreasuryWallet) {
+            const consumed = await tryConsumeHolderFreeCall(
+              holderTreasuryWallet,
+              matched.toolId,
+            );
+            if (consumed.holder_quota_remaining != null) {
+              lastHolderQuotaRemaining = consumed.holder_quota_remaining;
+            }
+            if (!(consumed.allowed && consumed.consumed)) {
+              useTreasury = false;
+              if (requiredUsdc > 0 && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
+                toolErrors.push(
+                  `Holder free quota is exhausted for "${tool.name}" (holder_quota_remaining: ${consumed.holder_quota_remaining ?? 0}). Agent wallet needs USDC to continue, or wait until midnight UTC reset.`,
+                );
+                toolUsages.push({
+                  name: tool.name,
+                  status: 'skipped',
+                  costUsd: 0,
+                  holder_quota_remaining: consumed.holder_quota_remaining ?? 0,
+                });
+                continue;
+              }
+            }
+          }
           result = useTreasury
             ? await callToolWithTreasury(
                 url,
@@ -2121,6 +2194,9 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             status: 'complete',
             costUsd: effectivePrice,
             ...(useTreasury && effectivePrice > 0 ? { included: true } : {}),
+            ...(lastHolderQuotaRemaining != null
+              ? { holder_quota_remaining: lastHolderQuotaRemaining }
+              : {}),
             ...chartUi,
             ...createCoinUi,
           });

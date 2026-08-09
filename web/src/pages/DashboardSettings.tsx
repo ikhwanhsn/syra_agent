@@ -53,6 +53,7 @@ import {
   writeAgentSetupString,
 } from "@/lib/agentSetupStorage";
 import { AgentWalletsManager } from "@/components/settings/AgentWalletsManager";
+import { AgentSetupSectionsSkeleton } from "@/components/settings/AgentSetupPageSkeleton";
 
 const STALE_MS = 45_000;
 
@@ -584,12 +585,7 @@ function AgentSetupSections({
   const showAdminExperimentDesks = isAdminWallet(connected, address);
 
   if (setupLoading && !activeAgent) {
-    return (
-      <div className="space-y-4">
-        <div className="h-40 animate-pulse rounded-2xl bg-muted/30" />
-        <div className="h-56 animate-pulse rounded-2xl bg-muted/30" />
-      </div>
-    );
+    return <AgentSetupSectionsSkeleton />;
   }
 
   if (!activeAgent && setupLoadError) {

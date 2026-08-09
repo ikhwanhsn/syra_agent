@@ -1,17 +1,17 @@
 {
-  "date": "2026-08-08",
-  "updatedAt": "2026-08-08T16:07:52.731Z",
+  "date": "2026-08-09",
+  "updatedAt": "2026-08-09T02:07:28.000Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 23823,
-    "uniquePayingWalletsLast7d": 107
+    "paidCallsLast7d": 22878,
+    "uniquePayingWalletsLast7d": 108
   },
   "last7d": {
-    "calls": 23823,
-    "usdSettled": 1783.12
+    "calls": 22878,
+    "usdSettled": 1494.43
   },
   "buyback": {
-    "totalBuybackUsdSpent": 25.41,
+    "totalBuybackUsdSpent": 25.03,
     "totalSyraAcquired": 172452.066761,
     "treasurySyraBalance": 172452.066761,
     "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
@@ -22,8 +22,8 @@
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0316
+    "settleFailRate24h": 0.0281
   },
-  "oneAction": "Run POST /internal/rewards/fund with maxSyraToFund capped to treasury inventory (≤172452 SYRA; pilot e.g. 50000) so metrics.rewards.totalClaimableSyra > 0 and one wallet can POST /rewards/claim. Settlement already green (24h fail 0.0316).",
+  "oneAction": "Run POST /internal/rewards/fund with maxSyraToFund capped to treasury inventory (≤172452 SYRA; pilot e.g. 50000) so metrics.rewards.totalClaimableSyra > 0 and one wallet can POST /rewards/claim. Carryover from 2026-08-08; settlement still green (24h fail 0.0281).",
   "bottleneck": "token-loop"
 }

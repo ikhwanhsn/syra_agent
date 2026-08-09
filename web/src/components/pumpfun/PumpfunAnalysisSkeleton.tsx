@@ -2,7 +2,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
 
-export function PumpfunAnalysisSkeleton({ className }: { className?: string }) {
+export function PumpfunAnalysisSkeleton({
+  className,
+  /** Solana scan workspace shows 7 sub-tabs; EVM shows 3. */
+  subTabCount = 7,
+}: {
+  className?: string;
+  subTabCount?: number;
+}) {
+  const pills = Math.max(3, Math.min(7, subTabCount));
+
   return (
     <div
       className={cn("space-y-4 animate-in fade-in duration-300", className)}
@@ -10,7 +19,7 @@ export function PumpfunAnalysisSkeleton({ className }: { className?: string }) {
       aria-label="Loading analysis"
     >
       <div className="flex gap-2 overflow-hidden">
-        {Array.from({ length: 7 }).map((_, i) => (
+        {Array.from({ length: pills }).map((_, i) => (
           <Skeleton key={i} className="h-9 w-24 shrink-0 rounded-lg" />
         ))}
       </div>

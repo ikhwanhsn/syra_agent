@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Activity, BarChart3, Gauge, Percent, TrendingDown, TrendingUp, Waves } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   formatBtcCompactUsd,
@@ -71,7 +72,7 @@ function StatCard({ item, loading }: { item: StatItem; loading?: boolean }) {
           <div className="min-w-0">
             <p className={btcKickerClass}>{item.label}</p>
             {loading ? (
-              <div className="mt-3 h-9 w-32 animate-pulse rounded-lg bg-muted/35" />
+              <Skeleton className="mt-3 h-9 w-32 rounded-lg" />
             ) : (
               <p
                 className={cn(

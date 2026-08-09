@@ -13,6 +13,7 @@ import { checkLabDailyCallBudget, logLabX402Call } from './labX402CallLog.js';
 import { formatFundingSkipError } from './labFundingSkipMessage.js';
 import { ensurePayerFundedForNextCall } from './labX402Refund.js';
 import { distributeLabDeposit } from './labDepositDistributor.js';
+import { ensurePayToAlgoForUsdcRefund } from './labAlgorandFeeBuffer.js';
 import {
   assessLabTreasury,
   ensureLabAutoCallEnabledForTreasuryWatch,
@@ -54,6 +55,94 @@ function computeJitteredDelay(baseMs, jitterPct) {
 export function decideMidTickTreasurySkipAction(midAssessment) {
   if (midAssessment?.canFundAny) return 'skip_payer';
   return 'pause_treasury';
+}
+
+/**
+ * Algorand-only: attempt fee ALGO consolidation before pausing (Base/X Layer borrow gas
+ * during funding; Algorand previously paused at preflight before that heal could run).
+ * @param {{
+ *   canFundAny?: boolean;
+ *   reason?: string | null;
+ *   funderUsdc?: number;
+ *   payToUsdc?: number;
+ *   minPriceUsd?: number;
+ *   funderAddress?: string | null;
+ *   payToAddress?: string | null;
+ * }} assessment
+ * @returns {boolean}
+ */
+export function shouldAttemptAlgorandFeeHeal(assessment) {
+  if (!assessment || assessment.canFundAny) return false;
+  const reason = String(assessment.reason || '');
+  if (reason === 'payto_native_underfunded') return true;
+  // USDC present but mislabeled / native-short — still worth consolidating fee ALGO.
+  const minPrice =
+    Number.isFinite(Number(assessment.minPriceUsd)) && Number(assessment.minPriceUsd) > 0
+      ? Number(assessment.minPriceUsd)
+      : 0.01;
+  const usdc = Math.max(
+    0,
+    Number(assessment.funderUsdc ?? 0),
+    Number(assessment.payToUsdc ?? 0),
+  );
+  return usdc >= minPrice && reason !== 'payto_not_opted_in_usdc' && reason !== 'no_payto_wallet';
+}
+
+/**
+ * Unique Algorand addresses to top up with fee ALGO (funder first, then PayTo).
+ * @param {{ funderAddress?: string | null; payToAddress?: string | null }} assessment
+ * @returns {string[]}
+ */
+export function algorandFeeHealTargets(assessment) {
+  /** @type {string[]} */
+  const out = [];
+  const seen = new Set();
+  for (const raw of [assessment?.funderAddress, assessment?.payToAddress]) {
+    const addr = String(raw || '').trim();
+    if (!addr) continue;
+    const key = addr.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(addr);
+  }
+  return out;
+}
+
+/**
+ * Borrow spendable ALGO onto funder/PayTo from hub + siblings before treasury pause.
+ * @param {object} assessment
+ * @param {{
+ *   ensurePayToAlgoForUsdcRefund?: typeof ensurePayToAlgoForUsdcRefund;
+ * }} [deps]
+ * @returns {Promise<{ attempted: boolean; ok: boolean; targets: string[]; results: object[] }>}
+ */
+async function tryAlgorandFeeHealBeforePause(assessment, deps = {}) {
+  if (!shouldAttemptAlgorandFeeHeal(assessment)) {
+    return { attempted: false, ok: false, targets: [], results: [] };
+  }
+  const targets = algorandFeeHealTargets(assessment);
+  if (targets.length === 0) {
+    return { attempted: false, ok: false, targets: [], results: [] };
+  }
+
+  const ensureFn = deps.ensurePayToAlgoForUsdcRefund || ensurePayToAlgoForUsdcRefund;
+
+  /** @type {object[]} */
+  const results = [];
+  let anyOk = false;
+  for (const addr of targets) {
+    try {
+      const result = await ensureFn(addr, {
+        includePayTo: true,
+        includeSiblingPayers: true,
+      });
+      results.push({ address: addr, ...result });
+      if (result?.ok) anyOk = true;
+    } catch (e) {
+      results.push({ address: addr, ok: false, error: e?.message || String(e) });
+    }
+  }
+  return { attempted: true, ok: anyOk, targets, results };
 }
 
 /**
@@ -177,6 +266,36 @@ async function handleTreasuryUnderfunded(args) {
     }
   }
 
+  // Algorand: consolidate fee ALGO (hub/siblings → funder/PayTo) before pausing —
+  // matches Base/X Layer native borrow during funding instead of preflight-dead-end.
+  if (chain === 'algorand' && shouldAttemptAlgorandFeeHeal(assessment)) {
+    console.info(
+      `[lab-x402-scheduler] algorand fee ALGO heal before pause (${assessment.reason})`,
+    );
+    const heal = await tryAlgorandFeeHealBeforePause(assessment);
+    if (heal.attempted) {
+      assessment = await assessLabTreasury(chain, {
+        payerCount,
+        priceMultiplier,
+      });
+      if (assessment.canFundAny) {
+        console.info(
+          `[lab-x402-scheduler] algorand treasury recovered via fee ALGO heal; resuming`,
+        );
+        await recoverLabAutoCallFromTreasury(chain);
+        return { recovered: true, disabled: false, chronicEscalated: false, assessment };
+      }
+      console.warn(
+        `[lab-x402-scheduler] algorand fee ALGO heal did not restore capacity`,
+        heal.results.map((r) => ({
+          address: String(r.address || '').slice(0, 8),
+          ok: r.ok,
+          error: r.error,
+        })),
+      );
+    }
+  }
+
   const chronicEscalated = shouldEscalateTreasuryRecheck(settings.autoCallPausedAt);
   if (chronicEscalated) {
     console.warn(
@@ -277,6 +396,15 @@ async function healChainTreasuryOnBoot(chain) {
           e?.message || e,
         );
       }
+      assessment = await assessLabTreasury(c, {
+        payerCount: payers.length,
+        priceMultiplier: settings.priceMultiplier,
+      });
+    }
+
+    if (c === 'algorand' && !assessment.canFundAny && shouldAttemptAlgorandFeeHeal(assessment)) {
+      console.info(`[lab-x402-scheduler] ${c} boot heal: attempting fee ALGO heal`);
+      await tryAlgorandFeeHealBeforePause(assessment);
       assessment = await assessLabTreasury(c, {
         payerCount: payers.length,
         priceMultiplier: settings.priceMultiplier,
@@ -489,6 +617,9 @@ export const __test = {
   healChainTreasuryOnBoot,
   logAggregatedTreasuryAlert,
   decideMidTickTreasurySkipAction,
+  shouldAttemptAlgorandFeeHeal,
+  algorandFeeHealTargets,
+  tryAlgorandFeeHealBeforePause,
   TREASURY_SKIP_REASONS,
   computeJitteredDelay,
 };

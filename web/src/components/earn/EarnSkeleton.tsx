@@ -234,18 +234,46 @@ export function EarnCardGridSkeleton({
   );
 }
 
-export function EarnPageSkeleton() {
+export type EarnSkeletonTrack = "yield" | "token" | "prompts" | "skills";
+
+function EarnTrackPanelSkeleton({ track }: { track: EarnSkeletonTrack }) {
+  if (track === "token") {
+    return <EarnCardGridSkeleton count={6} heightClass="h-[19.5rem]" />;
+  }
+  if (track === "prompts") {
+    return <EarnCardGridSkeleton count={6} heightClass="h-[14rem]" />;
+  }
+  if (track === "skills") {
+    return <EarnCardGridSkeleton count={6} heightClass="h-[16rem]" />;
+  }
+  return <EarnYieldPanelSkeleton />;
+}
+
+/** Full earn page skeleton. Pass track to match active ?track= panel shape. */
+export function EarnPageSkeleton({
+  track = "yield",
+  includeSummary = true,
+  includeTabs = true,
+}: {
+  track?: EarnSkeletonTrack;
+  includeSummary?: boolean;
+  includeTabs?: boolean;
+} = {}) {
   return (
     <div
       className="space-y-6 animate-in fade-in duration-300"
       aria-busy="true"
       aria-label="Loading earn page"
     >
-      <EarnSummarySkeleton />
+      {includeSummary ? <EarnSummarySkeleton /> : null}
       <div className="space-y-8">
-        <EarnTabListSkeleton />
-        <EarnYieldPanelSkeleton />
+        {includeTabs ? <EarnTabListSkeleton /> : null}
+        <EarnTrackPanelSkeleton track={track} />
       </div>
     </div>
   );
+}
+
+export function EarnActiveTrackSkeleton({ track = "yield" }: { track?: EarnSkeletonTrack }) {
+  return <EarnTrackPanelSkeleton track={track} />;
 }

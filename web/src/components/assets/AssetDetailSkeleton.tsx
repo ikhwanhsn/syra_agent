@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { AssetIntelligenceSkeleton } from "@/components/assets/intelligence/AssetIntelligenceSkeleton";
 import { cn } from "@/lib/utils";
 
 export function AssetDetailSkeleton() {
@@ -41,6 +42,7 @@ export function AssetDetailSkeleton() {
           ))}
         </div>
       </div>
+      <AssetIntelligenceSkeleton />
       <div className={cn(overviewCardShell, "p-5")}>
         <Skeleton className="mb-4 h-5 w-32 rounded-md" />
         {Array.from({ length: 5 }).map((_, i) => (

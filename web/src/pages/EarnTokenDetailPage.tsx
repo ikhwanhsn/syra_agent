@@ -326,7 +326,7 @@ export default function EarnTokenDetailPage() {
                 </div>
                 {isOwner && syraAuthenticated && !isSaidVerified ? (
                   <p className="max-w-xs text-right text-[11px] leading-relaxed text-muted-foreground/80">
-                    Pays ~0.012 SOL from your Earn wallet for on-chain SAID registration + verified badge.
+                    Pays ~0.012 SOL from your Earn wallet to register and verify that wallet on SAID (applies to all your Earn tokens).
                   </p>
                 ) : null}
               </div>

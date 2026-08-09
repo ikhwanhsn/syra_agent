@@ -259,6 +259,39 @@ describe('evaluateTreasuryCapacity', () => {
     assert.equal(r.hubHasFunds, true);
   });
 
+  test('MBR-locked hub must not falsely fund via borrowableNative (live regression)', () => {
+    // Live bug: hub raw ~0.2 ALGO counted as lendable while spendable was 0 (ASA MBR).
+    // assessLabTreasury now passes hub spendable only into borrowableNative.
+    const dishonest = evaluateTreasuryCapacity({
+      payToUsdc: 3.92,
+      payToSpendableNative: 0.003,
+      borrowableNative: 0.199,
+      minNativeForFee: ALGO_FEE_FLOOR,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.05,
+      payerCount: 10,
+      payToOptedIn: true,
+      chain: 'algorand',
+    });
+    assert.equal(dishonest.canFundAny, true);
+
+    const honest = evaluateTreasuryCapacity({
+      payToUsdc: 3.92,
+      payToSpendableNative: 0.003,
+      borrowableNative: 0,
+      minNativeForFee: ALGO_FEE_FLOOR,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.05,
+      payerCount: 10,
+      payToOptedIn: true,
+      chain: 'algorand',
+    });
+    assert.equal(honest.canFundAny, false);
+    assert.equal(honest.reason, 'payto_native_underfunded');
+  });
+
   test('fundableCalls floors to whole calls from PayTo USDC', () => {
     const r = evaluateTreasuryCapacity({
       payToUsdc: 0.025,

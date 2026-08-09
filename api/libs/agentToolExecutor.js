@@ -47,6 +47,11 @@ import { sendTempoPayout } from './tempoPayout.js';
 import { TEMPO_PUBLIC_REFERENCE, fetchTempoTokenList } from './tempoPublic.js';
 import { runAgentPartnerDirectTool } from './agentPartnerDirectTools.js';
 import { chargeAgentForInternalTool } from './agentInternalToolCharge.js';
+import { isExpensivePassthroughTool } from './syraHolderBenefits.js';
+import {
+  canTreasuryPayTool,
+  tryConsumeHolderFreeCall,
+} from './syraHolderFreeQuota.js';
 import {
   runPayshToolForAgent,
   fetchCatalog,
@@ -86,9 +91,12 @@ export async function executeAgentToolCall(input) {
     params: rawParams = {},
     ctx = {},
     skipUsdcCharge = false,
-    useTreasury = false,
+    useTreasury: useTreasuryInput = false,
   } = input;
-  const skipCharge = skipUsdcCharge || useTreasury;
+  let useTreasury = useTreasuryInput === true;
+  let holderMayTreasury = false;
+  let holderTreasuryWallet = null;
+  let holderQuotaRemaining = null;
   try {
     if (!anonymousId || !toolId) {
       return respond(400, {
@@ -104,6 +112,39 @@ export async function executeAgentToolCall(input) {
         error: `Unknown tool: ${toolId}. Use GET /agent/tools to list available tools.`,
       });
     }
+
+    // Probe (no consume yet) so balance checks can skip USDC when starter/stake quota remains.
+    if (
+      !useTreasury &&
+      !skipUsdcCharge &&
+      !isExpensivePassthroughTool(toolId) &&
+      !tool.nansenPath &&
+      !tool.zerionPath &&
+      !tool.birdeyePath &&
+      !tool.blocksizePath &&
+      !tool.paysh
+    ) {
+      try {
+        holderTreasuryWallet = await getConnectedWalletAddress(anonymousId);
+        if (holderTreasuryWallet) {
+          const probe = await canTreasuryPayTool(holderTreasuryWallet, toolId);
+          if (probe.holder_quota_remaining != null) {
+            holderQuotaRemaining = probe.holder_quota_remaining;
+          }
+          if (probe.allowed) {
+            holderMayTreasury = true;
+          }
+        }
+      } catch (holderErr) {
+        console.warn(
+          '[agentToolExecutor] holder free quota check failed:',
+          holderErr?.message || holderErr,
+        );
+      }
+    }
+
+    // skipCharge only for explicit callers; holder subsidy is applied at the treasury call site.
+    const skipCharge = skipUsdcCharge || useTreasuryInput === true;
 
     const requiresTxSign =
       tool.id === 'jupiter-swap-order' || PUMPFUN_TX_TOOL_IDS.has(tool.id);
@@ -547,7 +588,7 @@ export async function executeAgentToolCall(input) {
     }
 
     const balanceResult = await getAgentUsdcBalance(anonymousId);
-    if (!useTreasury && !balanceResult) {
+    if (!useTreasury && !holderMayTreasury && !balanceResult) {
       return respond(404, {
         success: false,
         insufficientBalance: true,
@@ -557,7 +598,7 @@ export async function executeAgentToolCall(input) {
       });
     }
 
-    const connectedWallet = await getConnectedWalletAddress(anonymousId);
+    const connectedWallet = holderTreasuryWallet || (await getConnectedWalletAddress(anonymousId));
     // Earn token launch pays pump.fun in SOL only — no Syra USDC tool fee.
     // useTreasury / skipUsdcCharge: no agent USDC debit for this call.
     const effectivePrice = skipCharge
@@ -565,7 +606,7 @@ export async function executeAgentToolCall(input) {
       : getEffectiveAgentToolPriceUsd(tool, connectedWallet);
     const { usdcBalance } = balanceResult || { usdcBalance: 0 };
     const requiredUsdc = effectivePrice;
-    if (!skipCharge && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
+    if (!skipCharge && !holderMayTreasury && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
       return respond(402, {
         success: false,
         insufficientBalance: true,
@@ -970,6 +1011,28 @@ export async function executeAgentToolCall(input) {
     const body = method === 'POST' ? params : undefined;
 
     let result;
+    if (holderMayTreasury && holderTreasuryWallet && !useTreasuryInput) {
+      const consumed = await tryConsumeHolderFreeCall(holderTreasuryWallet, toolId);
+      if (consumed.holder_quota_remaining != null) {
+        holderQuotaRemaining = consumed.holder_quota_remaining;
+      }
+      if (consumed.allowed && consumed.consumed) {
+        useTreasury = true;
+      } else if (requiredUsdc > 0 && (usdcBalance <= 0 || usdcBalance < requiredUsdc)) {
+        return respond(402, {
+          success: false,
+          insufficientBalance: true,
+          error: 'holder_quota_exhausted',
+          message:
+            'Free holder tool quota exhausted for today and agent wallet USDC is insufficient. Deposit USDC or wait until midnight UTC.',
+          holder_quota_remaining: consumed.holder_quota_remaining ?? 0,
+          usdcBalance,
+          requiredUsdc,
+          toolId: tool.id,
+          toolName: tool.name,
+        });
+      }
+    }
     if (useTreasury) {
       const bases = resolveAgentBaseUrlCandidates();
       const base = bases[0] || '';
@@ -998,6 +1061,7 @@ export async function executeAgentToolCall(input) {
       error: result.error,
       toolId: tool.id,
       ...(result.budgetExceeded && { budgetExceeded: true }),
+      ...(holderQuotaRemaining != null ? { holder_quota_remaining: holderQuotaRemaining } : {}),
     });
   }
 
@@ -1037,6 +1101,8 @@ export async function executeAgentToolCall(input) {
       success: true,
       toolId: tool.id,
       data,
+      ...(useTreasury ? { included: true } : {}),
+      ...(holderQuotaRemaining != null ? { holder_quota_remaining: holderQuotaRemaining } : {}),
     });
   } catch (error) {
     return respond(500, {

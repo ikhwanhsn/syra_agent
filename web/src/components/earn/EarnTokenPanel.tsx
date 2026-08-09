@@ -10,7 +10,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { EarnTokenForm } from "@/components/earn/EarnTokenForm";
 import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
@@ -278,7 +278,6 @@ export function EarnTokenPanel({
   onRequestAuth,
 }: EarnTokenPanelProps) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [launchOpen, setLaunchOpen] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [search, setSearch] = useState("");
@@ -305,11 +304,7 @@ export function EarnTokenPanel({
     staleTime: 30_000,
   });
 
-  const existingMint = myLaunchesQ.data?.launches?.[0]?.mint?.trim() || null;
-  const hasExistingToken = Boolean(existingMint);
-  const existingTokenPath = existingMint
-    ? `/earn/token/${encodeURIComponent(existingMint)}`
-    : null;
+  const myLaunches = myLaunchesQ.data?.launches ?? [];
 
   const handleLaunch = async () => {
     if (!connected || !baseAnonymousId) {
@@ -319,11 +314,6 @@ export function EarnTokenPanel({
     if (!syraAuthenticated) {
       const ok = await onRequestAuth();
       if (!ok) return;
-    }
-    if (existingMint) {
-      notify.error("One token per wallet", "You can only create one token per wallet.");
-      void navigate(`/earn/token/${encodeURIComponent(existingMint)}`);
-      return;
     }
     const sol = earnBalances.solBalance;
     if (sol != null && sol <= 0) {
@@ -339,7 +329,7 @@ export function EarnTokenPanel({
   const marketplace = marketQ.data?.launches ?? [];
   const showSkeleton = useMinimumSkeleton(marketQ.isLoading);
   const q = search.trim().toLowerCase();
-  const showLaunchStrip = !hasExistingToken && marketplace.length > 0 && !showSkeleton && !marketQ.isError;
+  const showLaunchStrip = marketplace.length > 0 && !showSkeleton && !marketQ.isError;
 
   const visibleLaunches = [...marketplace]
     .filter((l) => {
@@ -367,27 +357,36 @@ export function EarnTokenPanel({
             Tokens
           </h2>
           <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-            Launch a pump.fun token from your Earn wallet, one per wallet.
+            Launch pump.fun tokens from your Earn wallet. Create as many as you want.
           </p>
         </div>
-        {hasExistingToken && existingTokenPath ? (
-          <Button
-            className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
-            asChild
-          >
-            <Link to={existingTokenPath}>View your token</Link>
-          </Button>
-        ) : (
-          <Button
-            variant="neon"
-            className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px]"
-            onClick={() => void handleLaunch()}
-          >
-            <Plus className="h-4 w-4" />
-            Launch token
-          </Button>
-        )}
+        <Button
+          variant="neon"
+          className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px]"
+          onClick={() => void handleLaunch()}
+        >
+          <Plus className="h-4 w-4" />
+          Launch token
+        </Button>
       </header>
+
+      {myLaunches.length > 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-[1.05rem] font-semibold tracking-tight text-foreground">
+              Your tokens
+            </h3>
+            <p className="text-[12px] tabular-nums text-muted-foreground">
+              {myLaunches.length} launch{myLaunches.length === 1 ? "" : "es"}
+            </p>
+          </div>
+          <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
+            {myLaunches.map((launch, index) => (
+              <TokenCard key={launch.id} launch={launch} staggerIndex={index} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative min-w-0 flex-1 sm:max-w-sm">
@@ -445,7 +444,7 @@ export function EarnTokenPanel({
               Launch yours on Syra
             </p>
             <p className="mt-0.5 text-[13px] text-muted-foreground">
-              Join the marketplace, create one token from your Earn wallet.
+              Join the marketplace from your Earn wallet. Launch as many tokens as you want.
             </p>
           </div>
           <Button
@@ -485,10 +484,6 @@ export function EarnTokenPanel({
           {q ? (
             <Button className="mt-6 rounded-full" variant="outline" onClick={() => setSearch("")}>
               Clear
-            </Button>
-          ) : hasExistingToken && existingTokenPath ? (
-            <Button className="mt-6 rounded-full" asChild>
-              <Link to={existingTokenPath}>View your token</Link>
             </Button>
           ) : (
             <Button

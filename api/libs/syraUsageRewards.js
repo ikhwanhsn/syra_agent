@@ -15,6 +15,7 @@ import bs58 from "bs58";
 import { isMongooseConnected } from "../config/mongoose.js";
 import SyraUsageReward from "../models/SyraUsageReward.js";
 import { SYRA_TOKEN_MINT } from "./syraToken.js";
+import { resolveSyraHolding } from "./syraHolderBenefits.js";
 
 const isProduction = process.env.NODE_ENV === "production";
 const RPC_URL =
@@ -56,16 +57,26 @@ export async function accrueUsageReward({ payer, amountUsd }) {
   const usd = Number(amountUsd);
   if (!wallet || !Number.isFinite(usd) || usd <= 0) return null;
 
+  let points = usd;
+  let rewardMultiplier = 1;
+  try {
+    const holding = await resolveSyraHolding(wallet);
+    rewardMultiplier = holding.rewardMultiplier || 1;
+    points = Math.round(usd * rewardMultiplier * 1_000_000) / 1_000_000;
+  } catch {
+    // keep 1:1 on holding lookup failure
+  }
+
   try {
     return await SyraUsageReward.findOneAndUpdate(
       { wallet },
       {
         $inc: {
           lifetimeSpendUsd: usd,
-          lifetimePoints: usd,
-          pendingPoints: usd,
+          lifetimePoints: points,
+          pendingPoints: points,
         },
-        $set: { lastSpendAt: new Date() },
+        $set: { lastSpendAt: new Date(), lastRewardMultiplier: rewardMultiplier },
       },
       { upsert: true, new: true },
     );
@@ -142,20 +153,19 @@ export async function fundRewardsEpoch(opts = {}) {
 export async function getRewardsForWallet(wallet) {
   const w = normalizeWallet(wallet);
   if (!w) return null;
-  if (!isMongooseConnected()) {
-    return {
-      wallet: w,
-      lifetimeSpendUsd: 0,
-      lifetimePoints: 0,
-      pendingPoints: 0,
-      claimableSyra: 0,
-      claimedSyra: 0,
-      lastSpendAt: null,
-      lastClaimAt: null,
-      lastClaimTx: null,
-    };
+  let doc = null;
+  if (isMongooseConnected()) {
+    doc = await SyraUsageReward.findOne({ wallet: w }).lean();
   }
-  const doc = await SyraUsageReward.findOne({ wallet: w }).lean();
+  let holderBenefits = null;
+  try {
+    const { getHolderBenefitsStatus } = await import("./syraHolderFreeQuota.js");
+    holderBenefits = await getHolderBenefitsStatus(w, {
+      lifetimeSpendUsd: doc?.lifetimeSpendUsd ?? 0,
+    });
+  } catch {
+    holderBenefits = null;
+  }
   return {
     wallet: w,
     lifetimeSpendUsd: doc?.lifetimeSpendUsd ?? 0,
@@ -167,8 +177,10 @@ export async function getRewardsForWallet(wallet) {
     lastClaimAt: doc?.lastClaimAt ? new Date(doc.lastClaimAt).toISOString() : null,
     lastClaimTx: doc?.lastClaimTx ?? null,
     pointsToSyraRate: DEFAULT_POINTS_TO_SYRA,
+    rewardMultiplier: holderBenefits?.rewardMultiplier ?? 1,
+    holderBenefits,
     note:
-      "Spend on Syra x402 APIs accrues points. Epochs convert points → claimable $SYRA from buyback treasury.",
+      "Spend on Syra x402 APIs accrues points (holders get a points multiplier). Epochs convert points → claimable $SYRA from buyback treasury.",
   };
 }
 

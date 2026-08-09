@@ -153,7 +153,7 @@ export const BUYBACK_REWARDS_PROOF_PHOTO = definePhotoUpdate(BUYBACK_REWARDS_PRO
     content: photoContent({
       kicker: "Tiers",
       headline: "Hold or stake for fee off.",
-      body: "10k → 5%. 100k → 10%. 1M → 20% + free agent tools. 10M → 30%.",
+      body: "10k → 5%. 100k → 10% + Free Agent Starter Pack. 1M → 20%. 10M → 30%.",
     }),
   },
   {

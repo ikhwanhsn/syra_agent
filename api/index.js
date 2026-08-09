@@ -1757,7 +1757,7 @@ Default verify/settle: **Dexter** → **GoPlausible** → **PayAI** (health-base
 
 ## Authentication
 
-No API key required for the resources listed above — all are gated by the x402 protocol (HTTP 402). **Free onboarding tier** (no payment): \`/free/pillars\`, \`/free/assets\`, \`/free/coingecko/price\`, \`/free/dossier/basic\`. **Public metrics**: \`GET /api/metrics\` (traction + buyback proof + holders + rewards), \`GET /api/live/calls\` (SSE). **Usage rewards**: \`GET /rewards/me\`, \`POST /rewards/claim\`. Agent docs: \`GET /llms-full.txt\`.
+No API key required for the resources listed above — all are gated by the x402 protocol (HTTP 402). **Free onboarding tier** (no payment): \`/free/pillars\`, \`/free/assets\`, \`/free/coingecko/price\`, \`/free/dossier/basic\`. **Public metrics**: \`GET /api/metrics\` (traction + buyback proof + holders + rewards), \`GET /api/live/calls\` (SSE). **Usage rewards**: \`GET /rewards/me\`, \`GET /rewards/holder-benefits\`, \`POST /rewards/claim\`. Agent docs: \`GET /llms-full.txt\`.
 
 ## Agent payment ergonomics
 

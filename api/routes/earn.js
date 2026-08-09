@@ -229,14 +229,6 @@ export function createEarnRouter() {
       });
 
       if (!result.success) {
-        if (result.limitReached) {
-          return res.status(409).json({
-            success: false,
-            error: result.error || 'earn_token_limit_reached',
-            existingMint: result.existingMint || null,
-            limitReached: true,
-          });
-        }
         const status = result.insufficientBalance ? 402 : 400;
         return res.status(status).json(result);
       }

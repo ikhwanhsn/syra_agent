@@ -24,7 +24,41 @@ export const MIN_SOL_FOR_SAID_VERIFY = 0.012;
 const DEFAULT_SAID_DESCRIPTION = SYRA_AGENT_DESCRIPTION;
 
 const SAID_PROGRAM_ID = new PublicKey("5dpw6KEQPn248pnkkaYyWfHwu2nfb3LUMbTucb6LaA8G");
+const SAID_TREASURY_PDA = new PublicKey("2XfHTeNWTjNwUmgoXaafYuqHcAAXj8F5Kjw2Bnzi4FxH");
 const UPDATE_AGENT_DISCRIMINATOR = Buffer.from([0x55, 0x02, 0xb2, 0x09, 0x77, 0x8b, 0x66, 0xa4]);
+/** said-sdk REGISTER_AGENT / GET_VERIFIED discriminators (Anchor sighash). */
+const REGISTER_AGENT_DISCRIMINATOR = Buffer.from([135, 157, 66, 195, 2, 113, 175, 30]);
+const GET_VERIFIED_DISCRIMINATOR = Buffer.from([132, 231, 2, 30, 115, 74, 23, 26]);
+const LEGACY_SAID_ACCOUNT_SIZE = 263;
+const SAID_STATUS_RETRY_MS = 800;
+const SAID_STATUS_RETRIES = 4;
+
+/**
+ * @param {number} ms
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+function isAlreadyInitializedError(err) {
+  const msg = err instanceof Error ? err.message : String(err || "");
+  return /already in use|already.?initialized|custom program error:\s*0x0\b|AccountAlreadyInitialized/i.test(
+    msg,
+  );
+}
+
+/**
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+function isAlreadyVerifiedError(err) {
+  const msg = err instanceof Error ? err.message : String(err || "");
+  return /already.?verified|AlreadyVerified/i.test(msg);
+}
 
 /**
  * @returns {string}
@@ -92,42 +126,75 @@ export function getSaidRpcUrl() {
 }
 
 /**
+ * Parse SAID AgentIdentity account bytes.
+ * Supports legacy 263-byte layout (uri @40) and current layout (authority @40, uri @72).
+ *
  * @param {string} pubkey
- * @param {Buffer} data
- * @returns {{ pubkey: string; owner: string; metadataUri: string; isVerified: boolean; registeredAt?: number; verifiedAt?: number } | null}
+ * @param {Buffer | Uint8Array} data
+ * @returns {{ pubkey: string; owner: string; metadataUri: string; isVerified: boolean; registeredAt?: number; verifiedAt?: number; authority?: string } | null}
  */
 export function parseSaidAgentAccountData(pubkey, data) {
   if (!data || data.length < 77) return null;
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
 
-  const owner = new PublicKey(data.subarray(8, 40)).toBase58();
+  const owner = new PublicKey(buf.subarray(8, 40)).toBase58();
 
-  /** @type {{ uriLengthOffset: number; uriOffset: number } | null} */
+  /** @type {{ uriLengthOffset: number; uriOffset: number; hasAuthority: boolean } | null} */
   let layout = null;
+  /** @type {string | undefined} */
+  let authority;
 
-  if (data.length === 263) {
-    layout = { uriLengthOffset: 40, uriOffset: 44 };
+  if (buf.length === LEGACY_SAID_ACCOUNT_SIZE) {
+    layout = { uriLengthOffset: 40, uriOffset: 44, hasAuthority: false };
   } else {
-    const uriLengthAt72 = data.readUInt32LE(72);
-    if (uriLengthAt72 > 0 && uriLengthAt72 < 512 && 76 + uriLengthAt72 <= data.length) {
-      layout = { uriLengthOffset: 72, uriOffset: 76 };
+    const uriLengthAt72 = buf.readUInt32LE(72);
+    if (uriLengthAt72 > 0 && uriLengthAt72 <= 200 && 76 + uriLengthAt72 + 9 <= buf.length) {
+      layout = { uriLengthOffset: 72, uriOffset: 76, hasAuthority: true };
+      authority = new PublicKey(buf.subarray(40, 72)).toBase58();
+    } else {
+      // Fallback: some intermediate sizes still use uri @40 (no authority field).
+      const uriLengthAt40 = buf.readUInt32LE(40);
+      if (uriLengthAt40 > 0 && uriLengthAt40 <= 200 && 44 + uriLengthAt40 + 9 <= buf.length) {
+        layout = { uriLengthOffset: 40, uriOffset: 44, hasAuthority: false };
+      }
     }
   }
 
   if (!layout) return null;
 
-  const uriLength = data.readUInt32LE(layout.uriLengthOffset);
-  const metadataUri = data.subarray(layout.uriOffset, layout.uriOffset + uriLength).toString("utf8");
-  const after = data.subarray(layout.uriOffset + uriLength);
+  const uriLength = buf.readUInt32LE(layout.uriLengthOffset);
+  if (uriLength <= 0 || uriLength > 200) return null;
+  const metadataUri = buf.subarray(layout.uriOffset, layout.uriOffset + uriLength).toString("utf8");
+  const after = buf.subarray(layout.uriOffset + uriLength);
 
   if (after.length < 9) {
-    return { pubkey, owner, metadataUri, isVerified: false };
+    return { pubkey, owner, metadataUri, isVerified: false, ...(authority ? { authority } : {}) };
   }
 
-  const registeredAt = after.length >= 8 ? Number(after.readBigInt64LE(0)) : undefined;
+  const registeredAt = Number(after.readBigInt64LE(0));
   const isVerified = after[8] === 1;
-  const verifiedAt = after.length >= 17 ? Number(after.readBigInt64LE(9)) : undefined;
 
-  return { pubkey, owner, metadataUri, registeredAt, isVerified, verifiedAt };
+  /** @type {number | undefined} */
+  let verifiedAt;
+  if (after.length >= 18 && (after[9] === 0 || after[9] === 1)) {
+    // Current Anchor Option<i64>: tag @9, value @10 when Some.
+    if (after[9] === 1) {
+      verifiedAt = Number(after.readBigInt64LE(10));
+    }
+  } else if (after.length >= 17) {
+    // Legacy fixed i64 immediately after is_verified.
+    verifiedAt = Number(after.readBigInt64LE(9));
+  }
+
+  return {
+    pubkey,
+    owner,
+    metadataUri,
+    registeredAt: Number.isFinite(registeredAt) ? registeredAt : undefined,
+    isVerified,
+    verifiedAt: verifiedAt != null && Number.isFinite(verifiedAt) ? verifiedAt : undefined,
+    ...(authority ? { authority } : {}),
+  };
 }
 
 /**
@@ -219,7 +286,7 @@ export function buildTokenAgentCard(input) {
   const mint = String(input.mint || "").trim();
   const description =
     (typeof input.description === "string" && input.description.trim()) ||
-    `${name}${symbol ? ` ($${symbol})` : ""} — community token launched on Syra Earn / pump.fun.`;
+    `${name}${symbol ? ` ($${symbol})` : ""}: community token launched on Syra Earn / pump.fun.`;
   const image =
     (typeof input.image === "string" && input.image.trim()) ||
     process.env.SYRA_AGENT_IMAGE_URI?.trim() ||
@@ -277,13 +344,55 @@ export async function uploadAgentCardMetadata(card) {
   }
 
   const payload = await response.json();
-  const cid = payload.IpfsHash;
+  const cid = typeof payload.IpfsHash === "string" ? payload.IpfsHash.trim() : "";
   if (!cid) {
     throw new Error("Pinata upload did not return IpfsHash");
   }
 
-  const gateway = (process.env.IPFS_GATEWAY || "https://gateway.pinata.cloud").replace(/\/$/, "");
-  return `${gateway}/ipfs/${cid}`;
+  // Prefer ipfs:// for on-chain URI (≤200 chars; SAID program validates length/prefix).
+  return `ipfs://${cid}`;
+}
+
+/**
+ * @param {PublicKey} agentPDA
+ * @param {PublicKey} owner
+ * @param {string} metadataUri
+ */
+function buildRegisterAgentInstruction(agentPDA, owner, metadataUri) {
+  const uriBytes = Buffer.from(metadataUri, "utf8");
+  if (uriBytes.length < 10 || uriBytes.length > 200) {
+    throw new Error(`SAID metadata URI length invalid (${uriBytes.length}); need 10-200 chars`);
+  }
+  const uriLengthBuffer = Buffer.alloc(4);
+  uriLengthBuffer.writeUInt32LE(uriBytes.length, 0);
+  const data = Buffer.concat([REGISTER_AGENT_DISCRIMINATOR, uriLengthBuffer, uriBytes]);
+
+  return new TransactionInstruction({
+    keys: [
+      { pubkey: agentPDA, isSigner: false, isWritable: true },
+      { pubkey: owner, isSigner: true, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    programId: SAID_PROGRAM_ID,
+    data,
+  });
+}
+
+/**
+ * @param {PublicKey} agentPDA
+ * @param {PublicKey} authority
+ */
+function buildVerifyAgentInstruction(agentPDA, authority) {
+  return new TransactionInstruction({
+    keys: [
+      { pubkey: agentPDA, isSigner: false, isWritable: true },
+      { pubkey: SAID_TREASURY_PDA, isSigner: false, isWritable: true },
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    programId: SAID_PROGRAM_ID,
+    data: GET_VERIFIED_DISCRIMINATOR,
+  });
 }
 
 /**
@@ -305,6 +414,36 @@ function buildUpdateAgentInstruction(agentPDA, authority, metadataUri) {
     programId: SAID_PROGRAM_ID,
     data,
   });
+}
+
+/**
+ * Re-read on-chain + HTTP verification with short retries (RPC lag after confirm).
+ * @param {string} wallet
+ * @returns {Promise<{ verified: boolean; onChain: ReturnType<typeof parseSaidAgentAccountData> }>}
+ */
+async function resolveSaidVerifiedStatus(wallet) {
+  let onChain = null;
+  for (let i = 0; i < SAID_STATUS_RETRIES; i += 1) {
+    onChain = await lookupOnChainAgent(wallet);
+    if (onChain?.isVerified) {
+      return { verified: true, onChain };
+    }
+    if (i < SAID_STATUS_RETRIES - 1) {
+      await sleep(SAID_STATUS_RETRY_MS);
+    }
+  }
+
+  let httpVerified = false;
+  try {
+    httpVerified = await checkVerified(wallet);
+  } catch {
+    httpVerified = false;
+  }
+
+  return {
+    verified: httpVerified === true || onChain?.isVerified === true,
+    onChain,
+  };
 }
 
 /**
@@ -431,11 +570,12 @@ export async function getSignerSolBalance(signer) {
 export async function checkVerified(wallet, options = {}) {
   try {
     const onChain = await lookupOnChainAgent(wallet);
-    if (onChain) return onChain.isVerified;
+    if (onChain?.isVerified) return true;
   } catch (err) {
     console.warn("[saidClient] on-chain lookup failed:", err?.message || err);
   }
 
+  // said-sdk lookup requires legacy 263-byte accounts; skip when it returns false/null.
   try {
     const { isVerified } = await import("said-sdk");
     const verified = await isVerified(wallet);
@@ -536,25 +676,49 @@ export async function registerAndVerifyAgentCard(input) {
   const card = { ...input.card, wallet };
 
   const { SAID } = await import("said-sdk");
-  const said = new SAID({ rpcUrl: getSaidRpcUrl() });
+  const [agentPdaKey] = SAID.deriveAgentPDA(new PublicKey(wallet));
+  const connection = new Connection(getSaidRpcUrl(), "confirmed");
 
-  const existing = await lookupOnChainAgent(wallet);
+  let existing = await lookupOnChainAgent(wallet);
   let registerSignature = null;
-  let agentPDA = existing?.pubkey || null;
+  let agentPDA = existing?.pubkey || agentPdaKey.toBase58();
   let metadataUri = existing?.metadataUri;
+  let alreadyRegistered = !!existing;
 
   if (!existing) {
     metadataUri = await uploadAgentCardMetadata(card);
-    const registered = await said.registerAgent(signer, metadataUri);
-    registerSignature = registered.txSignature;
-    agentPDA = registered.agentPDA;
+    const registerIx = buildRegisterAgentInstruction(agentPdaKey, signer.publicKey, metadataUri);
+    const registerTx = new Transaction().add(registerIx);
+    try {
+      registerSignature = await sendAndConfirmSolanaTransaction(connection, registerTx, [signer], {
+        commitment: "confirmed",
+      });
+      agentPDA = agentPdaKey.toBase58();
+    } catch (err) {
+      if (!isAlreadyInitializedError(err)) throw err;
+      alreadyRegistered = true;
+      existing = await lookupOnChainAgent(wallet);
+      agentPDA = existing?.pubkey || agentPdaKey.toBase58();
+      metadataUri = existing?.metadataUri || metadataUri;
+    }
   }
 
   let verifySignature = null;
-  const wasVerified = existing?.isVerified ?? false;
+  const wasVerified = existing?.isVerified === true;
   if (!wasVerified) {
-    const verified = await said.verifyAgent(signer);
-    verifySignature = verified.txSignature;
+    const verifyIx = buildVerifyAgentInstruction(agentPdaKey, signer.publicKey);
+    const verifyTx = new Transaction().add(verifyIx);
+    try {
+      verifySignature = await sendAndConfirmSolanaTransaction(connection, verifyTx, [signer], {
+        commitment: "confirmed",
+      });
+    } catch (err) {
+      if (!isAlreadyVerifiedError(err)) {
+        // Re-check: verify may have landed despite confirm noise, or already verified on-chain.
+        const status = await resolveSaidVerifiedStatus(wallet);
+        if (!status.verified) throw err;
+      }
+    }
   }
 
   if (!input.skipOffChain) {
@@ -578,17 +742,17 @@ export async function registerAndVerifyAgentCard(input) {
     }
   }
 
-  const onChainFinal = await lookupOnChainAgent(wallet);
-  const verified = onChainFinal?.isVerified ?? false;
+  const status = await resolveSaidVerifiedStatus(wallet);
+  const onChainFinal = status.onChain;
 
   return {
     wallet,
-    agentPDA: agentPDA || onChainFinal?.pubkey || undefined,
-    metadataUri,
+    agentPDA: agentPDA || onChainFinal?.pubkey || agentPdaKey.toBase58(),
+    metadataUri: metadataUri || onChainFinal?.metadataUri,
     registerSignature,
     verifySignature,
-    verified,
-    alreadyRegistered: !!existing,
+    verified: status.verified === true || wasVerified,
+    alreadyRegistered,
     alreadyVerified: wasVerified,
   };
 }

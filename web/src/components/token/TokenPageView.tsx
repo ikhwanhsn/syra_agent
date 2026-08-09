@@ -6,6 +6,7 @@ import { AboutTokenBar } from "@/components/about/AboutTokenBar";
 import { GrowthBuybackProofPanel } from "@/components/growth/GrowthBuybackProofPanel";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { TokenSection } from "@/components/marketing/TokenSection";
+import { HolderBenefitsPanel } from "@/components/syra/HolderBenefitsPanel";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
 import { overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
@@ -58,6 +59,10 @@ export function TokenPageView() {
 
         <div className="mb-8">
           <GrowthBuybackProofPanel />
+        </div>
+
+        <div className="mb-8">
+          <HolderBenefitsPanel />
         </div>
 
         <div className="mb-10">

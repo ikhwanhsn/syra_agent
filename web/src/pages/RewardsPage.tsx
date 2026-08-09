@@ -9,6 +9,7 @@ import { getApiBaseUrl } from "@/lib/chatApi";
 import { usePublicMetrics } from "@/lib/publicMetricsApi";
 import { GrowthBuybackProofPanel } from "@/components/growth/GrowthBuybackProofPanel";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
+import { HolderBenefitsPanel } from "@/components/syra/HolderBenefitsPanel";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
 import { overviewKickerClass } from "@/components/dashboard/overview/overviewStyles";
@@ -36,6 +37,7 @@ interface RewardsMeResponse {
     lastClaimAt: string | null;
     lastClaimTx: string | null;
     pointsToSyraRate: number;
+    rewardMultiplier?: number;
     note: string;
   };
   error?: string;
@@ -125,8 +127,9 @@ export default function RewardsPage() {
             Use Syra. Earn $SYRA.
           </h1>
           <p className={cn(growthProseClass)}>
-            Settled x402 spend accrues points. Epoch funding converts points into claimable $SYRA from
-            the buyback treasury. Hold or stake $SYRA for live API fee discounts.
+            Settled x402 spend accrues points (holders get a points multiplier). Epoch funding converts
+            points into claimable $SYRA from the buyback treasury. Hold 100k+ for the Free Agent
+            Starter Pack and live fee discounts.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button variant="outline" size="sm" className="h-9 rounded-lg" asChild>
@@ -252,6 +255,9 @@ export default function RewardsPage() {
               <p className="text-xs text-muted-foreground/80">
                 Conversion rate after epoch fund: ~{formatNum(me.pointsToSyraRate, 0)} $SYRA per $1
                 spend. Points convert when treasury epochs run.
+                {me.rewardMultiplier != null && me.rewardMultiplier > 1
+                  ? ` Your holder multiplier is ${formatNum(me.rewardMultiplier, 2)}× on new spend.`
+                  : ""}
               </p>
 
               <div className="flex flex-wrap items-center gap-3">
@@ -307,6 +313,10 @@ export default function RewardsPage() {
               )}
             </div>
           )}
+        </div>
+
+        <div className="mb-8">
+          <HolderBenefitsPanel walletOverride={wallet || undefined} />
         </div>
 
         <GrowthBuybackProofPanel />

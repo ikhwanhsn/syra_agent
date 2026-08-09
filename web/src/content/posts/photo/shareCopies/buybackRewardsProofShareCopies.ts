@@ -77,7 +77,7 @@ syraa.fun/token`,
 
   deepDive: `This deep-dive card lists the discount tiers for holding or staking $SYRA.
 
-10k gets 5% off. 100k gets 10% off. 1M gets 20% off plus free agent tools. 10M gets 30% off.
+10k gets 5% off. 100k gets 10% off plus the Free Agent Starter Pack. 1M gets 20% off. 10M gets 30% off.
 
 syraa.fun/staking`,
 

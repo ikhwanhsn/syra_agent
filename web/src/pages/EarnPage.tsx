@@ -6,11 +6,16 @@ import { EarnSkillsPanel } from "@/components/earn/EarnSkillsPanel";
 import { EarnSummarySection } from "@/components/earn/EarnSummarySection";
 import { EarnTokenPanel } from "@/components/earn/EarnTokenPanel";
 import { EarnYieldPanel } from "@/components/earn/EarnYieldPanel";
-import { EarnPageSkeleton } from "@/components/earn/EarnSkeleton";
+import {
+  EarnActiveTrackSkeleton,
+  EarnPageSkeleton,
+  type EarnSkeletonTrack,
+} from "@/components/earn/EarnSkeleton";
 import { EarnTrackTabs } from "@/components/earn/EarnTrackTabs";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
@@ -24,6 +29,21 @@ type EarnTrack = (typeof EARN_TRACKS)[number];
 function parseTrack(value: string | null): EarnTrack {
   if (value && EARN_TRACKS.includes(value as EarnTrack)) return value as EarnTrack;
   return "yield";
+}
+
+function EarnSummaryLoadingShell() {
+  return (
+    <div className={cn(overviewCardShell, "p-5 sm:p-6")}>
+      <div className="grid grid-cols-2 gap-4 sm:max-w-sm">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-8 w-24" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function EarnPage() {
@@ -97,6 +117,8 @@ export default function EarnPage() {
     void queryClient.invalidateQueries({ queryKey: ["earn", "summary", key] });
   };
 
+  const trackSkeleton = activeTrack as EarnSkeletonTrack;
+
   return (
     <PillarLayout
       embedded
@@ -109,34 +131,42 @@ export default function EarnPage() {
         </Button>
       }
     >
-      {showSkeleton && key ? (
-        <EarnPageSkeleton />
+      {!key ? (
+        <EarnPageSkeleton track={trackSkeleton} includeSummary={false} />
       ) : (
         <div className="space-y-6">
-          {key ? (
+          {showSkeleton ? (
+            <EarnSummaryLoadingShell />
+          ) : (
             <EarnSummarySection
               pendingUsd={data?.pendingUsd ?? 0}
               paidUsd={data?.paidUsd ?? 0}
               earnings={earnings}
             />
-          ) : null}
+          )}
 
           <EarnTrackTabs
             activeTrack={activeTrack}
             onTrackChange={handleTrackChange}
             yieldContent={
-              <EarnYieldPanel
-                anonymousId={anonymousId}
-                walletAddress={address}
-                connected={connected}
-                syraAuthenticated={syraAuthenticated}
-                syraAuthReady={syraAuthReady}
-                onSignIn={handleSignIn}
-                onRequestAuth={handleRequestAuth}
-              />
+              showSkeleton ? (
+                <EarnActiveTrackSkeleton track="yield" />
+              ) : (
+                <EarnYieldPanel
+                  anonymousId={anonymousId}
+                  walletAddress={address}
+                  connected={connected}
+                  syraAuthenticated={syraAuthenticated}
+                  syraAuthReady={syraAuthReady}
+                  onSignIn={handleSignIn}
+                  onRequestAuth={handleRequestAuth}
+                />
+              )
             }
             promptsContent={
-              key ? (
+              showSkeleton ? (
+                <EarnActiveTrackSkeleton track="prompts" />
+              ) : (
                 <EarnPromptPanel
                   anonymousId={anonymousId}
                   connected={connected}
@@ -145,14 +175,12 @@ export default function EarnPage() {
                   onSignIn={handleSignIn}
                   onRequestAuth={handleRequestAuth}
                 />
-              ) : (
-                <div className={cn(overviewCardShell, "p-6 text-center text-sm text-muted-foreground")}>
-                  Connect wallet to manage playbooks.
-                </div>
               )
             }
             skillsContent={
-              key ? (
+              showSkeleton ? (
+                <EarnActiveTrackSkeleton track="skills" />
+              ) : (
                 <EarnSkillsPanel
                   anonymousId={anonymousId}
                   skillsQueryKey={skillsQueryKey}
@@ -163,14 +191,12 @@ export default function EarnPage() {
                   onRequestAuth={handleRequestAuth}
                   onSkillsChanged={invalidateSkills}
                 />
-              ) : (
-                <div className={cn(overviewCardShell, "p-6 text-center text-sm text-muted-foreground")}>
-                  Connect wallet to manage skills.
-                </div>
               )
             }
             tokenContent={
-              key ? (
+              showSkeleton ? (
+                <EarnActiveTrackSkeleton track="token" />
+              ) : (
                 <EarnTokenPanel
                   baseAnonymousId={anonymousId}
                   walletAddress={address}
@@ -179,10 +205,6 @@ export default function EarnPage() {
                   onSignIn={handleSignIn}
                   onRequestAuth={handleRequestAuth}
                 />
-              ) : (
-                <div className={cn(overviewCardShell, "p-6 text-center text-sm text-muted-foreground")}>
-                  Connect wallet to launch tokens.
-                </div>
               )
             }
           />

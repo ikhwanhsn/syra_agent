@@ -64,7 +64,8 @@ Product (live):
 - Telegram bot @syra_trading_bot — walleted crypto intel agent (same tools as web; daily digest + referral)
 
 Token utility ($SYRA on Solana / Pump.fun):
-- Staking via Streamflow locks — API fee discounts (e.g. 10K $SYRA = 25% off)
+- Hold/stake tiers: 10k=5% off, 100k=10% + Free Agent Starter Pack, 1M=20%, 10M=30% (Solana payers)
+- Stake 100k+/1M for elevated Pumpfun scan quotas and extra free intel
 - x402 revenue buyback — portion of paid API revenue swapped to $SYRA for community airdrops
 - Community alignment — early supporters backing the agent economy infrastructure play
 

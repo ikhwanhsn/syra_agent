@@ -1,8 +1,8 @@
 /**
  * Daily scan quota for Pumpfun memecoin analysis (/agent/tokens/memecoin-analysis).
  * - Default: 3 scans / UTC day (per IP or verified wallet)
- * - ≥1M SYRA staked (Streamflow): 15 / day
- * - ≥10M SYRA staked (Streamflow): unlimited
+ * - ≥100k SYRA staked (Streamflow): 15 / day
+ * - ≥1M SYRA staked (Streamflow): unlimited
  */
 import MemecoinAnalysisDailyQuota from '../models/agent/MemecoinAnalysisDailyQuota.js';
 import { isMongooseConnected } from '../config/mongoose.js';

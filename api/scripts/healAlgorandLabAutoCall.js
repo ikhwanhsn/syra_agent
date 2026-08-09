@@ -79,6 +79,23 @@ async function main() {
     });
   }
 
+  if (!assessment.canFundAny) {
+    const { __test } = await import('../libs/labs/labX402Scheduler.js');
+    if (__test.shouldAttemptAlgorandFeeHeal(assessment)) {
+      console.log('[heal-algorand-lab] fee ALGO heal before recover…');
+      const heal = await __test.tryAlgorandFeeHealBeforePause(assessment);
+      console.log('[heal-algorand-lab] fee heal', {
+        attempted: heal.attempted,
+        ok: heal.ok,
+        targets: heal.targets,
+      });
+      assessment = await assessLabTreasury('algorand', {
+        payerCount: payers.length,
+        priceMultiplier: before.priceMultiplier,
+      });
+    }
+  }
+
   if (assessment.canFundAny) {
     await recoverLabAutoCallFromTreasury('algorand');
     console.log('[heal-algorand-lab] recovered: autoCallEnabled=true, pause cleared');

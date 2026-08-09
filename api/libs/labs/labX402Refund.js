@@ -928,9 +928,12 @@ async function refundUsdcToPayerAlgorand(payerAddress, amountUsd) {
 
   const client = getAlgorandAlgodClient();
   // Reuse fee buffer: top up funder's ALGO for ASA transfer fees (same as former PayTo path).
+  // includePayTo:true so a payer funder can borrow fee ALGO from PayTo (Base/X Layer sibling gas).
   const feeReady = await ensurePayToAlgoForUsdcRefund(funderAccount.address, {
     needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
     client,
+    includePayTo: true,
+    includeSiblingPayers: true,
   });
   if (!feeReady.ok) {
     throw new Error(

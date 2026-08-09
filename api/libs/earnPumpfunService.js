@@ -14,7 +14,9 @@ import { getSolanaAgentKeypair } from './agentWallet.js';
 import {
   MIN_SOL_FOR_SAID_VERIFY,
   buildTokenAgentCard,
+  checkVerified,
   getSignerSolBalance,
+  lookupOnChainAgent,
   registerAndVerifyAgentCard,
 } from './saidClient.js';
 import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
@@ -646,7 +648,7 @@ export async function listEarnPumpfunLaunches(earnAnonymousId) {
   if (!isMongooseConnected()) return [];
   const rows = await EarnPumpfunLaunch.find({ earnAnonymousId })
     .sort({ createdAt: -1 })
-    .limit(50)
+    .limit(200)
     .lean();
   const enriched = await Promise.all(
     rows.map(async (row) => (row.imageUri ? row : enrichLaunchMedia(row))),
@@ -775,18 +777,6 @@ export async function launchEarnPumpfunToken(input) {
   let description =
     typeof input.description === 'string' && input.description.trim() ? input.description.trim() : null;
   const brandedName = withSyraTokenNameSuffix(name);
-
-  if (isMongooseConnected()) {
-    const existing = await EarnPumpfunLaunch.findOne({ earnAnonymousId }).lean();
-    if (existing?.mint) {
-      return {
-        success: false,
-        limitReached: true,
-        existingMint: existing.mint,
-        error: 'earn_token_limit_reached',
-      };
-    }
-  }
 
   const result = await executeAgentToolCall({
     anonymousId: earnAnonymousId,
@@ -959,10 +949,31 @@ export async function verifyEarnTokenOnSaid(input) {
     return { success: false, error: 'not_owner' };
   }
 
+  /**
+   * Persist SAID fields on every launch for this Earn wallet (wallet-level identity).
+   * @param {Record<string, unknown>} fields
+   */
+  async function persistSaidForEarnWallet(fields) {
+    await EarnPumpfunLaunch.updateMany(
+      { earnAnonymousId },
+      {
+        $set: fields,
+      },
+    );
+  }
+
   if (launch.saidVerified === true) {
     const wallet =
       (typeof launch.saidAgentWallet === 'string' && launch.saidAgentWallet.trim()) ||
       earnAgentAddress;
+    // Keep sibling launches in sync when this mint was already marked verified.
+    await persistSaidForEarnWallet({
+      saidAgentWallet: wallet,
+      saidAgentPDA: launch.saidAgentPDA || null,
+      saidMetadataUri: launch.saidMetadataUri || null,
+      saidVerified: true,
+      ...(launch.saidVerifiedAt ? { saidVerifiedAt: launch.saidVerifiedAt } : {}),
+    });
     return {
       success: true,
       alreadyVerified: true,
@@ -984,12 +995,42 @@ export async function verifyEarnTokenOnSaid(input) {
 
   const signerAddress = keypair.publicKey.toBase58();
   if (signerAddress !== earnAgentAddress) {
-    console.warn(
-      '[earnPumpfun] SAID verify signer mismatch:',
-      signerAddress,
-      'expected',
-      earnAgentAddress,
+    return {
+      success: false,
+      error: 'earn_wallet_signer_mismatch',
+    };
+  }
+
+  // Stale DB row: wallet already verified on-chain / SAID API. Sync without re-charging.
+  const onChainExisting = await lookupOnChainAgent(signerAddress).catch(() => null);
+  const alreadyOnChain = onChainExisting?.isVerified === true;
+  const alreadyViaApi = !alreadyOnChain ? await checkVerified(signerAddress).catch(() => false) : true;
+  if (alreadyOnChain || alreadyViaApi) {
+    const verifiedAt = new Date(
+      onChainExisting?.verifiedAt && Number.isFinite(onChainExisting.verifiedAt)
+        ? onChainExisting.verifiedAt * 1000
+        : Date.now(),
     );
+    const wallet = signerAddress;
+    const saidAgentPDA = onChainExisting?.pubkey || null;
+    const saidMetadataUri = onChainExisting?.metadataUri || null;
+    await persistSaidForEarnWallet({
+      saidAgentWallet: wallet,
+      saidAgentPDA,
+      saidMetadataUri,
+      saidVerified: true,
+      saidVerifiedAt: verifiedAt,
+    });
+    return {
+      success: true,
+      alreadyVerified: true,
+      alreadyRegistered: true,
+      saidVerified: true,
+      saidAgentWallet: wallet,
+      saidAgentPDA,
+      saidMetadataUri,
+      saidProfileUrl: `${SAID_PROFILE_BASE}/${wallet}`,
+    };
   }
 
   const solBalance = await getSignerSolBalance(keypair);
@@ -1033,22 +1074,17 @@ export async function verifyEarnTokenOnSaid(input) {
   }
 
   const verifiedAt = saidResult.verified ? new Date() : null;
-  await EarnPumpfunLaunch.updateOne(
-    { mint: mintTrim, earnAnonymousId },
-    {
-      $set: {
-        saidAgentWallet: saidResult.wallet || signerAddress,
-        saidAgentPDA: saidResult.agentPDA || null,
-        saidMetadataUri: saidResult.metadataUri || null,
-        saidRegisterSignature: saidResult.registerSignature || null,
-        saidVerifySignature: saidResult.verifySignature || null,
-        saidVerified: saidResult.verified === true,
-        ...(verifiedAt ? { saidVerifiedAt: verifiedAt } : {}),
-      },
-    },
-  );
-
   const wallet = saidResult.wallet || signerAddress;
+  await persistSaidForEarnWallet({
+    saidAgentWallet: wallet,
+    saidAgentPDA: saidResult.agentPDA || null,
+    saidMetadataUri: saidResult.metadataUri || null,
+    saidRegisterSignature: saidResult.registerSignature || null,
+    saidVerifySignature: saidResult.verifySignature || null,
+    saidVerified: saidResult.verified === true,
+    ...(verifiedAt ? { saidVerifiedAt: verifiedAt } : {}),
+  });
+
   return {
     success: true,
     alreadyVerified: saidResult.alreadyVerified === true,

@@ -382,7 +382,15 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
  * `{ ok: true, belowBatch: true }` so refunds proceed. Hard-fails only below that floor.
  *
  * @param {string} payToAddress
- * @param {{ needMicro?: bigint; minMicro?: bigint; client?: algosdk.Algodv2; funders?: { address: string; sk: Uint8Array }[]; sendPayment?: (args: { funder: { address: string; sk: Uint8Array }; receiver: string; amountMicro: bigint; client: algosdk.Algodv2 }) => Promise<{ txid: string }> }} [opts]
+ * @param {{
+ *   needMicro?: bigint;
+ *   minMicro?: bigint;
+ *   client?: algosdk.Algodv2;
+ *   funders?: { address: string; sk: Uint8Array }[];
+ *   includePayTo?: boolean;
+ *   includeSiblingPayers?: boolean;
+ *   sendPayment?: (args: { funder: { address: string; sk: Uint8Array }; receiver: string; amountMicro: bigint; client: algosdk.Algodv2 }) => Promise<{ txid: string }>;
+ * }} [opts]
  * @returns {Promise<{ ok: boolean; already?: boolean; funded?: boolean; belowBatch?: boolean; from?: string; amount?: number; spendable?: number; error?: string }>}
  */
 export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
@@ -414,10 +422,11 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
   let funders = Array.isArray(opts.funders) ? opts.funders : [];
 
   if (!Array.isArray(opts.funders)) {
-    // PayTo is the receiver — borrow from hub then sibling payers (not from itself).
+    // Default (refund path): receiver is PayTo — borrow from hub then sibling payers.
+    // Treasury heal may set includePayTo:true so a payer funder can borrow from PayTo.
     funders = await loadDefaultAlgorandAlgoFunders(payTo, {
-      includePayTo: false,
-      includeSiblingPayers: true,
+      includePayTo: opts.includePayTo === true,
+      includeSiblingPayers: opts.includeSiblingPayers !== false,
     });
   }
 

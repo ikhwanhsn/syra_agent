@@ -1,20 +1,36 @@
 import { useLocation } from "react-router-dom";
 import { ArticlesPageSkeleton } from "@/components/marketing/ArticlesSkeleton";
-import { AssetsTableSkeleton } from "@/components/assets/AssetsTableSkeleton";
+import { AssetsPageSkeleton } from "@/components/assets/AssetsPageSkeleton";
 import { AssetDetailSkeleton } from "@/components/assets/AssetDetailSkeleton";
-import { EarnPageSkeleton, EarnYieldDetailSkeleton } from "@/components/earn/EarnSkeleton";
+import {
+  EarnPageSkeleton,
+  EarnYieldDetailSkeleton,
+  type EarnSkeletonTrack,
+} from "@/components/earn/EarnSkeleton";
 import { OrganizeSummarySkeleton, OrganizeTableSkeleton } from "@/components/organize/OrganizeSkeleton";
 import {
-  GrowAnalysisSkeleton,
+  GrowPageSkeleton,
   InvestPageSkeleton,
   SpendPageSkeleton,
 } from "@/components/pillars/PillarPageSkeletons";
 import { PlaygroundCatalogPageSkeleton } from "@/components/playground/PlaygroundCatalogSkeleton";
 import { PumpfunAnalysisSkeleton } from "@/components/pumpfun/PumpfunAnalysisSkeleton";
+import {
+  PumpfunAnalyzerPageSkeleton,
+  type PumpfunAnalyzerSkeletonTab,
+} from "@/components/pumpfun/PumpfunAnalyzerPageSkeleton";
 import { TreasuryPanelSkeleton } from "@/components/treasury/TreasurySkeleton";
-import { BtcAgentExperimentPageSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
-import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
+import { ExperimentPageSkeleton } from "@/components/experiment/shared/ExperimentPageSkeleton";
+import { LabsPageSkeleton } from "@/components/labs/LabsPageSkeleton";
+import { LlmPageSkeleton } from "@/components/llm/LlmPageSkeleton";
 import { LpPoolsContentSkeleton } from "@/components/lp/LpPoolsContentSkeleton";
+import { OverviewPageSkeleton } from "@/components/dashboard/overview/OverviewPageSkeleton";
+import { BtcPageSkeleton } from "@/components/btc/BtcPageSkeleton";
+import { AgentSetupPageSkeleton } from "@/components/settings/AgentSetupPageSkeleton";
+import {
+  InternalAgentDetailSkeleton,
+  InternalMonitorPageSkeleton,
+} from "@/components/internal/InternalPageSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { cn } from "@/lib/utils";
@@ -250,21 +266,38 @@ export function PostStudioSkeleton() {
   );
 }
 
-function skeletonForPath(pathname: string) {
+function parseEarnTrack(search: string): EarnSkeletonTrack {
+  const track = new URLSearchParams(search).get("track");
+  if (track === "token" || track === "prompts" || track === "skills") return track;
+  return "yield";
+}
+
+function parseAnalyzerTab(search: string): PumpfunAnalyzerSkeletonTab {
+  const tab = new URLSearchParams(search).get("tab");
+  if (tab === "live" || tab === "history" || tab === "callers") return tab;
+  return "scan";
+}
+
+function skeletonForPath(pathname: string, search = "") {
   const parts = pathname.split("/").filter(Boolean);
   const root = parts[0] ?? "";
 
+  if (root === "overview") return <OverviewPageSkeleton />;
   if (root === "earn" && parts[1] === "token") return <EarnTokenDetailSkeleton />;
   if (root === "earn" && parts[1] === "yield") return <EarnYieldDetailSkeleton />;
-  if (root === "earn") return <EarnPageSkeleton />;
+  if (root === "earn") return <EarnPageSkeleton track={parseEarnTrack(search)} />;
   if (root === "invest") return <InvestPageSkeleton />;
   if (root === "spend") return <SpendPageSkeleton />;
-  if (root === "grow") return <GrowAnalysisSkeleton />;
+  if (root === "grow") return <GrowPageSkeleton />;
   if (root === "treasury") return <TreasuryPanelSkeleton />;
   if (root === "assets" && parts[1]) return <AssetDetailSkeleton />;
-  if (root === "assets") return <AssetsTableSkeleton />;
+  if (root === "assets") return <AssetsPageSkeleton />;
   if (root === "analyzer" && parts[1] === "call") return <PumpfunAnalysisSkeleton />;
-  if (root === "analyzer" || root === "pumpfun") return <PumpfunAnalysisSkeleton />;
+  if (root === "analyzer" || root === "pumpfun") {
+    return <PumpfunAnalyzerPageSkeleton tab={parseAnalyzerTab(search)} />;
+  }
+  if (root === "btc") return <BtcPageSkeleton />;
+  if (root === "agent-setup") return <AgentSetupPageSkeleton />;
   if (root === "lp") return <LpPoolsContentSkeleton />;
   if (root === "articles") return <ArticlesPageSkeleton />;
   if (root === "marketplace" || root === "playground") return <PlaygroundCatalogPageSkeleton />;
@@ -272,25 +305,41 @@ function skeletonForPath(pathname: string) {
   if (root === "staking") return <StreamflowPageSkeleton />;
   if (root === "organize") {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 animate-in fade-in duration-300" aria-busy="true" aria-label="Loading organize">
+        <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-36" />
+            <Skeleton className="h-4 w-64 max-w-full" />
+          </div>
+          <Skeleton className="h-9 w-28 rounded-md" />
+        </div>
         <OrganizeSummarySkeleton />
         <OrganizeTableSkeleton />
       </div>
     );
   }
-  if (root === "labs" || root === "llm") return <EndpointsGridSkeleton />;
+  if (root === "labs") return <LabsPageSkeleton />;
+  if (root === "llm") return <LlmPageSkeleton />;
   if (root === "internal" && parts[1] === "wallets") return <InternalTableSkeleton />;
-  if (root === "internal" && parts[1]) return <ProfileDetailSkeleton />;
-  if (root === "internal") return <InternalTableSkeleton />;
+  if (root === "internal" && parts[1]) return <InternalAgentDetailSkeleton />;
+  if (root === "internal") return <InternalMonitorPageSkeleton />;
   if (root === "lp-experiment" && parts[1] === "agent") return <ProfileDetailSkeleton />;
-  if (root === "lp-robinhood") return <BtcAgentExperimentPageSkeleton panelCount={8} />;
-  if (
-    root === "btc-experiment" ||
-    root === "btc2-experiment" ||
-    root === "btc3-experiment"
-  ) {
-    return <BtcAgentExperimentPageSkeleton panelCount={12} />;
+  if (root === "lp-experiment") return <ExperimentPageSkeleton accent="neutral" panelCount={3} />;
+  if (root === "lp-robinhood") return <ExperimentPageSkeleton accent="amber" panelCount={3} />;
+  if (root === "btc-experiment" || root === "btc2-experiment" || root === "btc3-experiment") {
+    return <ExperimentPageSkeleton accent="amber" panelCount={3} />;
   }
+  if (
+    root === "stocks" ||
+    root === "momentum-rotator" ||
+    root === "lst-loop" ||
+    root === "alpha-sniper" ||
+    root === "scalper" ||
+    root === "mm"
+  ) {
+    return <ExperimentPageSkeleton accent="neutral" panelCount={2} />;
+  }
+  if (root === "multiwallet") return <AgentSetupPageSkeleton />;
   if (root === "post") return <PostStudioSkeleton />;
   if (
     root === "brand" ||
@@ -316,7 +365,7 @@ function pathUsesSelfPaddedSkeleton(pathname: string) {
  * Keeps shell chrome visible; shows a path-matched content skeleton.
  */
 export function RouteFallback() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const selfPadded = pathUsesSelfPaddedSkeleton(pathname);
   return (
     <div
@@ -325,7 +374,7 @@ export function RouteFallback() {
       aria-live="polite"
       aria-busy="true"
     >
-      {skeletonForPath(pathname)}
+      {skeletonForPath(pathname, search)}
     </div>
   );
 }

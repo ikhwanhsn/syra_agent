@@ -204,7 +204,7 @@ const utilities = [
     icon: Lock,
     title: "x402 fee discounts",
     description:
-      "Hold or stake $SYRA for tiered API fee discounts (10k / 100k / 1M / 10M). Higher tiers also unlock elevated memecoin scan limits and free agent tools.",
+      "Hold or stake $SYRA for tiered API fee discounts (10k / 100k / 1M / 10M). At 100k+, unlock the Free Agent Starter Pack (capped daily). Stake more for extra intel quotas and elevated Pumpfun scans.",
     highlight: "Live in API pricing",
     href: LINK_STAKING,
     status: "live" as const,
@@ -213,7 +213,7 @@ const utilities = [
     icon: TrendingUp,
     title: "Premium access",
     description:
-      "Stake $SYRA on Streamflow to raise Pumpfun Alpha scan quotas and unlock holder perks in the agent.",
+      "Stake 100k+ $SYRA for 15 Pumpfun Alpha scans/day (1M+ staked = unlimited), plus stake-only free Tier-2/Tier-3 intel quotas.",
     highlight: "Live on Syra Staking",
     href: LINK_STAKING,
     status: "live" as const,

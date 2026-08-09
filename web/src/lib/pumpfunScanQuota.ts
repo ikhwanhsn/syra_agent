@@ -5,9 +5,10 @@ export const PUMPFUN_SCAN_TIER_LIMITS = {
   staker: 15,
 } as const;
 
+/** Matches `api/libs/memecoinAnalysisDailyLimit.js` (100k / 1M staked). */
 export const PUMPFUN_SCAN_STAKE_THRESHOLDS = {
-  staker: "1M+",
-  unlimited: "10M+",
+  staker: "100k+",
+  unlimited: "1M+",
 } as const;
 
 export const PUMPFUN_SCAN_TIER_SUMMARY =

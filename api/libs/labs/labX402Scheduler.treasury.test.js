@@ -278,4 +278,141 @@ describe('handleTreasuryUnderfunded recovery paths', () => {
     const chronicWouldDisable = false;
     assert.equal(chronicWouldDisable, false);
   });
+
+  test('shouldAttemptAlgorandFeeHeal: native underfunded triggers heal', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    assert.equal(
+      __test.shouldAttemptAlgorandFeeHeal({
+        canFundAny: false,
+        reason: 'payto_native_underfunded',
+        funderUsdc: 1,
+        minPriceUsd: 0.01,
+      }),
+      true,
+    );
+  });
+
+  test('shouldAttemptAlgorandFeeHeal: USDC ok with payto_underfunded still heals (mislabeled native)', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    assert.equal(
+      __test.shouldAttemptAlgorandFeeHeal({
+        canFundAny: false,
+        reason: 'payto_underfunded',
+        funderUsdc: 0.76,
+        payToUsdc: 1.64,
+        minPriceUsd: 0.01,
+      }),
+      true,
+    );
+  });
+
+  test('shouldAttemptAlgorandFeeHeal: skipped when already fundable or opt-in missing', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    assert.equal(
+      __test.shouldAttemptAlgorandFeeHeal({
+        canFundAny: true,
+        reason: null,
+      }),
+      false,
+    );
+    assert.equal(
+      __test.shouldAttemptAlgorandFeeHeal({
+        canFundAny: false,
+        reason: 'payto_not_opted_in_usdc',
+        funderUsdc: 1,
+        minPriceUsd: 0.01,
+      }),
+      false,
+    );
+    assert.equal(
+      __test.shouldAttemptAlgorandFeeHeal({
+        canFundAny: false,
+        reason: 'payto_underfunded',
+        funderUsdc: 0,
+        payToUsdc: 0,
+        minPriceUsd: 0.01,
+      }),
+      false,
+    );
+  });
+
+  test('algorandFeeHealTargets: funder then PayTo, deduped', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    assert.deepEqual(
+      __test.algorandFeeHealTargets({
+        funderAddress: 'FUNDER1',
+        payToAddress: 'PAYTO1',
+      }),
+      ['FUNDER1', 'PAYTO1'],
+    );
+    assert.deepEqual(
+      __test.algorandFeeHealTargets({
+        funderAddress: 'SAME',
+        payToAddress: 'same',
+      }),
+      ['SAME'],
+    );
+  });
+
+  test('tryAlgorandFeeHealBeforePause: calls ensure with sibling+PayTo borrow opts', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    /** @type {Array<{ addr: string; opts: object }>} */
+    const calls = [];
+    const heal = await __test.tryAlgorandFeeHealBeforePause(
+      {
+        canFundAny: false,
+        reason: 'payto_native_underfunded',
+        funderUsdc: 1.5,
+        minPriceUsd: 0.01,
+        funderAddress: 'FUNDERADDR',
+        payToAddress: 'PAYTOADDR',
+      },
+      {
+        ensurePayToAlgoForUsdcRefund: async (addr, opts) => {
+          calls.push({ addr, opts });
+          return { ok: true, funded: true };
+        },
+      },
+    );
+    assert.equal(heal.attempted, true);
+    assert.equal(heal.ok, true);
+    assert.deepEqual(heal.targets, ['FUNDERADDR', 'PAYTOADDR']);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].opts.includePayTo, true);
+    assert.equal(calls[0].opts.includeSiblingPayers, true);
+  });
+
+  test('Algorand fee heal recovery contract: after heal, capacity must recover (no pause)', () => {
+    // Mirrors handleTreasuryUnderfunded: native underfund → fee heal → re-assess → recover.
+    const before = evaluateTreasuryCapacity({
+      payToUsdc: 1.5,
+      payToSpendableNative: 0,
+      minNativeForFee: 0.004,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 3,
+      payToOptedIn: true,
+      chain: 'algorand',
+      borrowableNative: 0,
+    });
+    assert.equal(before.canFundAny, false);
+    assert.equal(before.reason, 'payto_native_underfunded');
+
+    const afterHeal = evaluateTreasuryCapacity({
+      payToUsdc: 1.5,
+      payToSpendableNative: 0.01,
+      minNativeForFee: 0.004,
+      hubUsdc: 0,
+      hubNative: 0,
+      minPriceUsd: 0.01,
+      payerCount: 3,
+      payToOptedIn: true,
+      chain: 'algorand',
+      borrowableNative: 0,
+    });
+    assert.equal(afterHeal.canFundAny, true);
+    const mustRecoverNotPause = afterHeal.canFundAny === true;
+    assert.equal(mustRecoverNotPause, true);
+  });
 });

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { FlaskConical, Loader2, Play, Plus, Layers } from "lucide-react";
+import { ChevronDown, FlaskConical, Loader2, Play, Plus, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useLabsX402 } from "@/hooks/useLabsX402";
 import { WalletList } from "@/components/labs/x402/WalletList";
 import { CreateWalletDialog } from "@/components/labs/x402/CreateWalletDialog";
@@ -42,6 +43,7 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   } = useLabsX402(chain);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [walletsOpen, setWalletsOpen] = useState(true);
   const [depositWallet, setDepositWallet] = useState<LabWallet | null>(null);
   const [bulkCount, setBulkCount] = useState(5);
   const [lastDistributeResult, setLastDistributeResult] =
@@ -319,18 +321,33 @@ export function X402LabTab({ chain }: X402LabTabProps) {
         />
       </section>
 
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Wallets
-        </h3>
-        <WalletList
-          wallets={wallets}
-          isLoading={walletsQ.isLoading}
-          onDeposit={(w) => setDepositWallet(w)}
-          onRunPayer={(addr) => runM.mutate({ payerAddress: addr })}
-          isRunning={runM.isPending}
-          chain={chain}
-        />
+      <section aria-label="Wallets">
+        <Collapsible open={walletsOpen} onOpenChange={setWalletsOpen}>
+          <CollapsibleTrigger className="group flex min-h-10 w-full items-center justify-between gap-3 rounded-md py-1 text-left transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+            <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground group-hover:text-foreground">
+              Wallets
+            </span>
+            <span className="flex items-center gap-2 text-muted-foreground">
+              {!walletsQ.isLoading ? (
+                <span className="text-xs tabular-nums">{wallets.length}</span>
+              ) : null}
+              <ChevronDown
+                className="h-4 w-4 shrink-0 transition-transform duration-200 motion-reduce:transition-none group-data-[state=open]:rotate-180"
+                aria-hidden
+              />
+            </span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="overflow-hidden pt-3 data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down motion-reduce:animate-none">
+            <WalletList
+              wallets={wallets}
+              isLoading={walletsQ.isLoading}
+              onDeposit={(w) => setDepositWallet(w)}
+              onRunPayer={(addr) => runM.mutate({ payerAddress: addr })}
+              isRunning={runM.isPending}
+              chain={chain}
+            />
+          </CollapsibleContent>
+        </Collapsible>
       </section>
 
       <section className="space-y-3">

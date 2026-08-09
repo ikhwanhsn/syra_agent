@@ -187,14 +187,9 @@ export async function launchEarnPumpfunToken(input: {
     insufficientBalance?: boolean;
     usdcBalance?: number;
     requiredUsdc?: number;
-    limitReached?: boolean;
-    existingMint?: string | null;
     data?: LaunchTokenResult;
   };
   if (!res.ok) {
-    if (res.status === 409 || json.limitReached || json.error === "earn_token_limit_reached") {
-      throw new Error("You can only create one token per wallet.");
-    }
     if (json.insufficientBalance) {
       const need = typeof json.requiredUsdc === "number" ? json.requiredUsdc : null;
       const have = typeof json.usdcBalance === "number" ? json.usdcBalance : 0;

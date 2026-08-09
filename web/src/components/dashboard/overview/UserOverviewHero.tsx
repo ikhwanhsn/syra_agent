@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LayoutDashboard, Loader2, RefreshCw, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { cn } from "@/lib/utils";
 import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
@@ -113,7 +114,7 @@ export function UserOverviewHero({
             <div className="rounded-2xl border border-border/50 bg-background/30 px-4 py-4 backdrop-blur-md sm:max-w-md">
               <p className={overviewKickerClass}>Total assets</p>
               {isLoading ? (
-                <div className="mt-2 h-9 w-36 animate-pulse rounded-lg bg-muted/50" />
+                <Skeleton className="mt-2 h-9 w-36 rounded-lg" />
               ) : (
                 <p className={cn(overviewMetricValueClass, "mt-1")}>
                   <AnimatedMetric value={primaryValue} format={primaryFormat} deltaMode />
@@ -122,7 +123,7 @@ export function UserOverviewHero({
               {!isLoading ? <BalanceChangeIndicator change={totalChange} size="md" className="mt-2" /> : null}
               <p className="mt-1.5 text-sm tabular-nums text-muted-foreground">
                 {isLoading ? (
-                  <span className="inline-block h-4 w-28 animate-pulse rounded bg-muted/40" />
+                  <Skeleton className="inline-block h-4 w-28" />
                 ) : (
                   <>
                     {totalUsdc != null ? `$${formatUsdcPlain(totalUsdc)} USDC` : ", USDC"}

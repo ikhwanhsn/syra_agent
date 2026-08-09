@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 
 import { Badge } from "@/components/ui/badge";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 import { cn } from "@/lib/utils";
 
 import {
@@ -244,7 +246,7 @@ export function BtcPageHero({
 
                 {loading ? (
 
-                  <div className="h-14 w-56 animate-pulse rounded-2xl bg-muted/30" />
+                  <Skeleton className="h-14 w-56 rounded-2xl" />
 
                 ) : (
 

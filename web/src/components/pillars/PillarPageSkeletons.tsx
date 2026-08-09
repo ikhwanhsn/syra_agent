@@ -154,9 +154,9 @@ export function InvestPageSkeleton({
             <Skeleton className="h-4 w-28" />
             <div className="flex gap-2 overflow-hidden">
               <Skeleton className="h-8 w-12 shrink-0 rounded-full" />
+              <Skeleton className="h-8 w-28 shrink-0 rounded-full" />
+              <Skeleton className="h-8 w-20 shrink-0 rounded-full" />
               <Skeleton className="h-8 w-24 shrink-0 rounded-full" />
-              <Skeleton className="h-8 w-16 shrink-0 rounded-full" />
-              <Skeleton className="h-8 w-16 shrink-0 rounded-full" />
             </div>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -198,8 +198,8 @@ export function SpendPageSkeleton() {
             <Skeleton className="h-10 w-full rounded-full sm:h-9 sm:w-64" />
           </div>
           <div className="mb-4 flex gap-1.5 overflow-hidden">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-16 shrink-0 rounded-full" />
+            {["w-12", "w-24", "w-16", "w-20", "w-16", "w-14"].map((w, i) => (
+              <Skeleton key={i} className={cn("h-8 shrink-0 rounded-full", w)} />
             ))}
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
@@ -253,7 +253,75 @@ export function GrowAnalysisSkeleton() {
       aria-busy="true"
       aria-label="Loading portfolio analysis"
     >
-      <ConnectBannerSkeleton />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
+        <div
+          className={cn(
+            overviewCardShell,
+            "flex flex-col justify-end p-4 sm:col-span-2 sm:p-5 lg:col-span-5 lg:p-6",
+          )}
+        >
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="mt-2 h-10 w-44 max-w-full sm:h-12 sm:w-52" />
+          <Skeleton className="mt-2 h-3 w-40" />
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-3 lg:col-span-7 lg:gap-4">
+          <GlassMetricSkeleton />
+          <GlassMetricSkeleton />
+          <GlassMetricSkeleton />
+        </div>
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2 lg:gap-8">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <section key={i} className={cn(overviewCardShell, "p-4 sm:p-6")}>
+            <Skeleton className="mb-1 h-5 w-24" />
+            <Skeleton className="mb-4 h-4 w-36" />
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, j) => (
+                <ProgressRowSkeleton key={j} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      <section>
+        <Skeleton className="mb-1 h-5 w-28 sm:h-6" />
+        <Skeleton className="mb-3 h-4 w-56 sm:mb-4" />
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <SuggestionCardSkeleton />
+          <SuggestionCardSkeleton />
+          <SuggestionCardSkeleton />
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function GrowAddressFormSkeleton() {
+  return (
+    <section className={cn(overviewCardShell, "p-4 sm:p-5")}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-11 w-full rounded-full sm:h-12" />
+        </div>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Skeleton className="h-11 flex-1 rounded-full sm:h-12 sm:w-28 sm:flex-none" />
+          <Skeleton className="h-11 flex-1 rounded-full sm:h-12 sm:w-24 sm:flex-none" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Full Grow page Suspense shell: address form + analysis body (no duplicate connect banner). */
+export function GrowPageSkeleton() {
+  return (
+    <div
+      className="w-full space-y-6 animate-in fade-in duration-300 sm:space-y-8"
+      aria-busy="true"
+      aria-label="Loading grow page"
+    >
+      <GrowAddressFormSkeleton />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
         <div
           className={cn(
