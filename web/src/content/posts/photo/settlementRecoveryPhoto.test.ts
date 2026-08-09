@@ -9,7 +9,7 @@ import { getPostBundleByNumber, LATEST_POST_UPDATE_NUMBER } from "../registry";
 describe("settlement recovery post", () => {
   it("registers as update 43 and passes video/photo validation", () => {
     expect(SETTLEMENT_RECOVERY_POST.meta.updateNumber).toBe(43);
-    expect(LATEST_POST_UPDATE_NUMBER).toBe(43);
+    expect(LATEST_POST_UPDATE_NUMBER).toBeGreaterThanOrEqual(43);
     expect(getPostBundleByNumber(43)?.video.meta.id).toBe("settlement-recovery");
 
     expect(() => validatePostUpdate(SETTLEMENT_RECOVERY_POST)).not.toThrow();

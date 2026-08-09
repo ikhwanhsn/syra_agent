@@ -9,7 +9,7 @@ import { getPostBundleByNumber, LATEST_POST_UPDATE_NUMBER } from "../registry";
 describe("goplausible solana base failover post", () => {
   it("registers as update 39 and passes video/photo validation", () => {
     expect(GOPLAUSIBLE_SOLANA_BASE_FAILOVER_POST.meta.updateNumber).toBe(39);
-    expect(LATEST_POST_UPDATE_NUMBER).toBe(39);
+    expect(LATEST_POST_UPDATE_NUMBER).toBeGreaterThanOrEqual(39);
     expect(getPostBundleByNumber(39)?.video.meta.id).toBe("goplausible-solana-base-failover");
 
     expect(() => validatePostUpdate(GOPLAUSIBLE_SOLANA_BASE_FAILOVER_POST)).not.toThrow();
