@@ -101,6 +101,11 @@ async function register(origin) {
   } catch {
     throw new Error(`register non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`);
   }
+  // Idempotent: if we already submitted this hour, fall through to --check against the index.
+  if (res.status === 429) {
+    log(`WARN: register rate-limited (${json?.error || "429"}); verifying existing listing`);
+    return null;
+  }
   if (!res.ok) {
     throw new Error(`register HTTP ${res.status}: ${JSON.stringify(json)}`);
   }
