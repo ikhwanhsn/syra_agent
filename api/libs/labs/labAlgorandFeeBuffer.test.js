@@ -6,12 +6,15 @@ import assert from 'node:assert/strict';
 import {
   FUNDER_SPARE_MICRO,
   FUNDER_SPARE_MIN_FEE_MICRO,
+  AGENT_FEE_RESERVE_TARGET_MICRO,
   lendableAlgorandMicro,
   orderAlgorandAlgoFundersBySpendable,
   planAlgorandPartialBorrows,
+  computeAlgorandAgentFeeReserveNeedMicro,
+  ensurePayToAlgoForUsdcRefund,
+  ensurePayToAlgoFromAgentFeeReserve,
   PAYTO_USDC_REFUND_MIN_FEE_MICRO,
   PAYTO_USDC_REFUND_FEE_NEED_MICRO,
-  ensurePayToAlgoForUsdcRefund,
 } from './labAlgorandFeeBuffer.js';
 
 describe('lendableAlgorandMicro', () => {
@@ -190,5 +193,101 @@ describe('ensurePayToAlgoForUsdcRefund multi-funder consolidation', () => {
     assert.equal(result.funded, true);
     assert.ok(sends.length >= 5);
     assert.ok(amounts.get(payTo) - minBal >= Number(PAYTO_USDC_REFUND_FEE_NEED_MICRO));
+  });
+});
+
+describe('agent fee reserve', () => {
+  test('target is max(batch cushion, 0.25 ALGO)', () => {
+    const expected =
+      PAYTO_USDC_REFUND_FEE_NEED_MICRO > 250_000n
+        ? PAYTO_USDC_REFUND_FEE_NEED_MICRO
+        : 250_000n;
+    assert.equal(AGENT_FEE_RESERVE_TARGET_MICRO, expected);
+  });
+
+  test('computeAlgorandAgentFeeReserveNeedMicro fills deficit to target', () => {
+    const need = computeAlgorandAgentFeeReserveNeedMicro({ spendableMicro: 0n });
+    assert.equal(need.alreadyOk, false);
+    assert.equal(need.needMicro, AGENT_FEE_RESERVE_TARGET_MICRO);
+    const ok = computeAlgorandAgentFeeReserveNeedMicro({
+      spendableMicro: AGENT_FEE_RESERVE_TARGET_MICRO,
+    });
+    assert.equal(ok.alreadyOk, true);
+    assert.equal(ok.needMicro, 0n);
+  });
+
+  test('ensurePayToAlgoFromAgentFeeReserve tops up when siblings cannot lend', async () => {
+    const payTo = 'PAYTOADDR';
+    const agent = 'AGENTADDR';
+    const minBal = 200_000;
+    /** @type {Map<string, number>} */
+    const amounts = new Map([
+      [payTo, minBal],
+      [agent, minBal + 5_000_000],
+    ]);
+    const client = {
+      accountInformation(addr) {
+        return {
+          do: async () => ({
+            amount: amounts.get(addr) ?? minBal,
+            minBalance: minBal,
+          }),
+        };
+      },
+    };
+    /** @type {Array<{ funder: string; amountMicro: bigint }>} */
+    const sends = [];
+    const result = await ensurePayToAlgoFromAgentFeeReserve(payTo, {
+      client,
+      agentAccount: { address: agent, sk: new Uint8Array(64) },
+      sendPayment: async ({ funder, amountMicro }) => {
+        sends.push({ funder: funder.address, amountMicro });
+        amounts.set(funder.address, (amounts.get(funder.address) ?? 0) - Number(amountMicro));
+        amounts.set(payTo, (amounts.get(payTo) ?? 0) + Number(amountMicro));
+        return { txid: 'AGENTTX' };
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.funded, true);
+    assert.equal(result.fromAgentReserve, true);
+    assert.equal(sends.length, 1);
+    assert.equal(sends[0].funder, agent);
+    assert.equal(sends[0].amountMicro, AGENT_FEE_RESERVE_TARGET_MICRO);
+  });
+
+  test('ensurePayToAlgoForUsdcRefund falls back to agent when lab funders empty', async () => {
+    const payTo = 'PAYTOADDR';
+    const agent = 'AGENTADDR';
+    const minBal = 200_000;
+    /** @type {Map<string, number>} */
+    const amounts = new Map([
+      [payTo, minBal],
+      [agent, minBal + 5_000_000],
+    ]);
+    const client = {
+      accountInformation(addr) {
+        return {
+          do: async () => ({
+            amount: amounts.get(addr) ?? minBal,
+            minBalance: minBal,
+          }),
+        };
+      },
+    };
+    const result = await ensurePayToAlgoForUsdcRefund(payTo, {
+      client,
+      needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      minMicro: PAYTO_USDC_REFUND_MIN_FEE_MICRO,
+      funders: [], // no lab funders
+      agentAccount: { address: agent, sk: new Uint8Array(64) },
+      sendPayment: async ({ funder, amountMicro }) => {
+        amounts.set(funder.address, (amounts.get(funder.address) ?? 0) - Number(amountMicro));
+        amounts.set(payTo, (amounts.get(payTo) ?? 0) + Number(amountMicro));
+        return { txid: 'FALLBACK' };
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.fromAgentReserve, true);
+    assert.ok((amounts.get(payTo) ?? 0) - minBal >= Number(PAYTO_USDC_REFUND_MIN_FEE_MICRO));
   });
 });

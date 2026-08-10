@@ -72,6 +72,76 @@ export const FUNDER_SPARE_MICRO = ALGO_FEE_MICRO_PER_TX + 50_000n;
 export const FUNDER_SPARE_MIN_FEE_MICRO = ALGO_FEE_MICRO_PER_TX;
 
 /**
+ * Cap for last-resort agent fee-reserve top-ups onto PayTo (spendable target).
+ * Avoids draining ALGORAND_AGENT_PRIVATE_KEY while keeping batch refunds fundable.
+ */
+export const AGENT_FEE_RESERVE_TARGET_MICRO =
+  PAYTO_USDC_REFUND_FEE_NEED_MICRO > 250_000n
+    ? PAYTO_USDC_REFUND_FEE_NEED_MICRO
+    : 250_000n; // max(batch cushion, 0.25 ALGO)
+
+/**
+ * Decode ALGORAND_AGENT_PRIVATE_KEY / AVM_PRIVATE_KEY as a lab-style funder account.
+ * @returns {{ address: string; sk: Uint8Array; keyB64: string } | null}
+ */
+export function getAlgorandAgentFeeReserveAccount() {
+  const keyB64 = String(
+    process.env.ALGORAND_AGENT_PRIVATE_KEY ||
+      process.env.AVM_PRIVATE_KEY ||
+      process.env.ALGORAND_PRIVATE_KEY ||
+      '',
+  ).trim();
+  if (!keyB64) return null;
+  let sk;
+  try {
+    sk = new Uint8Array(Buffer.from(keyB64, 'base64'));
+  } catch {
+    return null;
+  }
+  if (sk.length !== 64) return null;
+  try {
+    const address = algosdk.encodeAddress(sk.slice(32));
+    if (!address) return null;
+    return { address, sk, keyB64 };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Pure: how much of an agent-reserve top-up to send so PayTo reaches the capped target.
+ * @param {{
+ *   spendableMicro?: bigint | number | string;
+ *   targetMicro?: bigint | number | string;
+ * }} [input]
+ * @returns {{ needMicro: bigint; alreadyOk: boolean; targetMicro: bigint }}
+ */
+export function computeAlgorandAgentFeeReserveNeedMicro(input = {}) {
+  let spendable = 0n;
+  try {
+    spendable = BigInt(input.spendableMicro ?? 0);
+  } catch {
+    spendable = 0n;
+  }
+  if (spendable < 0n) spendable = 0n;
+  let target = AGENT_FEE_RESERVE_TARGET_MICRO;
+  try {
+    target = BigInt(input.targetMicro ?? AGENT_FEE_RESERVE_TARGET_MICRO);
+  } catch {
+    target = AGENT_FEE_RESERVE_TARGET_MICRO;
+  }
+  if (target < PAYTO_USDC_REFUND_MIN_FEE_MICRO) {
+    target = PAYTO_USDC_REFUND_MIN_FEE_MICRO;
+  }
+  const needMicro = spendable < target ? target - spendable : 0n;
+  return {
+    needMicro,
+    alreadyOk: needMicro === 0n,
+    targetMicro: target,
+  };
+}
+
+/**
  * Pure: how much of `spendableMicro` can be lent after keeping `spareMicro`.
  * @param {bigint | number | string} spendableMicro
  * @param {bigint | number | string} spareMicro
@@ -506,9 +576,10 @@ export function orderAlgorandAlgoFundersBySpendable(candidates) {
 
 /**
  * Default funder order for Algorand labs: PayTo → deposit hub → sibling payers
- * (richest spendable ALGO first when siblings are included).
+ * (richest spendable ALGO first when siblings are included), then optional
+ * ALGORAND_AGENT_PRIVATE_KEY fee reserve as last resort.
  * @param {string} receiverAddress
- * @param {{ includePayTo?: boolean; includeSiblingPayers?: boolean }} [opts]
+ * @param {{ includePayTo?: boolean; includeSiblingPayers?: boolean; includeAgentReserve?: boolean }} [opts]
  * @returns {Promise<{ address: string; sk: Uint8Array }[]>}
  */
 async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
@@ -517,6 +588,7 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
   const funders = [];
   const includePayTo = opts.includePayTo !== false;
   const includeSiblingPayers = opts.includeSiblingPayers === true;
+  const includeAgentReserve = opts.includeAgentReserve !== false;
 
   if (includePayTo) {
     try {
@@ -577,7 +649,96 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
     }
   }
 
+  if (includeAgentReserve) {
+    try {
+      const agent = getAlgorandAgentFeeReserveAccount();
+      if (
+        agent?.sk &&
+        agent.address &&
+        agent.address !== receiver &&
+        !funders.some((f) => f.address === agent.address)
+      ) {
+        funders.push({ address: agent.address, sk: agent.sk });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   return funders;
+}
+
+/**
+ * Last-resort: top PayTo up to AGENT_FEE_RESERVE_TARGET_MICRO from the agent key.
+ * @param {string} payToAddress
+ * @param {{
+ *   client?: algosdk.Algodv2;
+ *   sendPayment?: (args: {
+ *     funder: { address: string; sk: Uint8Array };
+ *     receiver: string;
+ *     amountMicro: bigint;
+ *     client: algosdk.Algodv2;
+ *   }) => Promise<{ txid: string }>;
+ *   agentAccount?: { address: string; sk: Uint8Array } | null;
+ * }} [opts]
+ */
+export async function ensurePayToAlgoFromAgentFeeReserve(payToAddress, opts = {}) {
+  const payTo = String(payToAddress || '').trim();
+  if (!payTo) return { ok: false, error: 'missing_payto' };
+
+  const agent =
+    opts.agentAccount === null
+      ? null
+      : opts.agentAccount || getAlgorandAgentFeeReserveAccount();
+  if (!agent?.sk || !agent.address || agent.address === payTo) {
+    return { ok: false, error: 'no_agent_fee_reserve' };
+  }
+
+  const client = opts.client || getAlgorandAlgodClient();
+  let payInfo;
+  try {
+    payInfo = await getAlgorandAccountSpendableMicro(payTo, client);
+  } catch (e) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+
+  const need = computeAlgorandAgentFeeReserveNeedMicro({
+    spendableMicro: payInfo.spendableMicro,
+  });
+  if (need.alreadyOk) {
+    return {
+      ok: true,
+      already: true,
+      spendable: Number(payInfo.spendableMicro) / Number(MICRO_ALGO),
+      target: Number(need.targetMicro) / Number(MICRO_ALGO),
+    };
+  }
+
+  const borrowed = await borrowAlgorandAlgoFromFunders({
+    receiver: payTo,
+    deficitMicro: need.needMicro,
+    client,
+    funders: [{ address: agent.address, sk: agent.sk }],
+    spareMicro: FUNDER_SPARE_MIN_FEE_MICRO,
+    allowPartial: false,
+    sendPayment: opts.sendPayment,
+    logPrefix: '[labAlgorandFeeBuffer] agent fee reserve',
+  });
+  if (borrowed.ok) {
+    console.info(
+      `[labAlgorandFeeBuffer] agent fee reserve top-up ${borrowed.amount} ALGO → PayTo from ${String(agent.address).slice(0, 8)}…`,
+    );
+    return {
+      ...borrowed,
+      fromAgentReserve: true,
+      target: Number(need.targetMicro) / Number(MICRO_ALGO),
+    };
+  }
+  return {
+    ok: false,
+    error: 'agent_fee_reserve_top_up_failed',
+    spendable: Number(payInfo.spendableMicro) / Number(MICRO_ALGO),
+  };
 }
 
 /**
@@ -594,6 +755,8 @@ async function loadDefaultAlgorandAlgoFunders(receiverAddress, opts = {}) {
  *   funders?: { address: string; sk: Uint8Array }[];
  *   includePayTo?: boolean;
  *   includeSiblingPayers?: boolean;
+ *   includeAgentReserve?: boolean;
+ *   agentAccount?: { address: string; sk: Uint8Array } | null;
  *   sendPayment?: (args: { funder: { address: string; sk: Uint8Array }; receiver: string; amountMicro: bigint; client: algosdk.Algodv2 }) => Promise<{ txid: string }>;
  * }} [opts]
  * @returns {Promise<{ ok: boolean; already?: boolean; funded?: boolean; belowBatch?: boolean; from?: string; amount?: number; spendable?: number; error?: string }>}
@@ -627,11 +790,11 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
   let funders = Array.isArray(opts.funders) ? opts.funders : [];
 
   if (!Array.isArray(opts.funders)) {
-    // Default (refund path): receiver is PayTo — borrow from hub then sibling payers.
-    // Treasury heal may set includePayTo:true so a payer funder can borrow from PayTo.
+    // Prefer lab hub/siblings first; agent fee reserve is a capped last resort below.
     funders = await loadDefaultAlgorandAlgoFunders(payTo, {
       includePayTo: opts.includePayTo === true,
       includeSiblingPayers: opts.includeSiblingPayers !== false,
+      includeAgentReserve: false,
     });
   }
 
@@ -722,6 +885,34 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
       parts,
       spendable: Number(afterInfo.spendableMicro) / Number(MICRO_ALGO),
     };
+  }
+
+  // Lab dust exhausted — capped top-up from ALGORAND_AGENT_PRIVATE_KEY fee reserve.
+  if (opts.includeAgentReserve !== false) {
+    const reserve = await ensurePayToAlgoFromAgentFeeReserve(payTo, {
+      client,
+      sendPayment: opts.sendPayment,
+      agentAccount: opts.agentAccount,
+    });
+    if (reserve.ok) {
+      let spendable = reserve.spendable;
+      try {
+        const latest = await getAlgorandAccountSpendableMicro(payTo, client);
+        spendable = Number(latest.spendableMicro) / Number(MICRO_ALGO);
+      } catch {
+        /* keep */
+      }
+      const belowBatch = BigInt(Math.round((spendable || 0) * Number(MICRO_ALGO))) < needMicro;
+      return {
+        ok: true,
+        funded: Boolean(reserve.funded),
+        belowBatch,
+        from: reserve.from,
+        amount: reserve.amount,
+        fromAgentReserve: true,
+        spendable,
+      };
+    }
   }
 
   const spendableAlgo = Number(afterInfo.spendableMicro) / Number(MICRO_ALGO);
