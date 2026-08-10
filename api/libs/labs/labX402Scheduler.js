@@ -41,6 +41,14 @@ const TREASURY_SKIP_REASONS = new Set([
   'no_payto_wallet',
 ]);
 
+/** Algorand payer funding failures that are usually systemic fee-ALGO starvation. */
+const ALGORAND_FEE_HEAL_REASONS = new Set([
+  'payto_native_underfunded',
+  'insufficient_algo_for_opt_in',
+  'insufficient_algo_for_usdc_refund',
+  'usdc_opt_in_failed',
+]);
+
 function computeJitteredDelay(baseMs, jitterPct) {
   const jitter = (jitterPct / 100) * baseMs;
   const offset = (Math.random() * 2 - 1) * jitter;
@@ -143,6 +151,52 @@ async function tryAlgorandFeeHealBeforePause(assessment, deps = {}) {
     }
   }
   return { attempted: true, ok: anyOk, targets, results };
+}
+
+/**
+ * Proactive Algorand fee maintain: consolidate dust onto PayTo (and funder if distinct)
+ * every tick so USDC refunds don't die at ASA min-balance.
+ * @param {{
+ *   funderAddress?: string | null;
+ *   payToAddress?: string | null;
+ * }} [assessment]
+ * @param {{
+ *   ensurePayToAlgoForUsdcRefund?: typeof ensurePayToAlgoForUsdcRefund;
+ * }} [deps]
+ * @returns {Promise<{ attempted: boolean; ok: boolean; targets: string[]; results: object[] }>}
+ */
+export async function maintainAlgorandPayToFeeBuffer(assessment = {}, deps = {}) {
+  const targets = algorandFeeHealTargets(assessment);
+  if (targets.length === 0) {
+    // Fall back to active PayTo only when assessment omitted addresses.
+    return { attempted: false, ok: false, targets: [], results: [] };
+  }
+  const ensureFn = deps.ensurePayToAlgoForUsdcRefund || ensurePayToAlgoForUsdcRefund;
+  /** @type {object[]} */
+  const results = [];
+  let anyOk = false;
+  for (const addr of targets) {
+    try {
+      const result = await ensureFn(addr, {
+        includePayTo: true,
+        includeSiblingPayers: true,
+      });
+      results.push({ address: addr, ...result });
+      if (result?.ok) anyOk = true;
+    } catch (e) {
+      results.push({ address: addr, ok: false, error: e?.message || String(e) });
+    }
+  }
+  return { attempted: true, ok: anyOk, targets, results };
+}
+
+/**
+ * True when a mid-tick funding failure should trigger Algorand fee consolidation.
+ * @param {string | null | undefined} reason
+ * @returns {boolean}
+ */
+export function shouldHealAlgorandFundingReason(reason) {
+  return ALGORAND_FEE_HEAL_REASONS.has(String(reason || ''));
 }
 
 /**
@@ -455,6 +509,18 @@ async function tick(chain) {
       priceMultiplier: settings.priceMultiplier,
     });
 
+    // Algorand: always consolidate fee ALGO onto PayTo/funder before funding payers
+    // (Base/X Layer borrow gas during funding; Algorand must reshuffle dust first).
+    if (c === 'algorand') {
+      const maintain = await maintainAlgorandPayToFeeBuffer(assessment);
+      if (maintain.attempted && maintain.ok) {
+        assessment = await assessLabTreasury(c, {
+          payerCount: payers.length,
+          priceMultiplier: settings.priceMultiplier,
+        });
+      }
+    }
+
     if (!assessment.canFundAny) {
       if (shouldSoftSkipTreasuryAssessment(assessment)) {
         console.warn(
@@ -493,8 +559,34 @@ async function tick(chain) {
           priceMultiplier: settings.priceMultiplier,
         });
         if (!funding.canPay) {
-          // Shared treasury skip reasons: re-assess. Capacity truth wins over one failed top-up.
-          if (TREASURY_SKIP_REASONS.has(String(funding.reason || ''))) {
+          // Algorand systemic fee-ALGO failures: consolidate once, then retry this payer.
+          if (
+            c === 'algorand' &&
+            shouldHealAlgorandFundingReason(funding.reason)
+          ) {
+            console.info(
+              `[lab-x402-scheduler] ${c} mid-tick ALGO fee heal after ${funding.reason}`,
+            );
+            await maintainAlgorandPayToFeeBuffer(assessment);
+            const retryFunding = await ensurePayerFundedForNextCall(payer.address, {
+              refundEnabled: settings.refundEnabled,
+              chain: c,
+              priceMultiplier: settings.priceMultiplier,
+            });
+            if (retryFunding.canPay) {
+              await runLabX402Payment(payer.address, { trigger: 'scheduler', chain: c });
+              continue;
+            }
+            // Still failing — fall through using retry reason for treasury/skip logic.
+            Object.assign(funding, retryFunding);
+          }
+
+          // Shared treasury skip reasons (and Algorand systemic fee-ALGO after heal):
+          // re-assess. Capacity truth wins over one failed top-up.
+          const treatAsTreasurySkip =
+            TREASURY_SKIP_REASONS.has(String(funding.reason || '')) ||
+            (c === 'algorand' && shouldHealAlgorandFundingReason(funding.reason));
+          if (treatAsTreasurySkip) {
             const midSettings = await getLabX402Settings(c);
             const midAssessment = await assessLabTreasury(c, {
               payerCount: payers.length,
@@ -534,7 +626,11 @@ async function tick(chain) {
               chain: c,
               assessment: {
                 ...midAssessment,
-                reason: midAssessment.reason || funding.reason,
+                reason:
+                  midAssessment.reason ||
+                  (shouldHealAlgorandFundingReason(funding.reason)
+                    ? 'payto_native_underfunded'
+                    : funding.reason),
                 hubHasFunds: midAssessment.hubHasFunds,
               },
               settings: midSettings,
@@ -618,8 +714,11 @@ export const __test = {
   logAggregatedTreasuryAlert,
   decideMidTickTreasurySkipAction,
   shouldAttemptAlgorandFeeHeal,
+  shouldHealAlgorandFundingReason,
   algorandFeeHealTargets,
   tryAlgorandFeeHealBeforePause,
+  maintainAlgorandPayToFeeBuffer,
   TREASURY_SKIP_REASONS,
+  ALGORAND_FEE_HEAL_REASONS,
   computeJitteredDelay,
 };

@@ -382,6 +382,39 @@ describe('handleTreasuryUnderfunded recovery paths', () => {
     assert.equal(calls[0].opts.includeSiblingPayers, true);
   });
 
+  test('shouldHealAlgorandFundingReason: systemic ALGO failures', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    assert.equal(__test.shouldHealAlgorandFundingReason('payto_native_underfunded'), true);
+    assert.equal(__test.shouldHealAlgorandFundingReason('insufficient_algo_for_opt_in'), true);
+    assert.equal(__test.shouldHealAlgorandFundingReason('insufficient_algo_for_usdc_refund'), true);
+    assert.equal(__test.shouldHealAlgorandFundingReason('usdc_opt_in_failed'), true);
+    assert.equal(__test.shouldHealAlgorandFundingReason('payto_underfunded'), false);
+    assert.equal(__test.ALGORAND_FEE_HEAL_REASONS.has('insufficient_algo_for_opt_in'), true);
+  });
+
+  test('maintainAlgorandPayToFeeBuffer: calls ensure for PayTo/funder targets', async () => {
+    const { __test } = await import('./labX402Scheduler.js');
+    /** @type {Array<{ addr: string; opts: object }>} */
+    const calls = [];
+    const result = await __test.maintainAlgorandPayToFeeBuffer(
+      {
+        funderAddress: 'FUNDERADDR',
+        payToAddress: 'PAYTOADDR',
+      },
+      {
+        ensurePayToAlgoForUsdcRefund: async (addr, opts) => {
+          calls.push({ addr, opts });
+          return { ok: true, already: true };
+        },
+      },
+    );
+    assert.equal(result.attempted, true);
+    assert.equal(result.ok, true);
+    assert.deepEqual(result.targets, ['FUNDERADDR', 'PAYTOADDR']);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0].opts.includeSiblingPayers, true);
+  });
+
   test('Algorand fee heal recovery contract: after heal, capacity must recover (no pause)', () => {
     // Mirrors handleTreasuryUnderfunded: native underfund → fee heal → re-assess → recover.
     const before = evaluateTreasuryCapacity({

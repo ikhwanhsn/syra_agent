@@ -187,12 +187,84 @@ export function classifyAlgorandRefundError(err, paytoInsufficientFundsTag) {
 }
 
 /**
+ * Pure: plan partial ALGO borrows across funders until deficit is filled.
+ * Each funder lends min(remaining, spendable − spare). Used so dust siblings
+ * can collectively fund PayTo batch/min cushions when no single wallet can.
+ *
+ * @param {{
+ *   deficitMicro: bigint | number | string;
+ *   spareMicro?: bigint | number | string;
+ *   funders: Array<{ address: string; spendableMicro?: bigint | number | string }>;
+ *   receiver?: string;
+ * }} input
+ * @returns {{
+ *   filled: boolean;
+ *   remainingMicro: bigint;
+ *   totalLentMicro: bigint;
+ *   parts: Array<{ address: string; amountMicro: bigint }>;
+ * }}
+ */
+export function planAlgorandPartialBorrows(input) {
+  let remaining = 0n;
+  try {
+    remaining = BigInt(input?.deficitMicro ?? 0);
+  } catch {
+    remaining = 0n;
+  }
+  if (remaining < 0n) remaining = 0n;
+
+  let spare = FUNDER_SPARE_MIN_FEE_MICRO;
+  try {
+    spare = BigInt(input?.spareMicro ?? FUNDER_SPARE_MIN_FEE_MICRO);
+  } catch {
+    spare = FUNDER_SPARE_MIN_FEE_MICRO;
+  }
+  if (spare < 0n) spare = 0n;
+
+  const receiver = String(input?.receiver || '').trim();
+  /** @type {Array<{ address: string; amountMicro: bigint }>} */
+  const parts = [];
+  let totalLentMicro = 0n;
+
+  for (const f of Array.isArray(input?.funders) ? input.funders : []) {
+    if (remaining <= 0n) break;
+    const address = String(f?.address || '').trim();
+    if (!address || (receiver && address === receiver)) continue;
+    let spendableMicro = 0n;
+    try {
+      spendableMicro = BigInt(f?.spendableMicro ?? 0);
+    } catch {
+      spendableMicro = 0n;
+    }
+    const lendable = lendableAlgorandMicro(spendableMicro, spare);
+    if (lendable <= 0n) continue;
+    const amountMicro = lendable < remaining ? lendable : remaining;
+    if (amountMicro <= 0n) continue;
+    parts.push({ address, amountMicro });
+    totalLentMicro += amountMicro;
+    remaining -= amountMicro;
+  }
+
+  return {
+    filled: remaining === 0n,
+    remainingMicro: remaining,
+    totalLentMicro,
+    parts,
+  };
+}
+
+/**
+ * Borrow ALGO onto `receiver` from one or more funders.
+ * Prefers a single rich funder when one can cover the full deficit after spare;
+ * otherwise partially consolidates lendable dust across funders until filled.
+ *
  * @param {{
  *   receiver: string;
  *   deficitMicro: bigint;
  *   client: algosdk.Algodv2;
  *   funders: { address: string; sk: Uint8Array }[];
  *   spareMicro?: bigint;
+ *   allowPartial?: boolean;
  *   sendPayment?: (args: {
  *     funder: { address: string; sk: Uint8Array };
  *     receiver: string;
@@ -201,7 +273,19 @@ export function classifyAlgorandRefundError(err, paytoInsufficientFundsTag) {
  *   }) => Promise<{ txid: string }>;
  *   logPrefix?: string;
  * }} args
- * @returns {Promise<{ ok: true; funded: true; from: string; amount: number } | { ok: false }>}
+ * @returns {Promise<{
+ *   ok: true;
+ *   funded: true;
+ *   from: string;
+ *   amount: number;
+ *   parts?: Array<{ address: string; amountMicro: bigint }>;
+ * } | {
+ *   ok: false;
+ *   partial?: true;
+ *   from?: string;
+ *   amount?: number;
+ *   parts?: Array<{ address: string; amountMicro: bigint }>;
+ * }>}
  */
 async function borrowAlgorandAlgoFromFunders(args) {
   const {
@@ -210,60 +294,181 @@ async function borrowAlgorandAlgoFromFunders(args) {
     client,
     funders,
     spareMicro = FUNDER_SPARE_MICRO,
+    allowPartial = true,
     sendPayment,
     logPrefix = '[labAlgorandFeeBuffer]',
   } = args;
 
-  for (const funder of funders) {
+  const need = BigInt(deficitMicro ?? 0);
+  if (need <= 0n) {
+    return { ok: true, funded: true, from: receiver, amount: 0 };
+  }
+
+  /** @type {Map<string, { address: string; sk: Uint8Array }>} */
+  const byAddr = new Map();
+  /** @type {Array<{ address: string; sk: Uint8Array; spendableMicro: bigint }>} */
+  const withSpendable = [];
+
+  for (const funder of funders || []) {
     if (!funder?.address || funder.address === receiver) continue;
+    if (byAddr.has(funder.address)) continue;
+    byAddr.set(funder.address, funder);
     try {
       const finfo = await getAlgorandAccountSpendableMicro(funder.address, client);
-      if (lendableAlgorandMicro(finfo.spendableMicro, spareMicro) < deficitMicro) continue;
+      withSpendable.push({
+        address: funder.address,
+        sk: funder.sk,
+        spendableMicro: finfo.spendableMicro,
+      });
+    } catch (e) {
+      console.warn(
+        `${logPrefix} spendable read failed for ${funder.address}:`,
+        e?.message || e,
+      );
+    }
+  }
 
-      if (typeof sendPayment === 'function') {
-        await sendPayment({
-          funder,
-          receiver,
-          amountMicro: deficitMicro,
-          client,
-        });
-      } else {
-        const sp = await withTimeout(
-          client.getTransactionParams().do(),
-          ALGOD_TIMEOUT_MS,
-          'algod_params_timeout',
-        );
-        const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-          sender: funder.address,
-          receiver,
-          amount: Number(deficitMicro),
-          suggestedParams: sp,
-        });
-        const signed = txn.signTxn(funder.sk);
-        const { txid } = await withTimeout(
-          client.sendRawTransaction(signed).do(),
-          ALGOD_TIMEOUT_MS,
-          'algod_send_timeout',
-        );
-        await withTimeout(
-          algosdk.waitForConfirmation(client, txid, 8),
-          ALGOD_TIMEOUT_MS * 2,
-          'algod_confirm_timeout',
-        );
-      }
+  // Richest first so a single payment covers the deficit when possible.
+  const ordered = orderAlgorandAlgoFundersBySpendable(withSpendable);
 
+  // Fast path: one funder can cover the full deficit after spare.
+  for (const funder of ordered) {
+    const lendable = lendableAlgorandMicro(funder.spendableMicro, spareMicro);
+    if (lendable < need) continue;
+    try {
+      await sendAlgorandAlgoPayment({
+        funder,
+        receiver,
+        amountMicro: need,
+        client,
+        sendPayment,
+      });
       return {
         ok: true,
         funded: true,
         from: funder.address,
-        amount: Number(deficitMicro) / Number(MICRO_ALGO),
+        amount: Number(need) / Number(MICRO_ALGO),
+        parts: [{ address: funder.address, amountMicro: need }],
       };
     } catch (e) {
       console.warn(`${logPrefix} fee top-up from ${funder.address} failed:`, e?.message || e);
     }
   }
 
+  if (!allowPartial) {
+    return { ok: false };
+  }
+
+  // Dust consolidation: lend whatever each funder can spare (fee-aware min spare)
+  // so many ~0.03 ALGO siblings can collectively fill PayTo.
+  const partialSpare =
+    spareMicro > FUNDER_SPARE_MIN_FEE_MICRO ? FUNDER_SPARE_MIN_FEE_MICRO : spareMicro;
+  const plan = planAlgorandPartialBorrows({
+    deficitMicro: need,
+    spareMicro: partialSpare,
+    receiver,
+    funders: ordered,
+  });
+
+  /** @type {Array<{ address: string; amountMicro: bigint }>} */
+  const sentParts = [];
+  let totalSent = 0n;
+
+  for (const part of plan.parts) {
+    const funder = byAddr.get(part.address);
+    if (!funder) continue;
+    try {
+      await sendAlgorandAlgoPayment({
+        funder,
+        receiver,
+        amountMicro: part.amountMicro,
+        client,
+        sendPayment,
+      });
+      sentParts.push(part);
+      totalSent += part.amountMicro;
+    } catch (e) {
+      console.warn(
+        `${logPrefix} partial fee top-up from ${part.address} failed:`,
+        e?.message || e,
+      );
+    }
+  }
+
+  if (totalSent >= need && sentParts.length > 0) {
+    const from =
+      sentParts.length === 1 ? sentParts[0].address : `aggregated:${sentParts.length}`;
+    return {
+      ok: true,
+      funded: true,
+      from,
+      amount: Number(totalSent) / Number(MICRO_ALGO),
+      parts: sentParts,
+    };
+  }
+
+  if (totalSent > 0n) {
+    const from =
+      sentParts.length === 1 ? sentParts[0].address : `aggregated:${sentParts.length}`;
+    return {
+      ok: false,
+      partial: true,
+      from,
+      amount: Number(totalSent) / Number(MICRO_ALGO),
+      parts: sentParts,
+    };
+  }
+
   return { ok: false };
+}
+
+/**
+ * @param {{
+ *   funder: { address: string; sk: Uint8Array };
+ *   receiver: string;
+ *   amountMicro: bigint;
+ *   client: algosdk.Algodv2;
+ *   sendPayment?: (args: {
+ *     funder: { address: string; sk: Uint8Array };
+ *     receiver: string;
+ *     amountMicro: bigint;
+ *     client: algosdk.Algodv2;
+ *   }) => Promise<{ txid: string }>;
+ * }} args
+ */
+async function sendAlgorandAlgoPayment(args) {
+  const { funder, receiver, amountMicro, client, sendPayment } = args;
+  if (typeof sendPayment === 'function') {
+    await sendPayment({
+      funder,
+      receiver,
+      amountMicro,
+      client,
+    });
+    return;
+  }
+  const sp = await withTimeout(
+    client.getTransactionParams().do(),
+    ALGOD_TIMEOUT_MS,
+    'algod_params_timeout',
+  );
+  const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+    sender: funder.address,
+    receiver,
+    amount: Number(amountMicro),
+    suggestedParams: sp,
+  });
+  const signed = txn.signTxn(funder.sk);
+  const { txid } = await withTimeout(
+    client.sendRawTransaction(signed).do(),
+    ALGOD_TIMEOUT_MS,
+    'algod_send_timeout',
+  );
+  await withTimeout(
+    algosdk.waitForConfirmation(client, txid, 8),
+    ALGOD_TIMEOUT_MS * 2,
+    'algod_confirm_timeout',
+  );
 }
 
 /**
@@ -430,45 +635,96 @@ export async function ensurePayToAlgoForUsdcRefund(payToAddress, opts = {}) {
     });
   }
 
+  // Prefer a rich single funder (batch spare); otherwise multi-funder dust
+  // consolidation (min-fee spare) fills as much of the batch cushion as possible.
   const borrowed = await borrowAlgorandAlgoFromFunders({
     receiver: payTo,
     deficitMicro: deficit,
     client,
     funders,
     spareMicro: FUNDER_SPARE_MICRO,
+    allowPartial: true,
     sendPayment: opts.sendPayment,
     logPrefix: '[labAlgorandFeeBuffer] PayTo',
   });
   if (borrowed.ok) return borrowed;
 
-  // Batch cushion unreachable from one sibling (each keeps FUNDER_SPARE).
-  // Borrow only enough for a single refund fee floor so top-ups can proceed.
-  // Use a lower spare so typical payer wallets (~0.03–0.05 spendable) can lend.
-  if (payInfo.spendableMicro < minMicro) {
-    const minDeficit = minMicro - payInfo.spendableMicro;
-    const borrowedMin = await borrowAlgorandAlgoFromFunders({
-      receiver: payTo,
-      deficitMicro: minDeficit,
-      client,
-      funders,
-      spareMicro: FUNDER_SPARE_MIN_FEE_MICRO,
-      sendPayment: opts.sendPayment,
-      logPrefix: '[labAlgorandFeeBuffer] PayTo(min)',
-    });
-    if (borrowedMin.ok) {
-      return { ...borrowedMin, belowBatch: true };
-    }
-  } else {
-    // Already at/above single-refund floor — proceed without batch cushion.
+  // Re-read after partial consolidation — dust siblings may have lifted PayTo
+  // above the single-refund floor even when the batch cushion is still short.
+  let afterInfo = payInfo;
+  try {
+    afterInfo = await getAlgorandAccountSpendableMicro(payTo, client);
+  } catch {
+    afterInfo = payInfo;
+  }
+
+  if (afterInfo.spendableMicro >= needMicro) {
     return {
       ok: true,
-      funded: false,
-      belowBatch: true,
-      spendable: Number(payInfo.spendableMicro) / Number(MICRO_ALGO),
+      funded: Boolean(borrowed.partial),
+      belowBatch: false,
+      from: borrowed.from,
+      amount: borrowed.amount,
+      parts: borrowed.parts,
+      spendable: Number(afterInfo.spendableMicro) / Number(MICRO_ALGO),
     };
   }
 
-  const spendableAlgo = Number(payInfo.spendableMicro) / Number(MICRO_ALGO);
+  if (afterInfo.spendableMicro >= minMicro) {
+    return {
+      ok: true,
+      funded: Boolean(borrowed.partial),
+      belowBatch: true,
+      from: borrowed.from,
+      amount: borrowed.amount,
+      parts: borrowed.parts,
+      spendable: Number(afterInfo.spendableMicro) / Number(MICRO_ALGO),
+    };
+  }
+
+  // Still below single-refund floor — explicit min-fee borrow (lower spare).
+  const minDeficit = minMicro - afterInfo.spendableMicro;
+  const borrowedMin = await borrowAlgorandAlgoFromFunders({
+    receiver: payTo,
+    deficitMicro: minDeficit,
+    client,
+    funders,
+    spareMicro: FUNDER_SPARE_MIN_FEE_MICRO,
+    allowPartial: true,
+    sendPayment: opts.sendPayment,
+    logPrefix: '[labAlgorandFeeBuffer] PayTo(min)',
+  });
+  if (borrowedMin.ok) {
+    return { ...borrowedMin, belowBatch: true };
+  }
+
+  try {
+    afterInfo = await getAlgorandAccountSpendableMicro(payTo, client);
+  } catch {
+    /* keep prior */
+  }
+  if (afterInfo.spendableMicro >= minMicro) {
+    const parts = [...(borrowed.parts || []), ...(borrowedMin.parts || [])];
+    let totalMicro = 0n;
+    for (const p of parts) {
+      try {
+        totalMicro += BigInt(p.amountMicro ?? 0);
+      } catch {
+        /* ignore */
+      }
+    }
+    return {
+      ok: true,
+      funded: parts.length > 0,
+      belowBatch: true,
+      from: borrowedMin.from || borrowed.from,
+      amount: Number(totalMicro) / Number(MICRO_ALGO),
+      parts,
+      spendable: Number(afterInfo.spendableMicro) / Number(MICRO_ALGO),
+    };
+  }
+
+  const spendableAlgo = Number(afterInfo.spendableMicro) / Number(MICRO_ALGO);
   const needAlgo = Number(needMicro) / Number(MICRO_ALGO);
   return {
     ok: false,

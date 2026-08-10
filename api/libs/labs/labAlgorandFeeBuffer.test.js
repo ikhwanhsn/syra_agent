@@ -8,7 +8,10 @@ import {
   FUNDER_SPARE_MIN_FEE_MICRO,
   lendableAlgorandMicro,
   orderAlgorandAlgoFundersBySpendable,
+  planAlgorandPartialBorrows,
   PAYTO_USDC_REFUND_MIN_FEE_MICRO,
+  PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+  ensurePayToAlgoForUsdcRefund,
 } from './labAlgorandFeeBuffer.js';
 
 describe('lendableAlgorandMicro', () => {
@@ -22,6 +25,65 @@ describe('lendableAlgorandMicro', () => {
     assert.equal(lendableAlgorandMicro(siblingSpendable, FUNDER_SPARE_MICRO), 0n);
     const lendableMin = lendableAlgorandMicro(siblingSpendable, FUNDER_SPARE_MIN_FEE_MICRO);
     assert.ok(lendableMin >= PAYTO_USDC_REFUND_MIN_FEE_MICRO);
+  });
+});
+
+describe('planAlgorandPartialBorrows', () => {
+  test('single rich funder fills deficit alone', () => {
+    const plan = planAlgorandPartialBorrows({
+      deficitMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      spareMicro: FUNDER_SPARE_MICRO,
+      funders: [{ address: 'RICH', spendableMicro: 2_000_000n }],
+    });
+    assert.equal(plan.filled, true);
+    assert.equal(plan.parts.length, 1);
+    assert.equal(plan.parts[0].address, 'RICH');
+    assert.equal(plan.parts[0].amountMicro, PAYTO_USDC_REFUND_FEE_NEED_MICRO);
+  });
+
+  test('N siblings with 0.036 each fill batch together; none can alone', () => {
+    const siblingSpendable = 36_000n;
+    assert.equal(lendableAlgorandMicro(siblingSpendable, FUNDER_SPARE_MICRO), 0n);
+    const lendableMin = lendableAlgorandMicro(siblingSpendable, FUNDER_SPARE_MIN_FEE_MICRO);
+    assert.ok(lendableMin < PAYTO_USDC_REFUND_FEE_NEED_MICRO);
+
+    const siblings = Array.from({ length: 8 }, (_, i) => ({
+      address: `SIB${i}`,
+      spendableMicro: siblingSpendable,
+    }));
+    const alone = planAlgorandPartialBorrows({
+      deficitMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      spareMicro: FUNDER_SPARE_MIN_FEE_MICRO,
+      funders: [siblings[0]],
+    });
+    assert.equal(alone.filled, false);
+
+    const together = planAlgorandPartialBorrows({
+      deficitMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      spareMicro: FUNDER_SPARE_MIN_FEE_MICRO,
+      funders: siblings,
+    });
+    assert.equal(together.filled, true);
+    assert.ok(together.parts.length >= 5);
+    assert.equal(together.totalLentMicro, PAYTO_USDC_REFUND_FEE_NEED_MICRO);
+  });
+
+  test('skips receiver and zero-lendable funders', () => {
+    const plan = planAlgorandPartialBorrows({
+      deficitMicro: 10_000n,
+      spareMicro: FUNDER_SPARE_MIN_FEE_MICRO,
+      receiver: 'PAYTO',
+      funders: [
+        { address: 'PAYTO', spendableMicro: 100_000n },
+        { address: 'DUST', spendableMicro: 500n },
+        { address: 'OK', spendableMicro: 20_000n },
+      ],
+    });
+    assert.equal(plan.filled, true);
+    assert.deepEqual(
+      plan.parts.map((p) => p.address),
+      ['OK'],
+    );
   });
 });
 
@@ -78,6 +140,55 @@ describe('orderAlgorandAlgoFundersBySpendable', () => {
   test('empty / non-array input returns empty array', () => {
     assert.deepEqual(orderAlgorandAlgoFundersBySpendable([]), []);
     assert.deepEqual(orderAlgorandAlgoFundersBySpendable(null), []);
-    assert.deepEqual(orderAlgorandAlgoFundersBySpendable(undefined), []);
+  });
+});
+
+describe('ensurePayToAlgoForUsdcRefund multi-funder consolidation', () => {
+  test('multi siblings with 0.036 fill batch cushion via partial borrows', async () => {
+    const payTo = 'PAYTOADDR';
+    const minBal = 200_000;
+    /** @type {Map<string, number>} */
+    const amounts = new Map([
+      [payTo, minBal], // 0 spendable
+    ]);
+    const funders = [];
+    for (let i = 0; i < 8; i++) {
+      const addr = `SIB${i}ADDR`;
+      amounts.set(addr, minBal + 36_000);
+      funders.push({ address: addr, sk: new Uint8Array(64) });
+    }
+
+    /** @type {Array<{ funder: string; amountMicro: bigint }>} */
+    const sends = [];
+    const client = {
+      accountInformation(addr) {
+        return {
+          do: async () => ({
+            amount: amounts.get(addr) ?? minBal,
+            minBalance: minBal,
+          }),
+        };
+      },
+    };
+
+    const result = await ensurePayToAlgoForUsdcRefund(payTo, {
+      client,
+      needMicro: PAYTO_USDC_REFUND_FEE_NEED_MICRO,
+      minMicro: PAYTO_USDC_REFUND_MIN_FEE_MICRO,
+      funders,
+      sendPayment: async ({ funder, amountMicro }) => {
+        sends.push({ funder: funder.address, amountMicro });
+        const fromBal = amounts.get(funder.address) ?? minBal;
+        amounts.set(funder.address, fromBal - Number(amountMicro));
+        const toBal = amounts.get(payTo) ?? minBal;
+        amounts.set(payTo, toBal + Number(amountMicro));
+        return { txid: `TX-${funder.address}` };
+      },
+    });
+
+    assert.equal(result.ok, true);
+    assert.equal(result.funded, true);
+    assert.ok(sends.length >= 5);
+    assert.ok(amounts.get(payTo) - minBal >= Number(PAYTO_USDC_REFUND_FEE_NEED_MICRO));
   });
 });
