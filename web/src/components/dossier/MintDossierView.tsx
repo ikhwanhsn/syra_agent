@@ -290,6 +290,15 @@ export function MintDossierView({
                   Tokens.xyz
                 </a>
                 {" · "}
+                <a
+                  href="https://github.com/solana-foundation/tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground"
+                >
+                  OSS
+                </a>
+                {" · "}
                 {new Date(data.fetchedAt).toLocaleString()}
               </p>
             </div>

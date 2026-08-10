@@ -43,6 +43,7 @@ import {
 import { MIGRATED_TOOL_IDS, runMigratedTool } from "./agentMigratedTools.js";
 import { runGmgnAgentTool } from "./gmgnAgentService.js";
 import { runTokensAgentTool } from "./tokensAgentService.js";
+import { buildAssetResearch } from "./assetResearchService.js";
 import { runYieldAgentTool, hasYieldConfig } from "./yieldMcpClient.js";
 import { getYieldGateMissing } from "../config/yieldAgentTools.js";
 
@@ -116,6 +117,10 @@ export async function runAgentPartnerDirectTool(toolId, params, opts = {}) {
 
   if (typeof toolId === "string" && toolId.startsWith("tokens-")) {
     return runTokensAgentTool(toolId, params);
+  }
+
+  if (toolId === "asset-research") {
+    return buildAssetResearch(params || {});
   }
 
   if (typeof toolId === "string" && toolId.startsWith("yield-")) {

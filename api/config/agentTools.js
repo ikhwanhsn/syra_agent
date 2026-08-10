@@ -46,6 +46,7 @@ import {
   X402_API_PRICE_SIWA_USD,
   X402_API_PRICE_SPCX_USD,
   X402_API_PRICE_EQUITY_USD,
+  X402_API_PRICE_ASSETS_DETAIL_USD,
   X402_PAYSH_FLOOR_USD,
 } from './x402Pricing.js';
 import {
@@ -91,6 +92,7 @@ import {
   X402_DISPLAY_PRICE_SIWA_USD,
   X402_DISPLAY_PRICE_SPCX_USD,
   X402_DISPLAY_PRICE_EQUITY_USD,
+  X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
 } from './x402Pricing.js';
 import { BIRDEYE_AGENT_TOOLS, getBirdeyeParamsHintForLlm } from './birdeyeAgentTools.js';
 import { BLOCKSIZE_AGENT_TOOLS, getBlocksizeParamsHintForLlm } from './blocksizeAgentTools.js';
@@ -167,6 +169,17 @@ export const AGENT_TOOLS = [
     name: 'Tokenized equity intelligence',
     description:
       'Parametric xStocks intel — Nasdaq vs on-chain premium/discount for TSLAx, NVDAx, AAPLx, and catalog symbols',
+  },
+  {
+    id: 'asset-research',
+    agentDirect: true,
+    path: '/agent/tokens/research',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_ASSETS_DETAIL_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_ASSETS_DETAIL_USD,
+    name: 'Asset research (Tokens + Syra)',
+    description:
+      'Canonical mint in, research decision out: Tokens resolve + risk, then Syra news/sentiment/events/signal with nextActions',
   },
   {
     id: 'sentiment',
@@ -2830,6 +2843,20 @@ function collectToolsFromUserMessage(userMessage, maxMatches = 1) {
       },
     },
     {
+      toolId: 'asset-research',
+      test: () =>
+        /\basset\s*research\b|\bresearch\s+(this\s+)?(token|asset|mint)\b|\b(should\s+i|can\s+i)\s+(buy|trade|long|short)\b.*\b(token|mint|solana)\b|\b(dossier|risk)\b.*\b(and\s+)?(news|sentiment|signal)\b/i.test(
+          text,
+        ),
+      params: () => {
+        const mint = text.match(/\b([1-9A-HJ-NP-Za-km-z]{32,44})\b/);
+        if (mint?.[1]) return { mint: mint[1] };
+        const ref = text.match(/\b(?:for|on|about)\s+\$?([A-Za-z0-9.-]{2,32})\b/i);
+        if (ref?.[1]) return { ref: ref[1].replace(/^\$/, '') };
+        return {};
+      },
+    },
+    {
       toolId: 'signal',
       test: () =>
         /trading\s*signal|create\s*signal|signal\s*data|get\s*signal|give\s*(me\s*)?(a\s*)?(solana|btc|eth|bitcoin|ethereum|crypto)?\s*signal|(solana|btc|eth|bitcoin|ethereum|crypto|token)\s*signal|signal\s*(for|on)?\s*(solana|btc|eth|bitcoin|ethereum|crypto)?/i.test(
@@ -2942,6 +2969,7 @@ export function getCapabilitiesList() {
     'signal',
     'spcx-intelligence',
     'equity-intelligence',
+    'asset-research',
     'sentiment',
     'event',
     'web-search',
@@ -3125,7 +3153,7 @@ export function getCapabilitiesList() {
   const tokensTools = AGENT_TOOLS.filter((t) => t.id.startsWith('tokens-')).map((t) => t.id);
   if (tokensTools.length) {
     lines.push(
-      'Tokens.xyz (canonical assets, Solana variants, OHLCV, risk, curated lists — use tokens-assets-resolve then tokens-asset-detail; pass assetId or mint per docs.tokens.xyz):',
+      'Tokens.xyz / Solana Foundation Tokens (canonical assets — prefer asset-research for resolve→risk→Syra intel→action; or tokens-assets-resolve then tokens-asset-detail; pass assetId or mint; OSS: github.com/solana-foundation/tokens; docs.tokens.xyz):',
       ...fmt(tokensTools),
       ''
     );
@@ -3165,6 +3193,10 @@ export function getToolsForLlmSelection() {
     if (t.id === 'signal') {
       out.paramsHint =
         'Optional: token (default bitcoin); Syra Agent defaults to source=coingecko (USD OHLC). Other: source = binance|coinbase|coingecko|okx|bybit|kraken|bitget|kucoin|upbit|cryptocom; n8n|webhook for legacy n8n; instId, bar, limit';
+    }
+    if (t.id === 'asset-research') {
+      out.paramsHint =
+        'Params: assetId OR ref (btc, solana, ticker) OR mint (Solana base58). Returns Tokens risk + Syra news/sentiment/events/signal + nextActions.';
     }
     if (t.id === 'web-search') {
       out.paramsHint = 'Params: query (required) — search query from the user, e.g. "bitcoin insight", "latest Nvidia news"';

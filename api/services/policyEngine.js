@@ -66,6 +66,8 @@ const KNOWN_PROGRAMS_SOLANA = new Set([
   'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
   // pump.fun bonding curve program
   '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P',
+  // SAID Protocol agent identity
+  '5dpw6KEQPn248pnkkaYyWfHwu2nfb3LUMbTucb6LaA8G',
   // SPL token program
   'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
   // Token-2022

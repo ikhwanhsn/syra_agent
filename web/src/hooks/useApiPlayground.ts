@@ -1061,7 +1061,7 @@ export function getExampleFlows(): ExampleFlowPreset[] {
     },
     {
       id: "assets-board",
-      label: "Assets: Tokens.xyz board",
+      label: "Assets: Tokens board (Solana Foundation)",
       method: "GET",
       url: `${base}/assets`,
       params: [

@@ -795,7 +795,7 @@
       "x402_enabled": true,
       "x402_protocol_version": 2,
       "network": "base",
-      "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.",
+      "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz (Solana Foundation open source) — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.",
       "enabled": true,
       "pricing_config": {
         "amount": "1000",
@@ -816,7 +816,7 @@
       "x402_enabled": true,
       "x402_protocol_version": 2,
       "network": "base",
-      "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or any Tokens.xyz asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.",
+      "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical Tokens.xyz asset (OSS: solana-foundation/tokens). Use when an agent researches BTC, SOL, a stock token, or any Tokens asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.",
       "enabled": true,
       "pricing_config": {
         "amount": "5000",

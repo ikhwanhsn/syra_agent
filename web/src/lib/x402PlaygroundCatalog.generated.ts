@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-08-09T16:53:23.984Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-08-10T16:09:03.373Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -928,7 +928,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
   {
     "segment": "assets",
     "id": "x402-assets",
-    "label": "Assets Board: Tokens.xyz curated assets board with filter and sort",
+    "label": "Assets Board: Tokens (Solana Foundation) curated assets board with filter and sort",
     "method": "GET",
     "params": [
       {
@@ -989,8 +989,8 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
     "catalogMeta": {
       "segment": "assets",
       "name": "Assets Board",
-      "summary": "Tokens.xyz curated assets board with filter and sort",
-      "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a r…",
+      "summary": "Tokens (Solana Foundation) curated assets board with filter and sort",
+      "description": "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz (Solana Foundation open source) — same data as the Syra Assets p…",
       "priceUsd": "0.001",
       "category": "analytics"
     }
@@ -998,7 +998,7 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
   {
     "segment": "assets/detail",
     "id": "x402-assets-detail",
-    "label": "Asset Detail: Tokens.xyz mint dossier for one asset",
+    "label": "Asset Detail: Tokens (Solana Foundation) mint dossier for one asset",
     "method": "GET",
     "params": [
       {
@@ -1029,8 +1029,8 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
     "catalogMeta": {
       "segment": "assets/detail",
       "name": "Asset Detail",
-      "summary": "Tokens.xyz mint dossier for one asset",
-      "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or an…",
+      "summary": "Tokens (Solana Foundation) mint dossier for one asset",
+      "description": "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical Tokens.xyz asset (OSS: solana-foundation/tokens). Use when an agen…",
       "priceUsd": "0.005",
       "category": "analytics"
     }

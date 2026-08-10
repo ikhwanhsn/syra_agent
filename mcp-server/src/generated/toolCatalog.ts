@@ -970,6 +970,17 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "path": "/arbitrage"
   },
   {
+    "toolName": "syra_spend_asset_research",
+    "toolId": "asset-research",
+    "pillar": "spend",
+    "access": "agent-direct",
+    "method": "GET",
+    "name": "Asset research (Tokens + Syra)",
+    "description": "Canonical mint in, research decision out: Tokens resolve + risk, then Syra news/sentiment/events/signal with nextActions",
+    "priceUsd": 0.00005,
+    "curated": false
+  },
+  {
     "toolName": "syra_spend_binance_correlation",
     "toolId": "binance-correlation",
     "pillar": "spend",

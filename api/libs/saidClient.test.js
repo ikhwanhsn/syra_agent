@@ -154,3 +154,19 @@ test("buildTokenAgentCard has no em dash and points at earn token page", () => {
   assert.ok(card.description.includes("community token"));
   assert.equal(card.website, `https://syraa.fun/earn/token/${encodeURIComponent(mint)}`);
 });
+
+test("registerAndVerifyAgentCard requires keypair or wallet+signAndSendTransaction", async () => {
+  const { registerAndVerifyAgentCard } = await import("./saidClient.js");
+  await assert.rejects(
+    () => registerAndVerifyAgentCard({ card: { name: "x", wallet: "y" } }),
+    /signerKeypair is required \(or wallet \+ signAndSendTransaction\)/,
+  );
+  await assert.rejects(
+    () =>
+      registerAndVerifyAgentCard({
+        card: { name: "x", wallet: "y" },
+        signAndSendTransaction: async () => "sig",
+      }),
+    /signerKeypair is required \(or wallet \+ signAndSendTransaction\)|wallet is required/,
+  );
+});

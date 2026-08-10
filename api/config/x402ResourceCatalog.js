@@ -387,9 +387,9 @@ export const X402_RESOURCE_CATALOG = {
     name: 'Assets Board',
     category: 'analytics',
     methods: ['GET', 'POST'],
-    summary: 'Tokens.xyz curated assets board with filter and sort',
+    summary: 'Tokens (Solana Foundation) curated assets board with filter and sort',
     description:
-      'Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.',
+      'Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz (Solana Foundation open source) — same data as the Syra Assets page. Use when an agent needs a ranked market universe, not a single asset. Inputs: list (all|majors|stocks|…), assetClass, q, sort, order, limit, offset. Returns items[] with price, marketCap, volume, assetClass.',
     suggestedPriceStx: 0.001,
   },
   'assets/detail': {
@@ -397,9 +397,9 @@ export const X402_RESOURCE_CATALOG = {
     name: 'Asset Detail',
     category: 'analytics',
     methods: ['GET', 'POST'],
-    summary: 'Tokens.xyz mint dossier for one asset',
+    summary: 'Tokens (Solana Foundation) mint dossier for one asset',
     description:
-      'Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical asset. Use when an agent researches BTC, SOL, a stock token, or any Tokens.xyz asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.',
+      'Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical Tokens.xyz asset (OSS: solana-foundation/tokens). Use when an agent researches BTC, SOL, a stock token, or any Tokens asset by ref/mint/assetId. Inputs: ref, mint, assetId, or q. Returns asset, includes (profile/risk/markets), ohlcv candles, mintRisk.',
     suggestedPriceStx: 0.005,
   },
   bitcoin: {

@@ -1,6 +1,9 @@
 /**
- * Tokens.xyz Assets API v1 for the Syra agent (server-side API key).
+ * Tokens Assets API v1 for the Syra agent (server-side API key).
+ * Hosted production: https://api.tokens.xyz — do not self-host for Syra prod.
  * @see https://docs.tokens.xyz/v1/quickstart
+ * @see https://github.com/solana-foundation/tokens
+ * @see ../docs/tokens-api-contract.md
  */
 import { TOKENS_TOOL_ROUTES } from '../config/tokensAgentTools.js';
 

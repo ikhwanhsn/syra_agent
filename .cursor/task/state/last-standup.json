@@ -1,29 +1,29 @@
 {
-  "date": "2026-08-09",
-  "updatedAt": "2026-08-09T02:07:28.000Z",
+  "date": "2026-08-10",
+  "updatedAt": "2026-08-10T16:06:38.000Z",
   "source": "https://api.syraa.fun/api/metrics",
   "northStar": {
-    "paidCallsLast7d": 22878,
-    "uniquePayingWalletsLast7d": 108
+    "paidCallsLast7d": 24038,
+    "uniquePayingWalletsLast7d": 109
   },
   "last7d": {
-    "calls": 22878,
-    "usdSettled": 1494.43
+    "calls": 24038,
+    "usdSettled": 1657.86
   },
   "buyback": {
-    "totalBuybackUsdSpent": 25.03,
+    "totalBuybackUsdSpent": 24.83,
     "totalSyraAcquired": 172452.066761,
     "treasurySyraBalance": 172452.066761,
     "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
   },
   "rewards": {
-    "uniqueEarners": 107,
+    "uniqueEarners": 108,
     "totalClaimableSyra": 0,
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0281
+    "settleFailRate24h": 0.038
   },
-  "oneAction": "Run POST /internal/rewards/fund with maxSyraToFund capped to treasury inventory (≤172452 SYRA; pilot e.g. 50000) so metrics.rewards.totalClaimableSyra > 0 and one wallet can POST /rewards/claim. Carryover from 2026-08-08; settlement still green (24h fail 0.0281).",
+  "oneAction": "Run POST /internal/rewards/fund with maxSyraToFund=50000 (≤172452 treasury SYRA) so totalClaimableSyra > 0; verify one earner can POST /rewards/claim. Third day of token-loop carryover; activation funnel healthy (402→paid=1.0, D7=0.783).",
   "bottleneck": "token-loop"
 }

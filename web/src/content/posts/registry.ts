@@ -43,6 +43,7 @@ import { SETTLEMENT_RECOVERY_POST } from "./settlementRecoveryUpdate";
 import { YIELD_XYZ_INTEGRATION_POST } from "./yieldXyzIntegrationUpdate";
 import { PRIVY_WALLETS_PROOF_POST } from "./privyWalletsProofUpdate";
 import { AGENT402_MARKETPLACE_POST } from "./agent402MarketplaceUpdate";
+import { TOKENS_OSS_POST } from "./tokensOssUpdate";
 import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
@@ -89,6 +90,7 @@ import { SETTLEMENT_RECOVERY_PHOTO } from "./photo/settlementRecoveryPhoto";
 import { YIELD_XYZ_INTEGRATION_PHOTO } from "./photo/yieldXyzIntegrationPhoto";
 import { PRIVY_WALLETS_PROOF_PHOTO } from "./photo/privyWalletsProofPhoto";
 import { AGENT402_MARKETPLACE_PHOTO } from "./photo/agent402MarketplacePhoto";
+import { TOKENS_OSS_PHOTO } from "./photo/tokensOssPhoto";
 import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -154,6 +156,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: YIELD_XYZ_INTEGRATION_POST, photo: YIELD_XYZ_INTEGRATION_PHOTO },
   { video: PRIVY_WALLETS_PROOF_POST, photo: PRIVY_WALLETS_PROOF_PHOTO },
   { video: AGENT402_MARKETPLACE_POST, photo: AGENT402_MARKETPLACE_PHOTO },
+  { video: TOKENS_OSS_POST, photo: TOKENS_OSS_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {

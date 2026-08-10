@@ -159,7 +159,7 @@ export default function AssetsPage({ embedded }: { embedded?: boolean }) {
             <p className="mt-1 text-sm text-muted-foreground">
               {assetsQ.isLoading
                 ? "Loading market data…"
-                : `${pagination.totalItems.toLocaleString()} assets from Tokens.xyz`}
+                : `${pagination.totalItems.toLocaleString()} assets from Tokens (Solana Foundation)`}
             </p>
           </div>
           <Button
@@ -366,13 +366,24 @@ export default function AssetsPage({ embedded }: { embedded?: boolean }) {
         </Card>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
+          Data by{" "}
           <a
             href="https://docs.tokens.xyz/v1/quickstart"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
           >
-            Data by Tokens.xyz
+            Tokens.xyz
+            <ExternalLink className="h-3 w-3" aria-hidden />
+          </a>
+          {" · "}
+          <a
+            href="https://github.com/solana-foundation/tokens"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+          >
+            Open source
             <ExternalLink className="h-3 w-3" aria-hidden />
           </a>
         </p>

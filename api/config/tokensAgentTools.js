@@ -1,6 +1,8 @@
 /**
  * Tokens.xyz Assets API v1 — agent tools (server-side TOKENS_API_KEY).
+ * Hosted API only in production. OSS: https://github.com/solana-foundation/tokens
  * @see https://docs.tokens.xyz/v1/quickstart
+ * @see ../docs/tokens-api-contract.md
  */
 import { X402_API_PRICE_USD, X402_DISPLAY_PRICE_USD } from './x402Pricing.js';
 

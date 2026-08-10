@@ -10,18 +10,23 @@ import {
   siblingAnonymousId,
 } from './agentWalletPurpose.js';
 import { ensureAgentWalletPurpose } from './agentWalletProvision.js';
-import { getSolanaAgentKeypair } from './agentWallet.js';
+import { getAgentPrivyWalletForX402, getSolanaAgentKeypair } from './agentWallet.js';
 import {
   MIN_SOL_FOR_SAID_VERIFY,
   buildTokenAgentCard,
   checkVerified,
-  getSignerSolBalance,
+  getWalletSolBalance,
   lookupOnChainAgent,
   registerAndVerifyAgentCard,
 } from './saidClient.js';
 import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
 
 const SAID_PROFILE_BASE = 'https://www.saidprotocol.com/agents';
+/** Rough USD for SAID register+verify (~0.01 SOL fee + rent). Policy advisory only. */
+const SAID_VERIFY_ESTIMATED_USD = 2;
+const SAID_VERIFY_TOOL_ID = 'register-agent';
+const EARN_WALLET_SIGNER_UNAVAILABLE_MESSAGE =
+  'Earn wallet signer unavailable. This wallet has no local keypair and custody signing is not available.';
 
 const PUMPFUN_EARN_TOOLS = Object.freeze([
   'pumpfun-agents-create-coin',
@@ -985,33 +990,17 @@ export async function verifyEarnTokenOnSaid(input) {
     };
   }
 
-  const keypair = await getSolanaAgentKeypair(earnAnonymousId);
-  if (!keypair) {
-    return {
-      success: false,
-      error: 'earn_wallet_signer_unavailable',
-    };
-  }
-
-  const signerAddress = keypair.publicKey.toBase58();
-  if (signerAddress !== earnAgentAddress) {
-    return {
-      success: false,
-      error: 'earn_wallet_signer_mismatch',
-    };
-  }
-
   // Stale DB row: wallet already verified on-chain / SAID API. Sync without re-charging.
-  const onChainExisting = await lookupOnChainAgent(signerAddress).catch(() => null);
+  const onChainExisting = await lookupOnChainAgent(earnAgentAddress).catch(() => null);
   const alreadyOnChain = onChainExisting?.isVerified === true;
-  const alreadyViaApi = !alreadyOnChain ? await checkVerified(signerAddress).catch(() => false) : true;
+  const alreadyViaApi = !alreadyOnChain ? await checkVerified(earnAgentAddress).catch(() => false) : true;
   if (alreadyOnChain || alreadyViaApi) {
     const verifiedAt = new Date(
       onChainExisting?.verifiedAt && Number.isFinite(onChainExisting.verifiedAt)
         ? onChainExisting.verifiedAt * 1000
         : Date.now(),
     );
-    const wallet = signerAddress;
+    const wallet = earnAgentAddress;
     const saidAgentPDA = onChainExisting?.pubkey || null;
     const saidMetadataUri = onChainExisting?.metadataUri || null;
     await persistSaidForEarnWallet({
@@ -1033,7 +1022,47 @@ export async function verifyEarnTokenOnSaid(input) {
     };
   }
 
-  const solBalance = await getSignerSolBalance(keypair);
+  const keypair = await getSolanaAgentKeypair(earnAnonymousId);
+  /** @type {null | ((args: { serializedTxBase64: string; lastValidBlockHeight: number }) => Promise<string>)} */
+  let signAndSendTransaction = null;
+  let signerAddress = earnAgentAddress;
+
+  if (keypair) {
+    signerAddress = keypair.publicKey.toBase58();
+    if (signerAddress !== earnAgentAddress) {
+      return {
+        success: false,
+        error: 'earn_wallet_signer_mismatch',
+      };
+    }
+  } else {
+    const privy = await getAgentPrivyWalletForX402(earnAnonymousId);
+    if (privy && privy.agentAddress !== earnAgentAddress) {
+      return {
+        success: false,
+        error: 'earn_wallet_signer_mismatch',
+      };
+    }
+    if (!privy) {
+      return {
+        success: false,
+        error: 'earn_wallet_signer_unavailable',
+        message: EARN_WALLET_SIGNER_UNAVAILABLE_MESSAGE,
+      };
+    }
+    signAndSendTransaction = async ({ serializedTxBase64, lastValidBlockHeight }) => {
+      const { signAndSubmitSerializedTransaction } = await import('./agentX402Client.js');
+      const out = await signAndSubmitSerializedTransaction(earnAnonymousId, serializedTxBase64, {
+        toolId: SAID_VERIFY_TOOL_ID,
+        estimatedUsd: SAID_VERIFY_ESTIMATED_USD,
+        lastValidBlockHeight,
+        summary: 'Register and verify Earn token wallet on SAID Protocol',
+      });
+      return out.signature;
+    };
+  }
+
+  const solBalance = await getWalletSolBalance(signerAddress);
   if (solBalance < MIN_SOL_FOR_SAID_VERIFY) {
     return {
       success: false,
@@ -1056,7 +1085,9 @@ export async function verifyEarnTokenOnSaid(input) {
   let saidResult;
   try {
     saidResult = await registerAndVerifyAgentCard({
-      signerKeypair: keypair,
+      ...(keypair
+        ? { signerKeypair: keypair }
+        : { wallet: signerAddress, signAndSendTransaction }),
       card,
       offChainCard: {
         name: card.name,

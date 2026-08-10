@@ -1,6 +1,7 @@
 import express from 'express';
 import { buildMintDossier, buildMintChart } from '../../libs/tokensDossierService.js';
 import { buildAssetIntelligence } from '../../libs/assetIntelligenceService.js';
+import { buildAssetResearch } from '../../libs/assetResearchService.js';
 import { buildTokenAnalysis } from '../../libs/tokenAnalysisService.js';
 import { fetchTokenKolShills } from '../../libs/tokenKolShillService.js';
 import { buildSwapMarketNews } from '../../libs/swapMarketNews.js';
@@ -211,6 +212,45 @@ export function createTokensDossierRouter() {
       return res.json({ success: true, data: result.data });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Asset intelligence failed';
+      return res.status(500).json({ success: false, error: message });
+    }
+  });
+
+  /**
+   * GET /agent/tokens/research?ref=btc | ?mint=... | ?assetId=...
+   * Resolve → Tokens risk → Syra intelligence → nextActions (agent wedge).
+   */
+  router.get('/research', async (req, res) => {
+    try {
+      const ref = typeof req.query.ref === 'string' ? req.query.ref : undefined;
+      const mint = typeof req.query.mint === 'string' ? req.query.mint : undefined;
+      const assetId = typeof req.query.assetId === 'string' ? req.query.assetId : undefined;
+      const symbol = typeof req.query.symbol === 'string' ? req.query.symbol : undefined;
+      const name = typeof req.query.name === 'string' ? req.query.name : undefined;
+      const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+
+      /** @type {Record<string, string | undefined>} */
+      let input = { ref, mint, assetId, symbol, name };
+      if (!ref && !mint && !assetId && q) {
+        if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q)) {
+          input = { mint: q };
+        } else if (q.includes('-') && q.startsWith('solana-')) {
+          input = { assetId: q };
+        } else {
+          input = { ref: q };
+        }
+      }
+
+      const result = await buildAssetResearch(input);
+      if (!result.ok) {
+        return res.status(result.status ?? 502).json({
+          success: false,
+          error: result.error || 'Asset research failed',
+        });
+      }
+      return res.json({ success: true, data: result.data });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Asset research failed';
       return res.status(500).json({ success: false, error: message });
     }
   });

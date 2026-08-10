@@ -218,6 +218,7 @@ export async function verifyEarnTokenOnSaid(mint: string): Promise<VerifySaidRes
   const json = (await res.json().catch(() => ({}))) as {
     success?: boolean;
     error?: string;
+    message?: string;
     insufficientBalance?: boolean;
     requiredSol?: number;
     solBalance?: number;
@@ -231,9 +232,18 @@ export async function verifyEarnTokenOnSaid(mint: string): Promise<VerifySaidRes
         `Earn wallet needs at least ${need} SOL for SAID verification (current: ${have.toFixed(4)} SOL). Fund via Earn wallet.`,
       );
     }
-    throw new Error(json.error || res.statusText || "SAID verification failed");
+    if (json.error === "earn_wallet_signer_unavailable") {
+      throw new Error(
+        json.message?.trim() ||
+          "Earn wallet signer unavailable. This wallet has no local keypair and custody signing is not available.",
+      );
+    }
+    if (json.error === "earn_wallet_signer_mismatch") {
+      throw new Error("Earn wallet signer mismatch. Refresh and try again.");
+    }
+    throw new Error(json.message || json.error || res.statusText || "SAID verification failed");
   }
-  if (!json.data) throw new Error(json.error || "SAID verification failed");
+  if (!json.data) throw new Error(json.message || json.error || "SAID verification failed");
   return json.data;
 }
 

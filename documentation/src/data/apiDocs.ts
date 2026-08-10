@@ -2714,7 +2714,7 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
   "assets-board": doc({
     title: "Assets Board",
     overview:
-      "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz — same data as the Syra Assets page.",
+      "Paginated curated assets board (crypto + tokenized stocks) from Tokens.xyz (Solana Foundation open source) — same data as the Syra Assets page.",
     price: "$0.005 USD per request",
     endpoints: [
       {
@@ -2747,7 +2747,7 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
 
   "assets-detail": doc({
     title: "Asset Detail",
-    overview: "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical Tokens.xyz asset.",
+    overview: "Full asset dossier: profile, risk, markets, and 1H OHLCV for a canonical Tokens.xyz asset (Solana Foundation open source).",
     price: "$0.005 USD per request",
     endpoints: [
       {

@@ -903,7 +903,8 @@ export async function buildPaymentHeaderFrom402Body(anonymousId, paymentRequired
  * @param {string} anonymousId
  * @param {string} serializedTxBase64
  * @param {{ toolId?: string; estimatedUsd?: number; requestId?: string; sessionId?: string;
- *           ip?: string; userAgent?: string; guest?: boolean; bypassPolicy?: boolean }} [context]
+ *           ip?: string; userAgent?: string; guest?: boolean; bypassPolicy?: boolean;
+ *           lastValidBlockHeight?: number; confirmTimeoutMs?: number; summary?: string }} [context]
  * @returns {Promise<{ signature: string }>}
  */
 export async function signAndSubmitSerializedTransaction(anonymousId, serializedTxBase64, context = {}) {
@@ -924,7 +925,18 @@ export async function signAndSubmitSerializedTransaction(anonymousId, serialized
       toolId: context.toolId,
       estimatedUsd: Number.isFinite(context.estimatedUsd) ? Number(context.estimatedUsd) : 0,
       serializedTxBase64,
-      summary: context.toolId ? `Sign on-chain transaction for ${context.toolId}` : undefined,
+      lastValidBlockHeight: Number.isFinite(context.lastValidBlockHeight)
+        ? Number(context.lastValidBlockHeight)
+        : undefined,
+      confirmTimeoutMs: Number.isFinite(context.confirmTimeoutMs)
+        ? Number(context.confirmTimeoutMs)
+        : undefined,
+      summary:
+        typeof context.summary === 'string' && context.summary.trim()
+          ? context.summary.trim()
+          : context.toolId
+            ? `Sign on-chain transaction for ${context.toolId}`
+            : undefined,
     }
   );
   if (result.status === 'ok') {

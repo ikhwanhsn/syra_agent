@@ -553,13 +553,21 @@ export async function getAgentDetails(wallet, options = {}) {
 }
 
 /**
+ * @param {string} walletAddress
+ * @returns {Promise<number>}
+ */
+export async function getWalletSolBalance(walletAddress) {
+  const connection = new Connection(getSaidRpcUrl(), "confirmed");
+  const lamports = await connection.getBalance(new PublicKey(walletAddress));
+  return lamports / LAMPORTS_PER_SOL;
+}
+
+/**
  * @param {Keypair} signer
  * @returns {Promise<number>}
  */
 export async function getSignerSolBalance(signer) {
-  const connection = new Connection(getSaidRpcUrl(), "confirmed");
-  const lamports = await connection.getBalance(signer.publicKey);
-  return lamports / LAMPORTS_PER_SOL;
+  return getWalletSolBalance(signer.publicKey.toBase58());
 }
 
 /**
@@ -644,8 +652,16 @@ export async function syncSyraSaidMetadata(wallet) {
 /**
  * Register + verify any AgentCard on SAID (idempotent).
  *
+ * Supports legacy in-process Keypair signing, or a custody callback
+ * (`wallet` + `signAndSendTransaction`) for Privy / WalletBroker.
+ *
  * @param {{
- *   signerKeypair: Keypair;
+ *   signerKeypair?: Keypair;
+ *   wallet?: string;
+ *   signAndSendTransaction?: (args: {
+ *     serializedTxBase64: string;
+ *     lastValidBlockHeight: number;
+ *   }) => Promise<string>;
  *   card: import('said-sdk').AgentCard;
  *   skipOffChain?: boolean;
  *   offChainCard?: {
@@ -668,16 +684,53 @@ export async function syncSyraSaidMetadata(wallet) {
  * }>}
  */
 export async function registerAndVerifyAgentCard(input) {
-  const signer = input.signerKeypair;
-  if (!signer) {
-    throw new Error("signerKeypair is required");
+  const signer = input.signerKeypair || null;
+  const signAndSend =
+    typeof input.signAndSendTransaction === "function" ? input.signAndSendTransaction : null;
+
+  /** @type {PublicKey} */
+  let feePayer;
+  /** @type {string} */
+  let wallet;
+  if (signer) {
+    feePayer = signer.publicKey;
+    wallet = feePayer.toBase58();
+  } else if (signAndSend && input.wallet) {
+    wallet = String(input.wallet).trim();
+    if (!wallet) throw new Error("wallet is required when using signAndSendTransaction");
+    feePayer = new PublicKey(wallet);
+  } else {
+    throw new Error("signerKeypair is required (or wallet + signAndSendTransaction)");
   }
-  const wallet = signer.publicKey.toBase58();
+
   const card = { ...input.card, wallet };
 
   const { SAID } = await import("said-sdk");
   const [agentPdaKey] = SAID.deriveAgentPDA(new PublicKey(wallet));
   const connection = new Connection(getSaidRpcUrl(), "confirmed");
+
+  /**
+   * @param {Transaction} tx
+   * @returns {Promise<string>}
+   */
+  async function submitTx(tx) {
+    if (signer) {
+      return sendAndConfirmSolanaTransaction(connection, tx, [signer], {
+        commitment: "confirmed",
+      });
+    }
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = feePayer;
+    const serializedTxBase64 = Buffer.from(
+      tx.serialize({ requireAllSignatures: false, verifySignatures: false }),
+    ).toString("base64");
+    const signature = await signAndSend({ serializedTxBase64, lastValidBlockHeight });
+    if (!signature || typeof signature !== "string") {
+      throw new Error("signAndSendTransaction returned no signature");
+    }
+    return signature;
+  }
 
   let existing = await lookupOnChainAgent(wallet);
   let registerSignature = null;
@@ -687,12 +740,10 @@ export async function registerAndVerifyAgentCard(input) {
 
   if (!existing) {
     metadataUri = await uploadAgentCardMetadata(card);
-    const registerIx = buildRegisterAgentInstruction(agentPdaKey, signer.publicKey, metadataUri);
+    const registerIx = buildRegisterAgentInstruction(agentPdaKey, feePayer, metadataUri);
     const registerTx = new Transaction().add(registerIx);
     try {
-      registerSignature = await sendAndConfirmSolanaTransaction(connection, registerTx, [signer], {
-        commitment: "confirmed",
-      });
+      registerSignature = await submitTx(registerTx);
       agentPDA = agentPdaKey.toBase58();
     } catch (err) {
       if (!isAlreadyInitializedError(err)) throw err;
@@ -706,12 +757,10 @@ export async function registerAndVerifyAgentCard(input) {
   let verifySignature = null;
   const wasVerified = existing?.isVerified === true;
   if (!wasVerified) {
-    const verifyIx = buildVerifyAgentInstruction(agentPdaKey, signer.publicKey);
+    const verifyIx = buildVerifyAgentInstruction(agentPdaKey, feePayer);
     const verifyTx = new Transaction().add(verifyIx);
     try {
-      verifySignature = await sendAndConfirmSolanaTransaction(connection, verifyTx, [signer], {
-        commitment: "confirmed",
-      });
+      verifySignature = await submitTx(verifyTx);
     } catch (err) {
       if (!isAlreadyVerifiedError(err)) {
         // Re-check: verify may have landed despite confirm noise, or already verified on-chain.

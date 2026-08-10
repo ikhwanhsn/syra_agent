@@ -39,6 +39,7 @@
     "register-agent402": "node -r dotenv/config scripts/registerAgent402.js",
     "register-agent402:check": "node -r dotenv/config scripts/registerAgent402.js --check",
     "validate:routes": "node scripts/validateRoutesStartup.mjs",
+    "verify:tokens-api": "node scripts/verify-tokens-api-health.js",
     "publish:dune": "node -r dotenv/config scripts/dune/publishSyraDune.mjs"
   },
   "dependencies": {

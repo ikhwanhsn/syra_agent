@@ -31,6 +31,8 @@
 
 Discovery: [api.syraa.fun](https://api.syraa.fun) — `/.well-known/x402`, `/openapi.json`, `GET /pillars`. Strategy: [docs/MACHINE_MONEY_STRATEGY.md](./docs/MACHINE_MONEY_STRATEGY.md).
 
+**Canonical Solana assets:** Syra’s Assets hub and agent tools build on [Tokens.xyz](https://docs.tokens.xyz/v1/quickstart) ([solana-foundation/tokens](https://github.com/solana-foundation/tokens) open source). Syra is the agent decision layer (risk + news/sentiment/signal), not a registry fork.
+
 This repository is **Syra-only** — the machine-money rail, x402 APIs, MCP/SDK, and product surfaces.
 
 ---
