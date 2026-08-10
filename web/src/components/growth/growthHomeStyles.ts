@@ -9,6 +9,12 @@ export const growthShellClass = GROWTH_CONTENT_SHELL;
 export const growthKickerClass =
   "font-mono text-[10px] font-medium uppercase tracking-[0.28em] text-muted-foreground/70";
 
+/** Section eyebrow: kicker + leading hairline. Use once per section header. */
+export const growthEyebrowClass = cn(
+  growthKickerClass,
+  "inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
+);
+
 export const growthSectionTitleClass =
   "font-display text-[1.75rem] font-semibold tracking-[-0.045em] text-foreground sm:text-[2.15rem] lg:text-[2.5rem]";
 
@@ -25,6 +31,29 @@ export const growthPanelClass = cn(
 export const growthPanelQuietClass = cn(
   "relative overflow-hidden rounded-2xl border border-border/30",
   "bg-gradient-to-b from-card/65 via-card/35 to-transparent",
+);
+
+/** Terminal / mono pill for x402, endpoints, statuses. */
+export const growthMonoChipClass = cn(
+  "inline-flex items-center gap-1.5 rounded-md border border-border/45",
+  "bg-background/55 px-2 py-0.5 font-mono text-[10px] font-medium",
+  "tracking-[0.04em] text-muted-foreground",
+);
+
+/**
+ * Bordered terminal-style window surface for code / flow motifs.
+ * Pair with a titlebar row inside the consumer.
+ */
+export const growthTerminalFrameClass = cn(
+  "relative overflow-hidden rounded-2xl border border-border/45",
+  "bg-gradient-to-b from-card/[0.98] via-card/92 to-muted/[0.04]",
+  "shadow-[0_1px_0_0_hsl(var(--border)/0.35)_inset,0_28px_64px_-40px_rgba(0,0,0,0.6)]",
+  "ring-1 ring-inset ring-foreground/[0.03]",
+);
+
+export const growthTerminalTitlebarClass = cn(
+  "flex items-center justify-between gap-3 border-b border-border/40",
+  "bg-muted/15 px-4 py-2.5 sm:px-5",
 );
 
 export const growthStatValueClass =

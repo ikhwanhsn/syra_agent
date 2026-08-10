@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   growthDividerClass,
   growthKickerClass,
+  growthMonoChipClass,
   growthShellClass,
 } from "@/components/growth/growthHomeStyles";
 
@@ -84,7 +85,10 @@ export function GrowthFooter() {
                 <span className="gradient-text">Syra</span>
               </span>
             </Link>
-            <p className={cn(growthKickerClass, "mt-5")}>{SYRA_TAGLINE}</p>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <p className={growthKickerClass}>{SYRA_TAGLINE}</p>
+              <span className={growthMonoChipClass}>x402</span>
+            </div>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
               {SYRA_META_DESCRIPTION}
             </p>

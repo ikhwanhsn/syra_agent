@@ -5,7 +5,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import { SYRA_TESTIMONIALS } from "@/content/syraAbout";
 import { cn } from "@/lib/utils";
 import {
-  growthKickerClass,
+  growthEyebrowClass,
+  growthMonoChipClass,
   growthProseClass,
   growthSectionTitleClass,
   growthStatValueClass,
@@ -45,14 +46,7 @@ export function GrowthTestimonials({ className }: { className?: string }) {
     >
       <div className="mb-10 flex flex-col gap-4 sm:mb-12 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
         <div className="max-w-2xl">
-          <p
-            className={cn(
-              growthKickerClass,
-              "mb-3 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
-            )}
-          >
-            Reviews
-          </p>
+          <p className={cn(growthEyebrowClass, "mb-3")}>Reviews</p>
           <h2 id="reviews-heading" className={growthSectionTitleClass}>
             Trusted by professionals
           </h2>
@@ -84,12 +78,15 @@ export function GrowthTestimonials({ className }: { className?: string }) {
               )}
             >
               <div className="mb-5 flex items-center justify-between gap-3">
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-muted/15 text-foreground/70 transition-colors group-hover:border-border/65 group-hover:text-foreground"
-                  aria-hidden
-                >
-                  <Quote className="h-4 w-4" strokeWidth={1.75} />
-                </span>
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-muted/15 text-foreground/70 transition-colors group-hover:border-border/65 group-hover:text-foreground"
+                    aria-hidden
+                  >
+                    <Quote className="h-4 w-4" strokeWidth={1.75} />
+                  </span>
+                  <span className={growthMonoChipClass}>on-chain</span>
+                </div>
                 <ArrowUpRight
                   className={cn(
                     "h-3.5 w-3.5 shrink-0 text-muted-foreground/55",

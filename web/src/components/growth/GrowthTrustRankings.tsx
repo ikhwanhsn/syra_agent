@@ -5,7 +5,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import { SYRA_TRUST_RANKINGS } from "@/content/syraAbout";
 import { cn } from "@/lib/utils";
 import {
-  growthKickerClass,
+  growthEyebrowClass,
+  growthMonoChipClass,
   growthPanelClass,
   growthStatValueClass,
 } from "@/components/growth/growthHomeStyles";
@@ -56,14 +57,10 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
       </div>
 
       <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-2">
-        <p
-          className={cn(
-            growthKickerClass,
-            "inline-flex items-center gap-2.5 before:h-px before:w-4 before:bg-foreground/25",
-          )}
-        >
-          Achievements
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className={cn(growthEyebrowClass, "before:w-4")}>Achievements</p>
+          <span className={growthMonoChipClass}>agent economy</span>
+        </div>
         <p className="font-display text-sm font-medium tracking-tight text-foreground/80 sm:text-[15px]">
           Trusted across the agent economy
         </p>

@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { Link } from "@/lib/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  Activity,
   ArrowRight,
   ArrowUpRight,
   ExternalLink,
@@ -19,13 +18,16 @@ import { GrowthTokenSection } from "@/components/growth/GrowthTokenSection";
 import { GrowthTestimonials } from "@/components/growth/GrowthTestimonials";
 import { GrowthTrustRankings } from "@/components/growth/GrowthTrustRankings";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
+import { GrowthX402Flow } from "@/components/growth/GrowthX402Flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   growthCtaPrimaryClass,
   growthCtaSecondaryClass,
   growthDividerClass,
+  growthEyebrowClass,
   growthKickerClass,
+  growthMonoChipClass,
   growthPanelClass,
   growthPanelQuietClass,
   growthProseClass,
@@ -33,6 +35,8 @@ import {
   growthSectionTitleClass,
   growthShellClass,
   growthStatValueClass,
+  growthTerminalFrameClass,
+  growthTerminalTitlebarClass,
 } from "@/components/growth/growthHomeStyles";
 
 function formatNum(n: number): string {
@@ -55,6 +59,7 @@ const HOW_STEPS = [
     href: "/marketplace",
     external: false,
     icon: Wallet,
+    chip: "payer wallet",
   },
   {
     n: "02",
@@ -63,6 +68,7 @@ const HOW_STEPS = [
     href: "https://docs.syraa.fun/docs/build/mcp",
     external: true,
     icon: Plug,
+    chip: "MCP · env",
   },
   {
     n: "03",
@@ -71,6 +77,7 @@ const HOW_STEPS = [
     href: "/marketplace",
     external: false,
     icon: Terminal,
+    chip: "x402 · settled",
   },
 ] as const;
 
@@ -130,7 +137,7 @@ function MetricSkeleton() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <div className={cn(growthPanelQuietClass, "p-5 sm:p-6 lg:col-span-2")}>
+        <div className={cn(growthTerminalFrameClass, "p-5 sm:p-6 lg:col-span-2")}>
           <Skeleton className="mb-4 h-4 w-24 rounded-md" />
           <Skeleton className="mb-4 h-3 w-full rounded-sm" />
           <div className="space-y-4">
@@ -148,9 +155,12 @@ function MetricSkeleton() {
             <ProofStatSkeleton />
           </div>
         </div>
-        <div className={cn(growthPanelQuietClass, "p-5 sm:p-6 lg:col-span-3")}>
-          <Skeleton className="mb-4 h-4 w-28 rounded-md" />
-          <div className="space-y-3">
+        <div className={cn(growthTerminalFrameClass, "overflow-hidden lg:col-span-3")}>
+          <div className={growthTerminalTitlebarClass}>
+            <Skeleton className="h-3 w-28 rounded-sm" />
+            <Skeleton className="h-3 w-12 rounded-sm" />
+          </div>
+          <div className="space-y-3 p-5 sm:p-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center justify-between gap-3">
                 <Skeleton className="h-3 w-32 max-w-[50%] rounded-sm" />
@@ -245,9 +255,9 @@ function MetricsBody({
                 First 402 → paid → D7
               </h3>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {(data.funnel.paymentRequiredToPaidRate * 100).toFixed(1)}% convert to paid
-            </p>
+            <span className={growthMonoChipClass}>
+              {(data.funnel.paymentRequiredToPaidRate * 100).toFixed(1)}% convert
+            </span>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <ProofStat
@@ -284,10 +294,10 @@ function MetricsBody({
                 Settled USDC only (not quoted 402s)
               </h3>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <span className={growthMonoChipClass}>
               Fail rate 7d: {(data.settlement.last7d.settleFailRate * 100).toFixed(1)}%
               {data.settlement.last1h?.aboveAlertThreshold ? " · alert 1h" : ""}
-            </p>
+            </span>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <ProofStat
@@ -313,71 +323,83 @@ function MetricsBody({
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <div className={cn(growthPanelQuietClass, "p-5 sm:p-6 lg:col-span-2")}>
-          <div className="mb-4 flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-muted-foreground" aria-hidden />
-            <h3 className="text-sm font-semibold tracking-tight">Treasury</h3>
+        <div className={cn(growthTerminalFrameClass, "overflow-hidden lg:col-span-2")}>
+          <div className={growthTerminalTitlebarClass}>
+            <div className="flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+              <span className="text-xs font-medium tracking-tight text-foreground/85">
+                Treasury
+              </span>
+            </div>
+            <span className={growthMonoChipClass}>on-chain</span>
           </div>
-          <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
-            {data.verifyOnChain.hint}
-          </p>
-          <dl className="space-y-4 text-sm">
-            {data.treasury.solana ? (
-              <div>
-                <dt className={growthKickerClass}>Solana USDC</dt>
-                <dd className="mt-1.5 break-all font-mono text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
-                  {data.treasury.solana}
-                  {data.verifyOnChain.explorers.solana ? (
-                    <a
-                      href={data.verifyOnChain.explorers.solana}
-                      className="ml-2 inline-flex items-center gap-0.5 text-foreground/80 underline-offset-2 hover:underline"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Solscan
-                      <ArrowUpRight className="h-3 w-3" aria-hidden />
-                    </a>
-                  ) : null}
-                </dd>
-              </div>
-            ) : null}
-            {data.treasury.base ? (
-              <div>
-                <dt className={growthKickerClass}>Base USDC</dt>
-                <dd className="mt-1.5 break-all font-mono text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
-                  {data.treasury.base}
-                  {data.verifyOnChain.explorers.base ? (
-                    <a
-                      href={data.verifyOnChain.explorers.base}
-                      className="ml-2 inline-flex items-center gap-0.5 text-foreground/80 underline-offset-2 hover:underline"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Basescan
-                      <ArrowUpRight className="h-3 w-3" aria-hidden />
-                    </a>
-                  ) : null}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border/35 pt-4">
-            <ProofStat
-              label="Wallets · life"
-              value={formatNum(data.lifetime.uniquePayingWallets)}
-            />
-            <ProofStat
-              label="Avg / call"
-              value={`$${data.lifetime.avgUsdPerCall.toFixed(4)}`}
-            />
+          <div className="p-5 sm:p-6">
+            <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+              {data.verifyOnChain.hint}
+            </p>
+            <dl className="space-y-4 text-sm">
+              {data.treasury.solana ? (
+                <div>
+                  <dt className={growthKickerClass}>Solana USDC</dt>
+                  <dd className="mt-1.5 break-all font-mono text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+                    {data.treasury.solana}
+                    {data.verifyOnChain.explorers.solana ? (
+                      <a
+                        href={data.verifyOnChain.explorers.solana}
+                        className="ml-2 inline-flex items-center gap-0.5 text-foreground/80 underline-offset-2 hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Solscan
+                        <ArrowUpRight className="h-3 w-3" aria-hidden />
+                      </a>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
+              {data.treasury.base ? (
+                <div>
+                  <dt className={growthKickerClass}>Base USDC</dt>
+                  <dd className="mt-1.5 break-all font-mono text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+                    {data.treasury.base}
+                    {data.verifyOnChain.explorers.base ? (
+                      <a
+                        href={data.verifyOnChain.explorers.base}
+                        className="ml-2 inline-flex items-center gap-0.5 text-foreground/80 underline-offset-2 hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Basescan
+                        <ArrowUpRight className="h-3 w-3" aria-hidden />
+                      </a>
+                    ) : null}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+            <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border/35 pt-4">
+              <ProofStat
+                label="Wallets · life"
+                value={formatNum(data.lifetime.uniquePayingWallets)}
+              />
+              <ProofStat
+                label="Avg / call"
+                value={`$${data.lifetime.avgUsdPerCall.toFixed(4)}`}
+              />
+            </div>
           </div>
         </div>
 
         <div className="space-y-4 lg:col-span-3">
           {data.byPath.length > 0 ? (
-            <div className={cn(growthPanelQuietClass, "p-5 sm:p-6")}>
-              <h3 className="mb-4 text-sm font-semibold tracking-tight">Top endpoints</h3>
-              <ul className="space-y-0">
+            <div className={cn(growthTerminalFrameClass, "overflow-hidden")}>
+              <div className={growthTerminalTitlebarClass}>
+                <span className="text-xs font-medium tracking-tight text-foreground/85">
+                  Top endpoints
+                </span>
+                <span className={growthMonoChipClass}>by volume</span>
+              </div>
+              <ul className="space-y-0 px-5 py-2 sm:px-6">
                 {data.byPath.slice(0, 6).map((row, i) => (
                   <li
                     key={row.path}
@@ -399,15 +421,17 @@ function MetricsBody({
           ) : null}
 
           {data.recentCalls.length > 0 ? (
-            <div className={cn(growthPanelQuietClass, "p-5 sm:p-6")}>
-              <div className="mb-4 flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold tracking-tight">Live feed</h3>
+            <div className={cn(growthTerminalFrameClass, "overflow-hidden")}>
+              <div className={growthTerminalTitlebarClass}>
+                <span className="text-xs font-medium tracking-tight text-foreground/85">
+                  Live feed
+                </span>
                 <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <LivePulse />
                   Settled
                 </span>
               </div>
-              <ul className="space-y-0">
+              <ul className="space-y-0 px-5 py-2 sm:px-6">
                 {data.recentCalls.slice(0, 5).map((call, i) => (
                   <li
                     key={`${call.at}-${i}`}
@@ -475,44 +499,44 @@ export default function GrowthHomePage() {
 
   return (
     <div className={growthRootClass}>
-      {/* Atmosphere, full-bleed plane, not inset cards */}
+      {/* Atmosphere: full-bleed plane framing the hero */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[min(92vh,820px)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[min(96vh,880px)]"
         aria-hidden
       >
         <div
           className="absolute inset-0"
           style={{
             background: `
-              radial-gradient(ellipse 90% 55% at 50% -8%, hsl(var(--foreground) / 0.07), transparent 58%),
-              radial-gradient(ellipse 45% 40% at 12% 28%, hsl(var(--foreground) / 0.035), transparent 50%),
-              radial-gradient(ellipse 40% 35% at 88% 18%, hsl(var(--foreground) / 0.03), transparent 48%)
+              radial-gradient(ellipse 85% 50% at 50% -6%, hsl(var(--foreground) / 0.08), transparent 58%),
+              radial-gradient(ellipse 40% 38% at 8% 32%, hsl(var(--foreground) / 0.04), transparent 52%),
+              radial-gradient(ellipse 38% 34% at 92% 16%, hsl(var(--foreground) / 0.035), transparent 48%)
             `,
           }}
         />
         <div
-          className="absolute inset-0 opacity-[0.22] motion-reduce:opacity-[0.12]"
+          className="absolute inset-0 opacity-[0.2] motion-reduce:opacity-[0.1]"
           style={{
             backgroundImage: `
-              linear-gradient(to right, hsl(var(--border) / 0.2) 1px, transparent 1px),
-              linear-gradient(to bottom, hsl(var(--border) / 0.2) 1px, transparent 1px)
+              linear-gradient(to right, hsl(var(--border) / 0.22) 1px, transparent 1px),
+              linear-gradient(to bottom, hsl(var(--border) / 0.22) 1px, transparent 1px)
             `,
-            backgroundSize: "64px 64px",
+            backgroundSize: "56px 56px",
             maskImage:
-              "radial-gradient(ellipse 80% 55% at 50% 8%, black 0%, transparent 72%)",
+              "radial-gradient(ellipse 78% 52% at 50% 6%, black 0%, transparent 70%)",
             WebkitMaskImage:
-              "radial-gradient(ellipse 80% 55% at 50% 8%, black 0%, transparent 72%)",
+              "radial-gradient(ellipse 78% 52% at 50% 6%, black 0%, transparent 70%)",
           }}
         />
-        <div className={cn(growthDividerClass, "absolute inset-x-0 bottom-0 opacity-60")} />
+        <div className={cn(growthDividerClass, "absolute inset-x-0 bottom-0 opacity-55")} />
       </div>
 
       <div className={cn(growthShellClass, "relative pb-24 pt-10 sm:pb-32 sm:pt-14 lg:pt-16")}>
-        {/* Hero, one wide composition: brand story + live proof */}
-        <header className="grid items-center gap-12 lg:grid-cols-12 lg:gap-14 xl:gap-20">
+        {/* Hero: brand story + x402 handshake terminal */}
+        <header className="grid items-center gap-12 lg:grid-cols-12 lg:gap-14 xl:gap-16">
           <motion.div
             {...fadeUp(0)}
-            className="flex flex-col items-center text-center lg:col-span-6 lg:items-start lg:text-left xl:col-span-7"
+            className="flex flex-col items-center text-center lg:col-span-6 lg:items-start lg:text-left xl:col-span-6"
           >
             <div className="relative mb-7 sm:mb-8">
               <div
@@ -538,11 +562,14 @@ export default function GrowthHomePage() {
               </div>
             </div>
 
-            <p className={cn(growthKickerClass, "mb-4")}>
-              <span className="gradient-text font-semibold tracking-[0.32em]">Syra</span>
-            </p>
+            <div className="mb-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+              <p className={cn(growthEyebrowClass, "before:hidden sm:before:block")}>
+                <span className="gradient-text font-semibold tracking-[0.32em]">Syra</span>
+              </p>
+              <span className={growthMonoChipClass}>agent → 402 → settled</span>
+            </div>
 
-            <h1 className="max-w-[14ch] text-balance font-display text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.055em] text-foreground sm:text-5xl md:text-[3.65rem] md:leading-[0.98] lg:max-w-none">
+            <h1 className="max-w-[16ch] text-balance font-display text-[2.65rem] font-semibold leading-[1.02] tracking-[-0.055em] text-foreground sm:text-5xl md:text-[3.75rem] md:leading-[0.98] lg:max-w-none">
               <span className="gradient-text">{SYRA_TAGLINE}</span>
             </h1>
 
@@ -552,29 +579,34 @@ export default function GrowthHomePage() {
               <span className="mt-2 block text-sm text-muted-foreground">{SYRA_OUTCOMES_SUBLINE}</span>
             </p>
 
-            <div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:flex-wrap lg:justify-start">
-              <Link to="/marketplace" className={cn(growthCtaPrimaryClass, "w-full sm:w-auto")}>
+            <div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:max-w-none">
+              <Link
+                to="/marketplace"
+                className={cn(growthCtaPrimaryClass, "w-full sm:w-auto sm:self-start")}
+              >
                 First paid call in 5 minutes
                 <ArrowRight className="h-4 w-4 opacity-90" aria-hidden />
               </Link>
-              <Link
-                to="/lp-robinhood"
-                className={cn(
-                  growthCtaSecondaryClass,
-                  "w-full border-border/55 bg-background/50 sm:w-auto",
-                )}
-              >
-                LP Autopilot lab
-                <ArrowUpRight className="h-4 w-4 opacity-80" aria-hidden />
-              </Link>
-              <SyraBuyButton
-                variant="default"
-                className={cn(
-                  growthCtaSecondaryClass,
-                  "w-full border-border/55 bg-background/50 sm:w-auto",
-                )}
-                label="Buy $SYRA"
-              />
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:justify-start">
+                <Link
+                  to="/lp-robinhood"
+                  className={cn(
+                    growthCtaSecondaryClass,
+                    "w-full border-border/55 bg-background/50 sm:w-auto",
+                  )}
+                >
+                  LP Autopilot lab
+                  <ArrowUpRight className="h-4 w-4 opacity-80" aria-hidden />
+                </Link>
+                <SyraBuyButton
+                  variant="default"
+                  className={cn(
+                    growthCtaSecondaryClass,
+                    "w-full border-border/55 bg-background/50 sm:w-auto",
+                  )}
+                  label="Buy $SYRA"
+                />
+              </div>
             </div>
 
             <p className="mt-4 text-sm text-muted-foreground/85">
@@ -590,70 +622,23 @@ export default function GrowthHomePage() {
 
           <motion.div
             {...fadeUp(0.1)}
-            className="flex flex-col gap-5 lg:col-span-6 xl:col-span-5"
+            className="flex flex-col gap-5 lg:col-span-6 xl:col-span-6"
             aria-live="polite"
           >
-            <div
-              className={cn(
-                growthPanelClass,
-                "px-5 py-5 sm:px-6 sm:py-6",
-              )}
-            >
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  <LivePulse />
-                  <span className="inline-flex items-center gap-1.5">
-                    <Activity className="h-3.5 w-3.5" aria-hidden />
-                    Live traction
-                  </span>
-                </div>
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
-                  x402
-                </span>
-              </div>
-
-              {isLoading && !data ? (
-                <div className="grid grid-cols-3 gap-3 sm:gap-5" aria-hidden>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="min-w-0">
-                      <Skeleton className="h-2.5 w-14 rounded-sm" />
-                      <Skeleton className="mt-2 h-6 w-16 sm:h-7 sm:w-20 rounded-md" />
-                    </div>
-                  ))}
-                </div>
-              ) : isError && !data ? (
-                <p className="text-sm text-destructive">
-                  {error instanceof Error ? error.message : "Metrics unavailable"}
-                </p>
-              ) : data ? (
-                <div className="grid grid-cols-3 gap-3 sm:gap-5">
-                  <div className="min-w-0">
-                    <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Calls · 7d</p>
-                    <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                      {formatNum(paid7d)}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Wallets</p>
-                    <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                      {formatNum(payers7d)}
-                    </p>
-                  </div>
-                  <div className="min-w-0">
-                    <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Settled</p>
-                    <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                      {formatUsd(data.lifetime.totalUsdSettled)}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
+            <GrowthX402Flow
+              avgUsdPerCall={data?.lifetime.avgUsdPerCall ?? null}
+              paid7d={data ? paid7d : null}
+              payers7d={data ? payers7d : null}
+              settledUsd={data?.lifetime.totalUsdSettled ?? null}
+              isLoading={isLoading}
+              isError={isError}
+              errorMessage={error instanceof Error ? error.message : null}
+            />
             <GrowthTrustRankings className="mx-0 max-w-none" />
           </motion.div>
         </header>
 
-        {/* How it works, editorial path across full shell */}
+        {/* How it works: connected agent pipeline */}
         <motion.section
           {...fadeUp(0.16)}
           className="mt-24 sm:mt-32"
@@ -661,14 +646,7 @@ export default function GrowthHomePage() {
         >
           <div className="mb-10 flex flex-col gap-4 sm:mb-12 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
             <div className="max-w-2xl">
-              <p
-                className={cn(
-                  growthKickerClass,
-                  "mb-3 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
-                )}
-              >
-                Path
-              </p>
+              <p className={cn(growthEyebrowClass, "mb-3")}>Path</p>
               <h2 id="how-heading" className={growthSectionTitleClass}>
                 From install to capital
               </h2>
@@ -678,23 +656,41 @@ export default function GrowthHomePage() {
             </p>
           </div>
 
-          <ol className="grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 lg:grid-cols-3">
-            {HOW_STEPS.map(({ n, title, body, href, external, icon: Icon }) => {
+          <ol className="relative grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 lg:grid-cols-3">
+            {/* Hairline connectors between steps (desktop) */}
+            <div
+              className="pointer-events-none absolute inset-x-[16.66%] top-[2.75rem] z-10 hidden h-px lg:block"
+              aria-hidden
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border/70 to-transparent" />
+              <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/25" />
+            </div>
+
+            {HOW_STEPS.map(({ n, title, body, href, external, icon: Icon, chip }, stepIndex) => {
               const className = cn(
-                "group relative flex min-h-[14rem] flex-col bg-background/92 p-7 sm:p-8 xl:p-10",
+                "group relative flex min-h-[15rem] flex-col bg-background/92 p-7 sm:p-8 xl:p-10",
                 "transition-colors duration-200 hover:bg-card",
                 "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               );
               const inner = (
                 <>
                   <div className="mb-8 flex items-center justify-between gap-3">
-                    <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-foreground/75">
-                      {n}
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-foreground/75">
+                        {n}
+                      </span>
+                      {stepIndex < HOW_STEPS.length - 1 ? (
+                        <span
+                          className="hidden h-px w-6 bg-border/60 sm:block lg:hidden"
+                          aria-hidden
+                        />
+                      ) : null}
+                    </div>
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-muted/15 text-foreground/70 transition-colors group-hover:border-border/65 group-hover:text-foreground">
                       <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                     </span>
                   </div>
+                  <span className={cn(growthMonoChipClass, "mb-3 w-fit")}>{chip}</span>
                   <h3 className="font-display text-lg font-semibold tracking-[-0.03em] text-foreground">
                     {title}
                   </h3>
@@ -732,7 +728,7 @@ export default function GrowthHomePage() {
           </ol>
         </motion.section>
 
-        {/* Reviews, public social proof from operators */}
+        {/* Reviews */}
         <motion.div {...fadeUp(0.1)} className="mt-24 sm:mt-32">
           <GrowthTestimonials />
         </motion.div>
@@ -746,14 +742,7 @@ export default function GrowthHomePage() {
         >
           <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-12">
             <div className="max-w-2xl">
-              <p
-                className={cn(
-                  growthKickerClass,
-                  "mb-3 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
-                )}
-              >
-                On-chain verifiable
-              </p>
+              <p className={cn(growthEyebrowClass, "mb-3")}>On-chain verifiable</p>
               <h2 id="metrics-heading" className={growthSectionTitleClass}>
                 Public proof
               </h2>
@@ -788,12 +777,12 @@ export default function GrowthHomePage() {
           </div>
         </motion.section>
 
-        {/* Token, single panel, no nested cards */}
+        {/* Token */}
         <motion.div {...fadeUp(0.06)} className="mt-24 sm:mt-32">
           <GrowthTokenSection />
         </motion.div>
 
-        {/* Close, editorial CTA band */}
+        {/* Close CTA band */}
         <motion.section
           {...fadeUp(0.04)}
           className="mt-24 sm:mt-32"
@@ -833,14 +822,7 @@ export default function GrowthHomePage() {
 
             <div className="relative flex flex-col gap-12 lg:flex-row lg:items-end lg:justify-between lg:gap-20">
               <div className="max-w-2xl">
-                <p
-                  className={cn(
-                    growthKickerClass,
-                    "mb-4 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
-                  )}
-                >
-                  Activate
-                </p>
+                <p className={cn(growthEyebrowClass, "mb-4")}>Activate</p>
                 <h2
                   id="close-heading"
                   className="text-balance font-display text-[2rem] font-semibold leading-[1.06] tracking-[-0.05em] text-foreground sm:text-[2.6rem] lg:text-[3rem]"

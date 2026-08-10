@@ -11,7 +11,9 @@ import { GrowthBuybackProofPanel } from "@/components/growth/GrowthBuybackProofP
 import {
   growthCtaPrimaryClass,
   growthCtaSecondaryClass,
+  growthEyebrowClass,
   growthKickerClass,
+  growthMonoChipClass,
   growthPanelClass,
   growthProseClass,
   growthSectionTitleClass,
@@ -39,14 +41,10 @@ export function GrowthTokenSection() {
   return (
     <section id="token" className="scroll-mt-24" aria-labelledby="token-heading">
       <div className="mb-10 max-w-2xl sm:mb-12">
-        <p
-          className={cn(
-            growthKickerClass,
-            "mb-3 inline-flex items-center gap-2.5 before:h-px before:w-6 before:bg-foreground/25",
-          )}
-        >
-          $SYRA
-        </p>
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <p className={growthEyebrowClass}>$SYRA</p>
+          <span className={growthMonoChipClass}>machine money</span>
+        </div>
         <h2 id="token-heading" className={growthSectionTitleClass}>
           The machine-money token
         </h2>
@@ -59,7 +57,10 @@ export function GrowthTokenSection() {
       <div className={cn(growthPanelClass, "p-6 sm:p-8 lg:p-10")}>
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
           <div className="min-w-0 flex-1">
-            <p className={growthKickerClass}>Contract</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className={growthKickerClass}>Contract</p>
+              <span className={growthMonoChipClass}>Solana mainnet</span>
+            </div>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <code
                 className="inline-flex max-w-full items-center rounded-xl border border-border/45 bg-background/50 px-3.5 py-2.5 font-mono text-[11px] text-muted-foreground sm:text-xs"
@@ -94,7 +95,7 @@ export function GrowthTokenSection() {
               </button>
             </div>
             <p className="mt-3 text-xs text-muted-foreground/75">
-              Solana mainnet · verify mint before you swap
+              Verify mint before you swap
             </p>
           </div>
 
