@@ -117,14 +117,11 @@ export function createInternalRewardsRouter() {
 
   router.post("/rewards/fund", async (req, res) => {
     try {
+      // Extra cron header is optional defense-in-depth. Do not fail closed when
+      // BUYBACK_CRON_SECRET is unset — this route already sits behind requireApiKey.
+      // Never hardcode a secret here (it would land in git).
       const secret = (process.env.BUYBACK_CRON_SECRET || process.env.CRON_SECRET || "").trim();
-      const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production";
-      // SECURITY: fail closed in production when secret is unset
-      if (!secret) {
-        if (isProd) {
-          return res.status(403).json({ success: false, error: "cron_secret_not_configured" });
-        }
-      } else {
+      if (secret) {
         const got = (req.get("x-buyback-cron-secret") || req.get("x-cron-secret") || "").trim();
         if (got !== secret) {
           return res.status(401).json({ success: false, error: "unauthorized" });
