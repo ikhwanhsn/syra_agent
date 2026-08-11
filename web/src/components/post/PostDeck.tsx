@@ -96,7 +96,7 @@ export function PostDeck({ post }: PostDeckProps) {
           <PostXStatusControl updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
 
           <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#F3BA2F]/15 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F] sm:px-3">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white sm:px-3">
               <Video className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Video</span>
             </span>
@@ -115,7 +115,7 @@ export function PostDeck({ post }: PostDeckProps) {
             type="button"
             onClick={() => setExportModalOpen(true)}
             disabled={exporting}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#F3BA2F]/30 bg-[#F3BA2F]/15 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F] transition-colors hover:bg-[#F3BA2F]/25 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/25 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
           >
             <Download className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">
@@ -154,7 +154,7 @@ export function PostDeck({ post }: PostDeckProps) {
           aria-live="polite"
         >
           <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 text-center shadow-2xl">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#F3BA2F]/80">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/80">
               Rendering video
             </p>
             <p className="mt-2 font-display text-lg text-white/90">

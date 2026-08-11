@@ -2,102 +2,104 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Wallet Portfolio photo deck: 15 distinct topics. */
 export const WALLET_PORTFOLIO_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover announces the new Wallet Portfolio tab.
+  cover: `Wallet Portfolio is live.
 
-It audits every SPL token your agent wallets hold, with live USD values, allocation percentages, and Solscan links for on-chain proof.
-
-syraa.fun/wallet?view=portfolio`,
-
-  thesis: `This card states the gap Portfolio closes.
-
-Treasuries track SOL and USDC for day to day operations, but agent wallets still accumulate swap receipts, memecoins, and LP dust along the way. Portfolio unifies Chat and LP SPL balances into one operator-grade audit.
+It audits everything your agent holds: every Solana token across Chat and LP wallets, with live USD, allocation percent, and Solscan proof.
 
 syraa.fun/wallet?view=portfolio`,
 
-  quote: `This card carries the line behind the feature: you cannot rebalance what you cannot see.
+  thesis: `Funding is not the same as holdings.
 
-Portfolio surfaces every SPL balance with names, USD value, allocation bars, and Solscan links across both Chat and LP wallets on one page.
-
-syraa.fun/wallet?view=portfolio`,
-
-  flow: `This image walks through auditing your agent wallets, in four steps.
-
-1. Connect your Solana wallet to sign in as an operator
-2. Open the Portfolio tab under Wallets, or go straight to the portfolio view link
-3. Filter by all wallets, Chat only, or LP only to see which treasury holds each token
-4. Hide dust, refresh prices, and open Solscan per mint for on-chain proof
+Treasuries track SOL and USDC for day to day ops. Agent wallets still pick up swap leftovers, memecoins, and dust from providing tokens so others can trade. Portfolio puts Chat and LP balances into one operator audit.
 
 syraa.fun/wallet?view=portfolio`,
 
-  timeline: `This timeline traces how the Portfolio tab was built.
+  quote: `You cannot rebalance what you cannot see.
 
-1. A segmented Treasuries and Portfolio toggle was added to the wallet page
-2. A server-side RPC scan reads every token account for each agent wallet
-3. Prices and names get enriched from DexScreener, Jupiter, pump.fun, and on-chain metadata
-4. The All wallets view merges Chat and LP balances with live allocation percentages
+Portfolio lists every Solana token balance: names, USD value, allocation bars, and Solscan links across Chat and LP on one page.
 
 syraa.fun/wallet?view=portfolio`,
 
-  pillars: `This bento layout shows the four primitives operators use daily.
+  flow: `How an operator audits agent holdings.
 
-A hero card totals portfolio value, asset count, and a one-click refresh. Each token row shows its logo, live price, USD value, and an allocation bar. A wallet filter tags which agent treasury, Chat or LP, holds each token. A dust toggle hides anything under one cent so only positions that matter stay visible.
-
-syraa.fun/wallet?view=portfolio`,
-
-  checklist: `This checklist covers what's live in Wallet Portfolio.
-
-1. A Portfolio tab sits beside Treasuries on the wallet page
-2. Real token symbols come from DEX and on-chain metadata, not raw mint addresses
-3. Balances show human-readable amounts with live USD and allocation bars
-4. A shareable wallet link with the portfolio view deep links straight into it
+1. Connect with Solana. That is your operator identity
+2. Open Portfolio under Wallets, or land on ?view=portfolio
+3. Filter All wallets, Chat only, or LP only to see which treasury holds each token
+4. Hide dust, refresh prices, open Solscan per mint for on-chain proof
 
 syraa.fun/wallet?view=portfolio`,
 
-  metrics: `This card lists the numbers behind the Portfolio feature.
+  timeline: `What shipped for Portfolio, end to end.
 
-Two agent wallet types, Chat and LP, both feed into it. More than five metadata sources fill in token names and prices. All of it merges into one audit view that operators can filter, refresh, and verify before they act.
-
-syraa.fun/wallet?view=portfolio`,
-
-  featured: `This featured card highlights how complete the holdings view is.
-
-Every SPL token your agents picked up gets named and priced, not just the SOL and USDC totals treasuries already tracked.
+1. Segmented Treasuries / Portfolio tabs on /wallet
+2. Server RPC reads every token account per agent wallet
+3. Names and prices from DexScreener, Jupiter, pump.fun, plus on-chain metadata
+4. All wallets merges Chat and LP with live allocation percent
 
 syraa.fun/wallet?view=portfolio`,
 
-  comparison: `This before and after card compares explorer checks with one audit view.
+  pillars: `Four things operators use every day.
 
-Before, Treasuries only showed operational SOL and USDC, so checking swap leftovers meant opening an explorer wallet by wallet. Now, Portfolio lists every SPL token with live USD value, allocation percentage, a wallet filter, and Solscan links in one place.
-
-syraa.fun/wallet?view=portfolio`,
-
-  launch: `This launch card marks Wallet Portfolio as live on the Wallets page.
-
-Switching to the Portfolio tab shows every SPL token across Chat and LP wallets, with live USD values and on-chain proof for each one.
+A hero total shows portfolio value, asset count, and one-click refresh. Each token row has logo, balance, live price, USD, and an allocation bar. A wallet filter tags whether Chat or LP holds it. A dust toggle hides anything under one cent.
 
 syraa.fun/wallet?view=portfolio`,
 
-  deepDive: `This deep-dive card lists the technical surface behind Portfolio.
+  checklist: `Wallet Portfolio is live. Verify it.
 
-A GET request to the wallet solana portfolio endpoint runs per agent wallet address. DexScreener, Jupiter, and pump.fun supply price and metadata, with a Metaplex on-chain fallback for unlisted mints. The client merges results and recomputes USD totals for the All wallets view.
-
-syraa.fun/wallet?view=portfolio`,
-
-  split: `This split card explains how Treasuries and Portfolio divide the work.
-
-Treasuries handles deposits, withdrawals, and billing caps for day to day operations. Portfolio surfaces every SPL token your agents actually hold, with proof, a wallet filter for All, Chat, or LP, a dust toggle, and on-demand price refresh.
+1. Portfolio tab sits beside Treasuries on /wallet
+2. Real token symbols from DEX and on-chain metadata
+3. Human-readable balances with live USD and allocation bars
+4. Shareable /wallet?view=portfolio deep link
 
 syraa.fun/wallet?view=portfolio`,
 
-  terminal: `This terminal card shows a real Portfolio API response.
+  metrics: `Built for operators who verify before they act.
 
-Querying the LP wallet portfolio returns SOL at 8.3321 tokens worth $565.25 and 96.1 percent of the total, PUMP worth $22.66 at 3.9 percent, and USDC worth $8.27 at 26.7 percent, for a total value of $587.92 across four assets.
+2 agent wallet types. 5+ metadata sources. 1 merged audit view.
+
+Chat and LP treasuries sit in one holdings table, priced in USD, filterable, refreshable.
 
 syraa.fun/wallet?view=portfolio`,
 
-  cta: `This closing card points to where to check what your agents hold.
+  featured: `Zero blind spots on agent holdings.
 
-Open Wallets and switch to the Portfolio tab, or jump straight to the portfolio view link to audit every SPL token with live USD and Solscan links. Fund additional agent wallets from settings.
+Every Solana token your agents picked up is named and priced, not just the SOL and USDC totals treasuries already tracked.
+
+syraa.fun/wallet?view=portfolio`,
+
+  comparison: `Wallet explorer tabs vs one audit view.
+
+Before, Treasuries showed operational SOL and USDC, and swap leftovers meant checking explorers wallet by wallet. Now Portfolio lists every Solana token with live USD, allocation percent, a wallet filter, and Solscan links.
+
+syraa.fun/wallet?view=portfolio`,
+
+  launch: `Wallet Portfolio is live on the Wallets page.
+
+Switch to Portfolio. See every Solana token across Chat and LP, with live USD and on-chain proof.
+
+syraa.fun/wallet?view=portfolio`,
+
+  deepDive: `How Portfolio is built.
+
+GET /wallet/solana/portfolio?address= runs per agent wallet. DexScreener, Jupiter, and pump.fun supply price and metadata. Metaplex is the on-chain fallback for unlisted mints. The client merges results and recomputes USD for All wallets.
+
+syraa.fun/wallet?view=portfolio`,
+
+  split: `Fund in Treasuries. Verify in Portfolio.
+
+Treasuries handles deposit, withdraw, and billing caps. Portfolio surfaces everything your agents actually hold, with proof. Filter All, Chat, or LP. Hide dust under one cent. Refresh prices on demand.
+
+syraa.fun/wallet?view=portfolio`,
+
+  terminal: `A real Portfolio response.
+
+LP wallet scan: SOL 8.3321 at $565.25 (96.1%), PUMP 14,879 at $22.66 (3.9%), USDC 8.2648 at $8.27. Total value $587.92 across four assets. Refresh ok.
+
+syraa.fun/wallet?view=portfolio`,
+
+  cta: `Stop guessing what your agents hold.
+
+Open Wallets, switch to Portfolio, and audit every Solana token with live USD and Solscan links.
 
 syraa.fun/wallet
 syraa.fun/wallet?view=portfolio

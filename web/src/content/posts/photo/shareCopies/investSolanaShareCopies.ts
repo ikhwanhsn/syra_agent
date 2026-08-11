@@ -2,104 +2,106 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Invest Solana Protocols photo deck. 15 distinct topics. */
 export const INVEST_SOLANA_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover announces the Invest page turning into a real Solana yield board.
+  cover: `Invest × Solana is live.
 
-Five onchain protocols now show live APY and TVL, and liquid staking deposits can be made directly from the invest wallet.
-
-syraa.fun/invest`,
-
-  thesis: `This card names the shift Invest just made.
-
-It used to be a single swap card. Now it is a yield board covering five Solana venues with live APY and TVL, where Marinade and Jito deposits run directly from the invest agent wallet.
+Five onchain protocols show live APY and TVL. You can liquid stake from your invest wallet: stake SOL and get a token back that still earns.
 
 syraa.fun/invest`,
 
-  quote: `The line on this card is the workflow in plain words: browse yields, deposit onchain.
+  thesis: `Invest was a swap widget. Now it is a yield board.
 
-Liquid staking happens in-app, while lending and LP positions open through each protocol's own dApp, all gated by the invest wallet's policy.
-
-syraa.fun/invest`,
-
-  flow: `This image walks the deploy loop in four steps.
-
-1. Browse live APY and TVL across the five listed protocols
-2. Fund the invest agent's treasury wallet
-3. Stake into Marinade or Jito directly in-app
-4. Open Kamino, marginfi, or Meteora to deploy elsewhere
+Five Solana venues with live APY and TVL. Marinade and Jito deposits run from the invest wallet.
 
 syraa.fun/invest`,
 
-  timeline: `This timeline shows how the board grew from one swap to five venues.
+  quote: `Browse yields, then deposit onchain.
 
-1. A catalog of five protocols was added to the page
-2. Live APY and TVL numbers were pulled in from DefiLlama
-3. A POST /invest/deposit route was built for on-chain deposits
-4. The invest wallet's broker signs the resulting transaction
+Liquid staking stays in-app. Lending and providing tokens so others can trade (and earning a cut of fees) open through each protocol's own site. Policy-gated.
 
 syraa.fun/invest`,
 
-  pillars: `This bento layout groups the four kinds of protocols on the board.
+  flow: `Browse, fund, then deposit or open.
 
-Marinade is a liquid staking venue where SOL becomes mSOL with an in-app deposit. Jito is the same idea, turning SOL into JitoSOL. Kamino is a lending venue reached through a deep link to its vaults. Meteora is a liquidity venue reached through a deep link to its DLMM pools.
-
-syraa.fun/invest`,
-
-  checklist: `This checklist is what shipped on Invest.
-
-1. Five protocols are listed on the /invest page
-2. Every card shows a live APY badge and TVL
-3. Marinade and Jito both have an in-app deposit modal
-4. Kamino, marginfi, and Meteora link out to their own dApps
-5. The invest wallet signs every in-app deposit
+1. Browse live APY and TVL
+2. Fund the invest agent treasury
+3. Stake into Marinade or Jito in-app
+4. Open Kamino, marginfi, or Meteora for the rest
 
 syraa.fun/invest`,
 
-  metrics: `The numbers on this card describe the board.
+  timeline: `From one swap to five Solana venues.
 
-Five protocols are listed, two of them, Marinade and Jito, support an in-app deposit, and one invest wallet handles the signing for both. APY and TVL come from DefiLlama, and yield is never guaranteed.
-
-syraa.fun/invest`,
-
-  featured: `This featured card is about the two deposits that stay entirely inside Syra.
-
-Marinade turns SOL into mSOL and Jito turns SOL into JitoSOL. The API builds an unsigned transaction, and the invest agent wallet signs it.
+1. Catalog: five protocols listed
+2. Yields: DefiLlama APY and TVL
+3. Deposit: POST /invest/deposit
+4. Broker: invest wallet signs
 
 syraa.fun/invest`,
 
-  comparison: `This before-and-after card compares the old swap-only card to the current yield board.
+  pillars: `Four protocol kinds on one Invest board.
 
-Before, Invest only showed a Jupiter swap widget with no live yield data. Now, five protocols show live APY and TVL, with in-app liquid staking deposits for two of them.
+Marinade turns SOL into mSOL in-app. Jito turns SOL into JitoSOL in-app. Kamino is lending via a deep link to vaults. Meteora is providing tokens so others can trade, via a DLMM deep link.
 
 syraa.fun/invest`,
 
-  launch: `This launch card marks Invest expanding into Solana DeFi.
+  checklist: `Invest Solana is live now.
 
-Five onchain venues are listed with live yields, and deposits into the liquid staking pools run straight from the invest wallet.
+1. Five protocols on /invest
+2. Live APY badge plus TVL
+3. Marinade and Jito deposit modal
+4. Kamino, marginfi, and Meteora links
+5. Invest wallet signs deposits
+
+syraa.fun/invest`,
+
+  metrics: `Real venues, live numbers, onchain.
+
+5 protocols. 2 in-app liquid staking options. 1 invest wallet.
+
+APY and TVL come from DefiLlama. Yield is not guaranteed.
+
+syraa.fun/invest`,
+
+  featured: `Two deposits stay inside Syra.
+
+Marinade and Jito stay inside Syra. The API builds an unsigned transaction. Your invest agent wallet signs it.
+
+syraa.fun/invest`,
+
+  comparison: `Swap-only board vs Solana yield board.
+
+Before, Invest showed a Jupiter swap only, with no live yields. Now five protocols show live APY and TVL, with in-app liquid staking deposits.
+
+syraa.fun/invest`,
+
+  launch: `Syra × Solana DeFi is live.
+
+Five onchain venues with live yields, and deposits from your invest wallet.
 
 syraa.fun/invest
 syraa.fun/wallet`,
 
-  deepDive: `This deep-dive card lists the technical surface behind the board.
+  deepDive: `Wired into Invest and walletBroker.
 
-investCatalog.js defines the five protocols, investYieldsService pulls live numbers from DefiLlama, and dedicated Marinade and Jito stake-pool executors build the deposit transactions that POST /invest/deposit routes through the wallet broker.
-
-syraa.fun/invest`,
-
-  split: `This split card explains the two paths on the board.
-
-Marinade and Jito deposits stay in-app, signed by the invest wallet after a policy check and simulation. Kamino, marginfi, and Meteora open their own dApps for lending and liquidity positions.
+investCatalog.js lists five protocols. investYieldsService pulls DefiLlama. Marinade and Jito stake-pool executors build the txs. POST /invest/deposit goes through walletBroker.
 
 syraa.fun/invest`,
 
-  terminal: `This terminal card shows a deposit in a real request path.
+  split: `In-app liquid staking. External lending and LP.
 
-A call to GET /invest/opportunities returns the catalog with DefiLlama yields, then POST /invest/deposit builds a Marinade or Jito transaction and hands it to the wallet broker to execute, leaving the resulting LST sitting in the invest wallet.
+Marinade and Jito deposit in Syra. Kamino, marginfi, and Meteora open their dApps. Every protocol shows live APY and TVL. The invest wallet signs LST deposits after policy and simulation. Deep links cover the rest.
 
 syraa.fun/invest`,
 
-  cta: `This closing card is the ship summary: open Invest and deploy on Solana.
+  terminal: `A deposit in the stack.
 
-Fund the invest wallet first, then either liquid stake in-app or open one of the linked dApps.
+GET /invest/opportunities returns catalog plus DefiLlama yields. POST /invest/deposit builds a Marinade or Jito tx, walletBroker.executeIntent signs it, and the liquid staking token lands in the invest wallet.
+
+syraa.fun/invest`,
+
+  cta: `Open Invest. Deploy on Solana.
+
+Fund your invest wallet, then liquid stake in-app or open a linked dApp.
 
 syraa.fun/invest
 syraa.fun/wallet

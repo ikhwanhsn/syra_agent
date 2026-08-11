@@ -13,4 +13,10 @@ okx-asp/video-clips/*.mp4
 okx-asp/video-clips/*.job.json
 okx-asp/out/*.mp4
 okx-asp/out/concat-list.txt
+# Tokens explainer Remotion renders
+videos/tokens-explainer/out/
+videos/tokens-explainer/node_modules/
 
+
+videos/syra-launch/out/
+videos/syra-launch/node_modules/

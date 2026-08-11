@@ -35,7 +35,7 @@ function PostUpdateNavPill({
       className={cn(
         "relative inline-flex h-7 min-w-[1.75rem] shrink-0 flex-col items-center justify-center rounded-full px-2 font-mono text-[10px] tabular-nums transition-colors",
         active
-          ? "bg-[#F3BA2F]/15 text-[#F3BA2F]"
+          ? "bg-white/15 text-white"
           : "text-white/45 hover:bg-white/[0.06] hover:text-white/75",
       )}
       aria-label={`Update #${n}${posted ? ", posted on X" : ", not posted on X"}`}
@@ -81,7 +81,7 @@ export function PostUpdateNav({ updateNumber, format }: PostUpdateNavProps) {
       {prev ? (
         <Link
           to={getPostRoutePath(format, prev)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-[#F3BA2F]"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-white"
           aria-label={`Previous update #${prev}`}
           title={`Update #${prev}`}
         >
@@ -105,7 +105,7 @@ export function PostUpdateNav({ updateNumber, format }: PostUpdateNavProps) {
       {next ? (
         <Link
           to={getPostRoutePath(format, next)}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-[#F3BA2F]"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white/50 transition-colors hover:bg-white/[0.06] hover:text-white"
           aria-label={`Next update #${next}`}
           title={`Update #${next}`}
         >

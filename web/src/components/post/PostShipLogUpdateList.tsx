@@ -175,7 +175,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   className={cn(
                     "flex flex-col gap-3 rounded-lg border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3",
                     isLocked
-                      ? "border-[#F3BA2F]/25 bg-[#F3BA2F]/[0.05]"
+                      ? "border-white/25 bg-white/[0.05]"
                       : isSelected
                         ? "border-red-500/25 bg-red-500/[0.04]"
                         : "border-white/8 bg-white/[0.02]",
@@ -184,7 +184,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   <div className="flex min-w-0 items-start gap-2.5 sm:items-center">
                     {isLocked ? (
                       <span
-                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-[#F3BA2F]/80 sm:mt-0 sm:h-4 sm:w-4"
+                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/80 sm:mt-0 sm:h-4 sm:w-4"
                         title="Locked format template"
                         aria-label="Locked format template"
                       >
@@ -202,12 +202,12 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                       <p className="text-sm leading-snug text-white/85 break-words">
                         #{meta.updateNumber} · {meta.title}
                         {isLocked ? (
-                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
+                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
                             Template
                           </span>
                         ) : null}
                         {isLatest ? (
-                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80">
+                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
                             Latest
                           </span>
                         ) : null}
@@ -221,13 +221,13 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                     ) : null}
                     <Link
                       to={`/post/video/${meta.updateNumber}`}
-                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-[#F3BA2F]/80 sm:min-h-0"
+                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
                     >
                       Video
                     </Link>
                     <Link
                       to={`/post/photo/${meta.updateNumber}`}
-                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-[#F3BA2F]/80 sm:min-h-0"
+                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
                     >
                       Photo
                     </Link>

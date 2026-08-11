@@ -2,103 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Pact Network photo deck: 15 distinct topics. */
 export const PACT_NETWORK_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover announces Pact Network's refund coverage landing on Syra.
+  cover: `Pact x Syra is live: if a paid API call fails, USDC (digital dollars) comes back on-chain.
 
-When a paid API call fails after payment, the USDC now returns on-chain automatically, giving agent wallets a form of buyer protection they did not have before.
-
-syraa.fun/chat`,
-
-  thesis: `This card states the gap Pact closes.
-
-Syra agents pay Nansen, Birdeye, Zerion, and dozens of other x402 providers on nearly every chat turn. If a call failed after payment, the USDC was simply gone. Pact adds automatic on-chain refunds for covered breaches.
+Agents pay per call with x402 (you pay only when you call). When a covered call fails, buyer protection returns the money to the agent wallet on Solana.
 
 syraa.fun/chat`,
 
-  quote: `This card carries the line behind the integration: 402 settles the bill, Pact settles the refund.
+  thesis: `Agent wallets had no chargebacks.
 
-The agent brain and the upstream checkout stay the same. Pact watches underneath and returns principal plus premium whenever a covered call fails.
-
-syraa.fun/chat`,
-
-  flow: `This image walks through a Pact-covered payment, in four steps.
-
-1. The agent pays an upstream provider through x402 using the x402 fetch client
-2. Pact's Market proxy watches the covered call
-3. The call fails, whether from a 5xx status, a timeout, or a malformed body, and gets classified as a breach
-4. The refund settles, returning principal plus premium to the agent wallet
+Syra agents pay Nansen, Birdeye, Zerion, and dozens of x402 providers (pay only when you call) on nearly every chat turn. If the call failed after payment, the USDC was gone. Pact adds automatic on-chain refunds for covered breaches.
 
 syraa.fun/chat`,
 
-  timeline: `This timeline traces a covered call from payment to refund.
+  quote: `x402 settles the bill, and Pact settles the refund.
+
+Settle means the payment actually completes. The same agent brain and upstream checkout stay in place. Pact watches underneath and returns principal plus premium when a covered call fails.
+
+syraa.fun/chat`,
+
+  flow: `Pay, fail, refund, all on-chain.
+
+1. The agent pays an upstream provider with x402 (pay only when you call) via @x402/fetch
+2. Covered calls route through the Pact Market proxy
+3. A 5xx, timeout, or bad body gets classified as a breach
+4. Principal plus premium return to the agent wallet
+
+syraa.fun/chat`,
+
+  timeline: `Same checkout. Refund on failure.
 
 1. Agent chat invokes a paid tool such as Nansen, Birdeye, or Zerion
 2. The agent wallet pays through the existing x402 facilitator path
-3. Pact's proxy classifies the response by latency, status, and payload quality
-4. A settle batch returns USDC automatically to the paying agent wallet on a breach
+3. Pact classifies latency, status, and payload quality
+4. SettleBatch returns USDC (digital dollars) to the paying agent wallet
 
 syraa.fun/chat`,
 
-  pillars: `This bento layout shows the four layers in the covered fetch stack.
+  pillars: `Four layers sit on one fetch stack.
 
-agentFetch composes the base fetch call with Sentinel and Pact in one resolver. The Pact SDK wraps that call as a drop-in layer that never breaks a working request. More than ten upstream clients, including Nansen, Birdeye, Zerion, and the Stable suite, are covered. A refunds endpoint keeps the whole ledger transparent.
-
-syraa.fun/chat`,
-
-  checklist: `This checklist covers what's live with Pact on Syra.
-
-1. Coverage is always on for agent outbound paid fetch calls
-2. All major agent client x402 upstream calls are covered
-3. A Pact setup approval runs automatically on the first covered fetch
-4. Refund events are persisted and exposed through a read-only API
+agentFetch composes fetch, Sentinel, then Pact in one resolver. The Pact SDK (@q3labs/pact-sdk) is a drop-in wrapper that never breaks a working call. More than ten upstream clients are covered, including Nansen, Birdeye, Zerion, and the Stable suite. GET /agent/pact/refunds keeps the refund ledger readable.
 
 syraa.fun/chat`,
 
-  metrics: `This card lists the numbers behind buyer protection on Syra.
+  checklist: `Pact is live on Syra today.
 
-More than ten upstream x402 clients are covered. Zero dispute forms are required to get a refund. The refund still settles on the same 402 payment rail agents already use, so there is no separate claims process to learn.
-
-syraa.fun/chat`,
-
-  featured: `This featured card highlights how little a refund requires from the agent.
-
-A covered breach triggers a settle batch that returns principal plus premium to the agent wallet automatically. The protocol classifies the failure itself, instead of routing it through a support desk.
+1. Coverage is always on for agent outbound paid fetch
+2. All major agent*Client x402 upstream calls are covered
+3. Auto pact.setup() SPL approve runs on the first covered fetch
+4. Refund events persist and show up on a read-only API
 
 syraa.fun/chat`,
 
-  comparison: `This before and after card compares payments with and without Pact.
+  metrics: `Buyer protection, by the numbers.
 
-Before, an agent paid through x402, the call failed, and the USDC was simply gone with no recourse. Now, the same call runs with a small premium, and Pact refunds principal plus premium on-chain automatically.
+10+ upstream x402 clients. 0 dispute forms. Same 402 payment rail.
+
+Agents burn USDC on flaky APIs. Pact returns funds when covered calls fail. No ticket queue.
 
 syraa.fun/chat`,
 
-  launch: `This launch card marks Pact Network as live on Syra.
+  featured: `Refunds settle without a claim.
 
-A failed paid API call now gets its USDC back on-chain, giving agent wallets buyer protection on every covered upstream call.
+Settle means the payment (and the refund) actually complete on-chain. A covered breach runs SettleBatch and returns principal plus premium to the agent wallet. The protocol classifies the failure, not a support desk.
+
+syraa.fun/chat`,
+
+  comparison: `Failed paid calls used to eat the USDC.
+
+Before, the agent paid with x402, the call failed, and the money was gone with no recourse. Now the same call runs with a small premium, and Pact refunds principal plus premium on-chain automatically.
+
+syraa.fun/chat`,
+
+  launch: `Syra x Pact Network is live.
+
+A failed paid API call can get USDC back on-chain. That is buyer protection for agent wallets on covered Solana calls.
 
 syraa.fun/chat
 www.pactnetwork.io/docs`,
 
-  deepDive: `This deep-dive card lists where Pact plugs into the fetch stack.
+  deepDive: `Pact is wired into the fetch stack.
 
-agentFetch.js composes the global fetch call with Sentinel then Pact. pactFetch.js wraps the pact-sdk package per agent keypair. agentX402Client and every other agent client have been migrated onto this path, and a PactRefund model backs the read-only refunds endpoint.
-
-syraa.fun/chat`,
-
-  split: `This split card explains how Sentinel and Pact layer together.
-
-Sentinel wraps fetch for budget and compliance checks when it's enabled, and Pact wraps on top of that with refund coverage that stays on for every paid upstream call. The golden rule is that Pact never breaks a call, so unregistered hosts just degrade to a bare fetch.
+agentFetch.js routes globalThis.fetch through Sentinel then Pact. pactFetch.js wraps @q3labs/pact-sdk per agent keypair. agentX402Client and all agent*Clients migrated onto that path. PactRefund plus GET /agent/pact/refunds expose the ledger.
 
 syraa.fun/chat`,
 
-  terminal: `This terminal card shows Pact's status and refund history from the API.
+  split: `Audit is optional, and refund coverage stays on.
 
-Checking Pact's status confirms it is enabled on mainnet. Pulling refunds for an anonymous id returns entries like a refund tied to the provider host api.nansen.ai, since refunds settle on-chain regardless of whether anyone polls the API.
+Sentinel wraps fetch for budget and compliance when you enable it. Pact wraps on top with refund coverage on every paid upstream call. Pact never breaks a working call. Unregistered hosts degrade to bare fetch.
 
 syraa.fun/chat`,
 
-  cta: `This closing card points to where to see Pact in action.
+  terminal: `You can verify refunds from the API.
 
-Run agent chat with x402 tools and let Pact cover the upstream calls, read the Pact Network docs for how coverage works, or check the refunds API directly for the transparency ledger.
+curl api.syraa.fun/agent/pact/status returns enabled true on mainnet. curl /agent/pact/refunds?anonymousId=... returns entries such as providerHost api.nansen.ai. Refunds settle on-chain whether or not anyone polls the API.
+
+syraa.fun/chat`,
+
+  cta: `Pay upstream APIs and get refunded on failure.
+
+Run agent chat with x402 tools. If a covered call fails, principal plus premium return on-chain. Pact docs explain coverage. The refunds API is the transparency ledger.
 
 syraa.fun/chat
 www.pactnetwork.io/docs

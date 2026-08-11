@@ -1,6 +1,6 @@
 import type { PostPhotoCardRole } from "@/content/posts/photo/photoCardSlots";
 
-/** Shared Syra palette, aligned with video style presets. */
+/** Shared Syra palette, aligned with landing monochrome. */
 export const PHOTO = {
   bg: "#050505",
   fg: "rgba(255,255,255,0.95)",
@@ -9,10 +9,10 @@ export const PHOTO = {
   line: "rgba(255,255,255,0.12)",
   cardBorder: "rgba(255,255,255,0.12)",
   cardBg: "rgba(255,255,255,0.05)",
-  accent: "#F3BA2F",
-  accentSoft: "rgba(243,186,47,0.18)",
-  accentLine: "rgba(243,186,47,0.55)",
-  accentDim: "rgba(243,186,47,0.08)",
+  accent: "#FFFFFF",
+  accentSoft: "rgba(255,255,255,0.12)",
+  accentLine: "rgba(255,255,255,0.40)",
+  accentDim: "rgba(255,255,255,0.06)",
   black: "#000000",
   white: "#FFFFFF",
 } as const;
@@ -32,23 +32,23 @@ export const PHOTO_TYPE = {
   mono: "JetBrains Mono",
 } as const;
 
-/** Per-role ambient tint, keeps the 15-card deck visually distinct. */
+/** Per-role ambient tint, graded white so the 15-card deck stays distinct. */
 const ROLE_TINT: Record<PostPhotoCardRole, string> = {
-  cover: "rgba(243,186,47,0.22)",
-  thesis: "rgba(243,186,47,0.14)",
-  quote: "rgba(180,140,60,0.18)",
-  flow: "rgba(80,160,220,0.14)",
-  timeline: "rgba(100,180,160,0.14)",
-  pillars: "rgba(243,186,47,0.16)",
-  checklist: "rgba(90,200,140,0.14)",
-  metrics: "rgba(243,186,47,0.20)",
-  featured: "rgba(243,186,47,0.28)",
-  comparison: "rgba(220,100,80,0.12)",
-  launch: "rgba(243,186,47,0.24)",
-  deepDive: "rgba(120,140,220,0.14)",
-  split: "rgba(243,186,47,0.12)",
-  terminal: "rgba(80,200,120,0.12)",
-  cta: "rgba(243,186,47,0.26)",
+  cover: "rgba(255,255,255,0.16)",
+  thesis: "rgba(255,255,255,0.10)",
+  quote: "rgba(255,255,255,0.08)",
+  flow: "rgba(255,255,255,0.07)",
+  timeline: "rgba(255,255,255,0.07)",
+  pillars: "rgba(255,255,255,0.10)",
+  checklist: "rgba(255,255,255,0.07)",
+  metrics: "rgba(255,255,255,0.14)",
+  featured: "rgba(255,255,255,0.20)",
+  comparison: "rgba(255,255,255,0.06)",
+  launch: "rgba(255,255,255,0.16)",
+  deepDive: "rgba(255,255,255,0.07)",
+  split: "rgba(255,255,255,0.10)",
+  terminal: "rgba(255,255,255,0.06)",
+  cta: "rgba(255,255,255,0.18)",
 };
 
 export function getRoleTint(role: PostPhotoCardRole): string {

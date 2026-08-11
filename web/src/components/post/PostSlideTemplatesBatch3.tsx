@@ -53,7 +53,7 @@ function TokenCard({
       className={cn(
         "post-token-card post-slide-card h-full",
         card.accent === "gold"
-          ? "border-[#F3BA2F]/20 bg-gradient-to-br from-[#F3BA2F]/12 via-white/[0.04] to-transparent"
+          ? "border-white/20 bg-gradient-to-br from-white/12 via-white/[0.04] to-transparent"
           : "border-white/[0.08] bg-white/[0.03]",
         className,
       )}
@@ -151,7 +151,7 @@ export function renderCoverBatch3(
                 <img
                   src="/images/logo.jpg"
                   alt=""
-                  className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-[#F3BA2F]/20 object-cover sm:h-12 sm:w-12"
+                  className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-white/20 object-cover sm:h-12 sm:w-12"
                 />
                 <span className="post-batch3-corner-line" aria-hidden />
               </div>
@@ -399,7 +399,7 @@ export function renderHeroBatch3(
                 delayMs={180 + i * 70}
                 className="post-batch3-pillar-compact-item"
               >
-                <span className="post-batch3-pillar-compact-index font-mono text-[10px] text-[#F3BA2F]/75">
+                <span className="post-batch3-pillar-compact-index font-mono text-[10px] text-white/75">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="post-slide-card-copy">{item}</span>
@@ -533,11 +533,11 @@ export function renderFlowBatch3(
                 >
                   <div className="post-slide-card post-batch3-ladder-card">
                     <div className="flex items-center gap-2">
-                      <span className="post-slide-meta text-[#F3BA2F]/70">
+                      <span className="post-slide-meta text-white/70">
                         {step.step}
                       </span>
                       <ArrowRight
-                        className="h-3 w-3 text-[#F3BA2F]/50"
+                        className="h-3 w-3 text-white/50"
                         aria-hidden
                       />
                       <h3 className="post-slide-card-title">{step.title}</h3>
@@ -714,7 +714,7 @@ export function renderSurfacesBatch3(
                 <div className="post-batch3-icon-row-item">
                   <div className="post-batch3-icon-row-circle">
                     <item.icon
-                      className="h-4 w-4 text-[#F3BA2F]/75"
+                      className="h-4 w-4 text-white/75"
                       strokeWidth={1.5}
                     />
                   </div>
@@ -990,7 +990,7 @@ export function renderClosingBatch3(
                 >
                   <span className="post-slide-card-title">{link.label}</span>
                   <span className="post-slide-meta">{link.value}</span>
-                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-[#F3BA2F]/60 group-hover:text-[#F3BA2F]" />
+                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-white/60 group-hover:text-white" />
                   <PostVideoLinkArrow />
                 </a>
               </PostReveal>

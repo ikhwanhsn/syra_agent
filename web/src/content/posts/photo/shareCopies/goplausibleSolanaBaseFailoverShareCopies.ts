@@ -5,51 +5,51 @@ export const GOPLAUSIBLE_SOLANA_BASE_FAILOVER_PHOTO_SHARE_COPIES: Record<
   PostPhotoCardRole,
   string
 > = {
-  cover: `This cover announces GoPlausible expanding on Syra beyond Algorand.
+  cover: `GoPlausible x Syra now covers Labs failover, not only Algorand.
 
-Labs x402 now fails over across Dexter, GoPlausible, then PayAI on Solana and Base. Algorand settlement still runs on GoPlausible AVM.
-
-syraa.fun/labs`,
-
-  thesis: `This card names the payment gap Labs was hitting.
-
-Exact SVM needs a funded fee payer. When Dexter is underfunded, Solana and Base accepts used to die or jump straight to PayAI. GoPlausible now sits in the middle so one dry sponsor does not take Labs offline.
+Labs x402 (pay only when you call) fails over Dexter, then GoPlausible, then PayAI on Solana and Base. Algorand still settles (the payment actually completes) on AVM.
 
 syraa.fun/labs`,
 
-  quote: `The line on this card is the failover rule in plain words: check health first, then move to the next rail.
+  thesis: `One dry fee payer should not kill Labs.
 
-Dexter stays primary when healthy. GoPlausible covers Solana and Base next. PayAI remains last resort. Merchant payTo wallets stay the same, and clients do not send new headers.
+Exact SVM needs a funded sponsor. When Dexter is underfunded, GoPlausible now takes Solana and Base before PayAI so checkout keeps working.
 
 syraa.fun/labs`,
 
-  flow: `This image walks the Labs failover path in four steps.
+  quote: `Use the healthy rail first, then the next one.
+
+Dexter stays primary when it is healthy. GoPlausible covers Solana and Base next. PayAI remains last resort. Same merchant payTo. Zero client changes.
+
+syraa.fun/labs`,
+
+  flow: `Probe the rail, offer it if healthy, then fall through.
 
 1. Probe Dexter (fee payer or Base /supported)
-2. Offer Dexter accepts when that rail is healthy
+2. Offer Dexter when that rail is healthy
 3. Offer GoPlausible for Solana and Base if Dexter is not
 4. Fall through to PayAI so checkout still completes
 
-The rotation happens at offer time. No client changes required.
+Rotation happens at offer time. Clients do not send new headers.
 
 syraa.fun/labs`,
 
-  timeline: `This timeline shows how GoPlausible grew from Algorand-only into a multi-rail Labs partner.
+  timeline: `From Algorand-only to multi-rail Labs checkout.
 
-1. Algorand AVM verify and settle (already live)
-2. Solana and Base network profile added
+1. Algorand AVM verify and settle already live via GoPlausible
+2. Solana plus Base network profile added
 3. Health probes for fee payer and /supported caches
 4. Labs offer chain: Dexter, then GoPlausible, then PayAI
 
 syraa.fun/labs`,
 
-  pillars: `This bento layout shows what stays available when Dexter dips.
+  pillars: `What stays up when Dexter dips.
 
-Solana Exact SVM can use a GoPlausible fee payer for gas. Base Exact USDC continues when Dexter drops Base. Algorand USDC ASA verify and settle stay unchanged. Accepts rotate automatically at offer time.
+Solana Exact SVM can use a GoPlausible fee payer to sponsor gas. Base Exact USDC (digital dollars) continues when Dexter drops Base (eip155:8453). Algorand USDC ASA verify and settle stay unchanged. Accepts rotate automatically at offer time.
 
 syraa.fun/labs`,
 
-  checklist: `This checklist is what shipped with the GoPlausible Solana and Base failover.
+  checklist: `What ships with this update.
 
 1. Dexter remains primary for Labs Solana and Base
 2. GoPlausible becomes the mid-rail when Dexter is unhealthy
@@ -59,50 +59,54 @@ syraa.fun/labs`,
 
 syraa.fun/labs`,
 
-  metrics: `The numbers on this card describe the new Labs facilitator stack.
+  metrics: `Uptime is a payment feature.
 
-Three rails can serve a payment: Dexter, GoPlausible, and PayAI. GoPlausible adds two chains for Labs (Solana and Base). Clients still call the same endpoints with zero header changes.
+3 facilitator rails. 2 new GoPlausible chains. 0 client changes.
 
-syraa.fun/labs`,
-
-  featured: `This featured card highlights GoPlausible covering three chains under one partner brand.
-
-Algorand keeps AVM settlement. Labs Solana and Base now inherit a second healthy sponsor before PayAI. Live networks are listed at facilitator.goplausible.xyz/supported.`,
-
-  comparison: `This before-and-after card compares two-rail versus three-rail Labs checkout.
-
-Before, an unhealthy Dexter jumped straight to PayAI or failed the accept. Now Labs offers Dexter first, GoPlausible next for Solana and Base, then PayAI. Same merchant wallet, one extra spare rail.
+Labs keeps accepting Solana and Base payments when Dexter is dry.
 
 syraa.fun/labs`,
 
-  launch: `This partnership card marks Syra x GoPlausible as live for Labs Solana and Base failover.
+  featured: `GoPlausible beyond Algorand.
 
-Algorand Mainnet still settles through GoPlausible AVM. Labs x402 can now fall through to GoPlausible when Dexter is dry, without client changes.
+3 chains on one partner: Algorand AVM, plus Solana and Base Exact. One facilitator brand. Broader Syra rails.
+
+facilitator.goplausible.xyz/supported`,
+
+  comparison: `Two-rail vs three-rail Labs checkout.
+
+Before, an unhealthy Dexter jumped straight to PayAI or failed. Now Labs offers Dexter first, GoPlausible next for Solana and Base, then PayAI. Same merchant wallet. A spare tire for those two chains.
+
+syraa.fun/labs`,
+
+  launch: `Syra x GoPlausible is live for Labs Solana and Base failover.
+
+Algorand still settles through GoPlausible AVM. Labs x402 can fall through to GoPlausible when Dexter is dry, without client changes.
 
 syraa.fun/labs
 facilitator.goplausible.xyz/docs`,
 
-  deepDive: `This deep-dive card lists the technical surface behind the failover image.
+  deepDive: `Offer-time only, by design.
 
-goplausibleX402Networks covers Solana and Base. Health checks use the GoPlausible fee payer (env override available) and GET /supported for Base Exact. Settlement stays on the rail that was offered. Local Solana settle remains a last resort.
-
-syraa.fun/labs`,
-
-  split: `This split card explains GoPlausible’s two jobs on Syra.
-
-On Algorand it still verifies and settles via AVM. On Labs Solana and Base it is the mid-rail failover after Dexter and before PayAI. Exact SVM and Exact EVM both keep accepting when the primary rail is unhealthy.
+goplausibleX402Networks covers Solana and Base. Health checks use the GoPlausible fee payer 8a8fFNfk… (env override available) and GET /supported for Base Exact. Settlement stays on the rail that was offered. Local Solana settle remains last resort.
 
 syraa.fun/labs`,
 
-  terminal: `This terminal card shows failover inside a real Labs request path.
+  split: `GoPlausible does two jobs on Syra.
 
-A Solana insights call probes Dexter’s fee payer. If it is underfunded, the profile switches to goplausible, returns a 402 Exact SVM with the GoPlausible fee payer, then unlocks the payload after USDC payment.
+On Algorand, GoPlausible still verifies and settles via AVM. On Labs Solana and Base it is the mid-rail after Dexter and before PayAI. Exact SVM and Exact EVM keep accepting when the primary rail is unhealthy.
 
 syraa.fun/labs`,
 
-  cta: `This closing card is the ship summary: one GoPlausible partner across Algorand, Solana, and Base, with Labs failover built in.
+  terminal: `Failover sits in the request path.
 
-Call Labs on Solana or Base and the payment rails choose themselves from the health probes.
+A Solana Labs insights call with x-lab-x402-chain=solana probes Dexter. If the fee payer is underfunded, the profile switches to goplausible, returns 402 Exact SVM with the GoPlausible fee payer, then unlocks the payload after USDC payment.
+
+syraa.fun/labs`,
+
+  cta: `GoPlausible now spans Algorand, Solana, and Base, with Labs failover built in.
+
+Hit Labs on Solana or Base and the payment rails choose themselves from health probes.
 
 syraa.fun/labs
 facilitator.goplausible.xyz/supported`,

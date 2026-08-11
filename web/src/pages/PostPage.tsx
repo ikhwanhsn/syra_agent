@@ -91,10 +91,10 @@ export default function PostPage() {
           <PostStudioSkeleton />
         ) : (
           <>
-            <div className="mb-6 rounded-xl border border-[#F3BA2F]/20 bg-[#F3BA2F]/[0.04] px-4 py-3 text-left sm:mb-8 sm:px-5 sm:py-4">
+            <div className="mb-6 rounded-xl border border-white/20 bg-white/[0.04] px-4 py-3 text-left sm:mb-8 sm:px-5 sm:py-4">
               <div className="mb-2 flex items-center gap-2">
-                <Lock className="h-3.5 w-3.5 shrink-0 text-[#F3BA2F]/80" aria-hidden />
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#F3BA2F]/80">
+                <Lock className="h-3.5 w-3.5 shrink-0 text-white/80" aria-hidden />
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/80">
                   Locked format · #{POST_TEMPLATE_UPDATE_NUMBER}
                 </p>
               </div>
@@ -113,13 +113,13 @@ export default function PostPage() {
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
                 <Link
                   to={`/post/video/${POST_TEMPLATE_UPDATE_NUMBER}`}
-                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80 transition-colors hover:text-[#F3BA2F]"
+                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
                 >
                   Open video template
                 </Link>
                 <Link
                   to={`/post/photo/${POST_TEMPLATE_UPDATE_NUMBER}`}
-                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#F3BA2F]/80 transition-colors hover:text-[#F3BA2F]"
+                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
                 >
                   Open photo template
                 </Link>
@@ -129,9 +129,9 @@ export default function PostPage() {
             <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
               <Link
                 to={`/post/video/${latestVisible}`}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-[#F3BA2F]/30 hover:bg-[#F3BA2F]/[0.06] sm:p-6"
+                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/30 hover:bg-white/[0.06] sm:p-6"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 text-[#F3BA2F]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white">
                   <Video className="h-5 w-5" />
                 </div>
                 <div className="text-left">
@@ -147,9 +147,9 @@ export default function PostPage() {
 
               <Link
                 to={`/post/photo/${latestVisible}`}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-[#F3BA2F]/30 hover:bg-[#F3BA2F]/[0.06] sm:p-6"
+                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/30 hover:bg-white/[0.06] sm:p-6"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 text-[#F3BA2F]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white">
                   <ImageIcon className="h-5 w-5" />
                 </div>
                 <div className="text-left">

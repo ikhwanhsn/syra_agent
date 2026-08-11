@@ -442,7 +442,7 @@ function LaunchBrandTile({
           height: 80,
           borderRadius: 20,
           border: `1px solid ${PHOTO.accentLine}`,
-          background: "rgba(243,186,47,0.06)",
+          background: "rgba(255,255,255,0.06)",
         }}
       >
         <div

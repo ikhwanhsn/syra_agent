@@ -2,100 +2,102 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Revenue to $SYRA proof photo deck. */
 export const BUYBACK_REWARDS_PROOF_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover announces that Revenue to $SYRA now has a public paper trail.
+  cover: `Revenue to $SYRA now has receipts.
 
-Every paid call feeds a buyback that shows up with a Solscan link, usage rewards are claimable, and holder fee discounts already work in pricing.
-
-syraa.fun/token`,
-
-  thesis: `This card names the problem Syra is solving with proof instead of promises.
-
-Token stories without receipts die at microcap. Syra closes the loop end to end: a paid call triggers a buyback, the buyback shows up as a reward, and holding the token unlocks real utility, all backed by Solscan links.
+Verifiable buybacks (using revenue to buy the token), claimable usage rewards, and live holder fee discounts.
 
 syraa.fun/token`,
 
-  quote: `The line on this card is the whole loop in three words: pay, buyback, rewards.
+  thesis: `Token stories without receipts die at microcap.
 
-A payment is visible on /token as soon as it converts. The resulting reward is claimable on /rewards. Holding the token is useful today as a fee discount, not just a bet on the story.
+Syra closes the loop: paid calls, then buyback, then rewards, then hold utility, with Solscan links.
 
 syraa.fun/token`,
 
-  flow: `This image walks the buyback flywheel in four steps.
+  quote: `Pay, then buyback, then rewards.
 
-1. An agent pays USDC and x402 settles the call
-2. About 80% of that revenue queues into a $SYRA buy on Jupiter
-3. The buyback is published with a Solscan link
-4. The paying wallet can claim its share on /rewards
+Visible on /token, claimable on /rewards, and useful as fee discounts.
+
+syraa.fun/token`,
+
+  flow: `Four steps, one flywheel.
+
+1. Pay USDC. x402 settles the call (makes sure the payment actually completed)
+2. Buy $SYRA. About 80% via Jupiter
+3. Publish proof. Solscan on /token
+4. Claim rewards. Payers on /rewards
 
 syraa.fun/rewards`,
 
-  timeline: `This timeline shows the receipts that shipped inside the product.
+  timeline: `Receipts in the product.
 
-1. Buyback numbers exposed on /api/metrics
-2. A proof panel went live on the token page
-3. Rewards started accruing and became claimable
-4. Discounts were wired directly into pricing
-
-syraa.fun/token`,
-
-  pillars: `This bento layout separates what is live from what is still roadmap.
-
-Discounts are live: 5 to 30% off x402 pricing by tier. Rewards are live: spending converts into claimable $SYRA. Buybacks are live and Solscan-linked. Governance is roadmap only, and the card says so instead of implying otherwise.
+1. Metrics: buyback on /api/metrics
+2. Token page: proof panel live
+3. Rewards: accrue and claim
+4. Discounts: wired into pricing
 
 syraa.fun/token`,
 
-  checklist: `This checklist is meant to be checked, not trusted on faith.
+  pillars: `Live utility, honest roadmap.
 
-1. syraa.fun/token shows the buyback proof
-2. syraa.fun/rewards is the claim surface
-3. /api/metrics returns the same numbers as JSON
-4. Every flush links out to Solscan
+Discounts are live: 5 to 30% off x402 by tier. Rewards are live: spend becomes claimable $SYRA. Buybacks are live, Solscan-linked flushes. Governance is roadmap only, and labeled as such.
 
 syraa.fun/token`,
 
-  metrics: `Treasury-settled x402 revenue (~80%) queues into $SYRA buybacks. Labs routes that pay lab wallets skip that queue. Four discount tiers exist based on holdings, and there is one claim page for rewards.
+  checklist: `Check the receipts yourself.
+
+1. /token for buyback proof
+2. /rewards for the claim surface
+3. /api/metrics for the same numbers as JSON
+4. Solscan for every flush
 
 syraa.fun/token`,
 
-  featured: `This featured card lays out the path from first payment to holding the token.
+  metrics: `The loop in numbers.
 
-Make a first paid call on the marketplace, see the receipt on the token page, claim your share on rewards, then stake for deeper discounts.
+80% of revenue to buyback. 4 discount tiers. 1 claim page.
+
+syraa.fun/token`,
+
+  featured: `Call, then proof, then claim, then hold.
+
+Marketplace for the first paid call. Token page for receipts. Rewards for claim. Stake for deeper discounts.
 
 syraa.fun/marketplace`,
 
-  comparison: `This before-and-after card compares a buyback narrative to an actual receipt trail.
+  comparison: `Narrative vs receipts.
 
-Before, buyback claims were a story with an invisible loop and perks that mostly reached whales. Now every flush has a Solscan proof, rewards are claimable by anyone who paid, and discount tiers are enforced in pricing code.
-
-syraa.fun/token`,
-
-  launch: `This launch card marks Revenue to $SYRA proof as live.
-
-Holders can verify the buybacks themselves, builders can earn from spend that flows through the loop, and the fee discounts are already active, not promised.
+Before, a buyback story with an invisible loop and whale-only perks. Now Solscan proofs, claimable rewards, and tiered discounts in code.
 
 syraa.fun/token`,
 
-  deepDive: `This deep-dive card lists the discount tiers for holding or staking $SYRA.
+  launch: `Revenue to $SYRA proof is live.
 
-10k gets 5% off. 100k gets 10% off plus the Free Agent Starter Pack. 1M gets 20% off. 10M gets 30% off.
+Holders can verify, builders can earn, and discounts are real.
+
+syraa.fun/token`,
+
+  deepDive: `Hold or stake for fee off.
+
+10k gets 5%. 100k gets 10% plus the Free Agent Starter Pack. 1M gets 20%. 10M gets 30%.
 
 syraa.fun/staking`,
 
-  split: `This split card explains who is on each side of the same rails.
+  split: `Builders pay and holders see receipts.
 
-Builders pay USDC for intelligence through x402. That volume funds buybacks, and holders can see every one of them plus claim rewards tied to that spend.
-
-syraa.fun/token`,
-
-  terminal: `This terminal card shows the buyback loop from the API side.
-
-GET /api/metrics returns buyback, holder, and reward totals. GET /rewards/me with a wallet returns what is claimable. POST /rewards/claim triggers a treasury SPL transfer.
+USDC x402 volume funds buybacks. Rewards close the loop to active payers: paid calls, buybacks, rewards, discounts.
 
 syraa.fun/token`,
 
-  cta: `This closing card is the ship summary: make a paid call, then hold the token.
+  terminal: `The loop in the API.
 
-Verify the buyback on /token, claim your reward on /rewards, and get a fee discount by holding $SYRA.
+GET /api/metrics returns buyback, holders, and rewards. GET /rewards/me?wallet= returns claimable $SYRA. POST /rewards/claim triggers a treasury SPL transfer.
+
+syraa.fun/token`,
+
+  cta: `Ship a paid call. Then hold the token.
+
+Verify on /token, claim on /rewards, and discount by holding $SYRA.
 
 syraa.fun/marketplace
 syraa.fun/token

@@ -62,7 +62,7 @@ function TokenCard({
       className={cn(
         "post-token-card post-slide-card h-full",
         card.accent === "gold"
-          ? "border-[#F3BA2F]/20 bg-gradient-to-br from-[#F3BA2F]/12 via-white/[0.04] to-transparent"
+          ? "border-white/20 bg-gradient-to-br from-white/12 via-white/[0.04] to-transparent"
           : "border-white/[0.08] bg-white/[0.03]",
         className,
       )}
@@ -280,7 +280,7 @@ export function renderHeroExtended(
             {slide.highlights.map((item, i) => (
               <PostReveal key={item} isActive={isActive} delayMs={200 + i * 80}>
                 <div className="post-slide-card text-center">
-                  <p className="font-mono text-lg text-[#F3BA2F]/80">
+                  <p className="font-mono text-lg text-white/80">
                     {String(i + 1).padStart(2, "0")}
                   </p>
                   <p className="post-slide-card-copy mt-2">{item}</p>
@@ -592,7 +592,7 @@ export function renderSurfacesExtended(
               >
                 <div className="post-compact-tile text-center">
                   <item.icon
-                    className="mx-auto h-4 w-4 text-[#F3BA2F]/70"
+                    className="mx-auto h-4 w-4 text-white/70"
                     strokeWidth={1.5}
                   />
                   <p className="post-slide-card-title mt-2">{item.title}</p>
@@ -621,7 +621,7 @@ export function renderSurfacesExtended(
             <PostReveal isActive={isActive} delayMs={180}>
               <div className="post-surface-featured post-slide-card">
                 <FeaturedIcon
-                  className="h-5 w-5 text-[#F3BA2F]/75"
+                  className="h-5 w-5 text-white/75"
                   strokeWidth={1.5}
                 />
                 <h3 className="post-slide-card-title-lg mt-3">
@@ -854,7 +854,7 @@ export function renderClosingExtended(
                   className="post-slide-card group flex items-center justify-between gap-2"
                 >
                   <span className="post-slide-card-title">{link.label}</span>
-                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-white/40 group-hover:text-[#F3BA2F]/80" />
+                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-white/40 group-hover:text-white/80" />
                   <PostVideoLinkArrow />
                 </a>
               </PostReveal>

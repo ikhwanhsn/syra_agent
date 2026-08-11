@@ -17,9 +17,9 @@ export const REMOTION_CHIP_STYLE: CSSProperties = {
   borderRadius: 8,
   borderStyle: "solid",
   borderWidth: 2,
-  borderColor: "#F3BA2F",
-  backgroundColor: "#2A2208",
-  color: "#F3BA2F",
+  borderColor: "#FFFFFF",
+  backgroundColor: "rgba(255,255,255,0.06)",
+  color: "#FFFFFF",
   fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
   fontSize: 11,
   fontWeight: 500,
@@ -78,8 +78,8 @@ function RemotionSvgChip({
         height={height - stroke}
         rx={8}
         ry={8}
-        fill="#2A2208"
-        stroke="#F3BA2F"
+        fill="rgba(255,255,255,0.06)"
+        stroke="#FFFFFF"
         strokeWidth={stroke}
       />
       {showDot ? (
@@ -89,13 +89,13 @@ function RemotionSvgChip({
           width={dotSize}
           height={dotSize}
           rx={1.5}
-          fill="#F3BA2F"
+          fill="#FFFFFF"
         />
       ) : null}
       <text
         x={textX}
         y={midY}
-        fill="#F3BA2F"
+        fill="#FFFFFF"
         fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
         fontSize={fontSize}
         fontWeight={600}
@@ -128,12 +128,12 @@ export function PostVideoChip({
     return (
       <span
         className={cn(
-          "post-badge-bnb inline-flex items-center gap-2 rounded-full border border-[#F3BA2F]/25 bg-[#F3BA2F]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#F3BA2F]/90",
+          "post-badge-bnb inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/90",
           className,
         )}
       >
         {showDot ? (
-          <span className="post-pulse-dot h-1.5 w-1.5 rounded-full bg-[#F3BA2F]" aria-hidden />
+          <span className="post-pulse-dot h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
         ) : null}
         {children}
       </span>
@@ -153,7 +153,7 @@ export function PostVideoChip({
             width: 6,
             height: 6,
             borderRadius: 2,
-            backgroundColor: "#F3BA2F",
+            backgroundColor: "#FFFFFF",
             flexShrink: 0,
           }}
         />
@@ -174,7 +174,7 @@ export function PostVideoLinkArrow({ className }: { className?: string }) {
       className={className}
       aria-hidden
       style={{
-        color: "#F3BA2F",
+        color: "#FFFFFF",
         fontSize: 14,
         lineHeight: 1,
         fontWeight: 600,
@@ -242,14 +242,14 @@ export function PostVideoCtaLink({
           height={height - stroke}
           rx={8}
           ry={8}
-          fill="#2A2208"
-          stroke="#F3BA2F"
+          fill="rgba(255,255,255,0.06)"
+          stroke="#FFFFFF"
           strokeWidth={stroke}
         />
         <text
           x={padX}
           y={midY}
-          fill="#F3BA2F"
+          fill="#FFFFFF"
           fontFamily="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
           fontSize={fontSize}
           fontWeight={600}
@@ -261,7 +261,7 @@ export function PostVideoCtaLink({
         <text
           x={width - padX}
           y={midY}
-          fill="#F3BA2F"
+          fill="#FFFFFF"
           fontFamily="ui-sans-serif, system-ui, sans-serif"
           fontSize={14}
           fontWeight={600}

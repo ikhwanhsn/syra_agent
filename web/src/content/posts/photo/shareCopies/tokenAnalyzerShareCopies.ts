@@ -2,104 +2,106 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for Token Analyzer Multi-Chain photo deck. 15 distinct topics. */
 export const TOKEN_ANALYZER_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover announces Token Analyzer replacing the old Solana-only Pumpfun Alpha.
+  cover: `Token Analyzer now scans more than Solana.
 
-The same scoring model now reads a Solana mint or an EVM address, and lives at a new /analyzer route.
-
-syraa.fun/analyzer`,
-
-  thesis: `This card names the shift behind the rename.
-
-Alpha scoring used to be Solana-only, but tokens are not. Pasting either a Solana mint or an EVM 0x address now runs through the same analyzer, with live feeds capped at the ten most recent scans.
+Paste a Solana mint or an EVM address. You get the same Syra Alpha score, plus live feeds capped at ten with search.
 
 syraa.fun/analyzer`,
 
-  quote: `The line on this card is the pitch in plain words: paste a mint or a 0x, get the same score.
+  thesis: `Alpha used to be Solana-only. Tokens are not.
 
-Solana keeps its full depth, including holders and security checks, while EVM chains ship market data and KOL mentions first.
-
-syraa.fun/analyzer`,
-
-  flow: `This image walks the scan loop in four steps.
-
-1. Paste a Solana mint or an EVM address
-2. The analyzer detects which chain it belongs to
-3. A Syra Alpha score gets computed either way
-4. The result gets tracked on the Live, My calls, or Best callers feed
+Paste a mint or a 0x and get the same Syra Alpha. Live feeds stay capped at ten and searchable.
 
 syraa.fun/analyzer`,
 
-  timeline: `This timeline shows how Pumpfun Alpha became Token Analyzer.
+  quote: `Paste a mint or a 0x and get the same score.
 
-1. The page moved to /analyzer, with the old /pumpfun URL redirecting
-2. An EVM path was added, pulling from DexScreener and KOL mentions
-3. The existing Solana analysis stack stayed intact
-4. Every feed got capped at the latest 10 results, with search and filter added
+Solana keeps its full depth. EVM ships market data and KOL mentions first.
 
 syraa.fun/analyzer`,
 
-  pillars: `This bento layout groups the four surfaces inside the analyzer.
+  flow: `The scan loop is four steps.
 
-Scan accepts either a mint or a 0x address. Live shows the ten most recent community scans. My calls lets you filter your own history by 2x or 10x outcomes. Callers ranks the top 10 by peak gain.
-
-syraa.fun/analyzer`,
-
-  checklist: `This checklist is what shipped with Token Analyzer.
-
-1. The page now lives at /analyzer, with /pumpfun redirecting automatically
-2. Supported chains cover Solana plus Ethereum, Base, BSC, and Arbitrum
-3. The EVM path ships a market data MVP with a chain badge on results
-4. The Live, My calls, and Best callers feeds are capped at the latest 10
-5. List views show a delayed skeleton after 450ms
+1. Paste a mint or a 0x address
+2. Detect Solana or EVM
+3. Score with Syra Alpha
+4. Track it on the latest 10, with search and filter
 
 syraa.fun/analyzer`,
 
-  metrics: `The numbers on this card describe the expansion.
+  timeline: `From Pumpfun Alpha to multi-chain Analyzer.
 
-More than four EVM chains are now supported alongside Solana, every community feed caps out at the latest 10 entries, and it all runs through the single /analyzer route. Solana keeps its full depth while EVM ships market data first.
-
-syraa.fun/analyzer`,
-
-  featured: `This featured card is about the EVM path that just shipped.
-
-It pulls price, liquidity, and volume from DexScreener, adds KOL mentions, and runs the same Syra Alpha score used on Solana. Holders and honeypot checks are planned next.
+1. Rename: /analyzer, with /pumpfun redirect
+2. EVM path: DexScreener plus KOL
+3. Solana depth kept
+4. Feeds: latest 10, plus search and filter
 
 syraa.fun/analyzer`,
 
-  comparison: `This before-and-after card compares the old Pumpfun Alpha to the new Token Analyzer.
+  pillars: `Four surfaces, one Analyzer.
 
-Before, only a Solana mint worked, and feeds ran long with no filtering. Now, Solana and EVM addresses both work, and every feed caps at the latest 10 with search and filter built in.
+Scan accepts a mint or a 0x. Live shows the ten most recent community scans. My calls filters your history by 2x or 10x views. Callers ranks the top 10 by peak gain.
 
 syraa.fun/analyzer`,
 
-  launch: `This launch card marks Token Analyzer going multi-chain.
+  checklist: `Token Analyzer is live now.
 
-Pasting a Solana mint or an Ethereum address now runs through the same scan, score, and track flow.
+1. /analyzer with /pumpfun redirect
+2. Solana plus Ethereum, Base, BSC, Arbitrum
+3. EVM market MVP with a chain badge
+4. Feeds: latest 10, search, and filter
+5. 450ms delayed list skeletons
+
+syraa.fun/analyzer`,
+
+  metrics: `More chains and cleaner feeds.
+
+4+ EVM chains. 10 latest per feed. 1 Analyzer route.
+
+Solana depth stays intact. EVM market alpha ships first.
+
+syraa.fun/analyzer`,
+
+  featured: `The EVM path that just shipped.
+
+DexScreener plus Syra Alpha. Market data and KOL mentions first. Holders and honeypot checks come next.
+
+syraa.fun/analyzer`,
+
+  comparison: `Pumpfun Alpha vs Token Analyzer.
+
+Before, only a Solana mint worked, and feeds ran long with no filter. Now Solana and EVM both work, and every feed caps at the latest 10 with search and filter.
+
+syraa.fun/analyzer`,
+
+  launch: `Syra × Robinhood: Token Analyzer is multi-chain.
+
+Solana depth and EVM market alpha on one /analyzer surface.
 
 syraa.fun/analyzer
 syraa.fun/assets`,
 
-  deepDive: `This deep-dive card lists the technical surface behind the analyzer.
+  deepDive: `Wired into Analyzer and the memecoin API.
 
-tokenChainDetect and tokenAnalysisService handle Solana, evmTokenAnalysisService pulls from DexScreener for EVM chains, and both flow through GET /agent/tokens/memecoin-analysis. The PumpfunListToolbar component adds the delayed skeleton on list views.
-
-syraa.fun/analyzer`,
-
-  split: `This split card explains the difference in depth between chains.
-
-Solana keeps its full stack: holders, security checks, trades, and pump.fun data. EVM chains get a market-first MVP: price, liquidity, volume, and KOL mentions. Either way, the verdict carries a chain badge and the same Syra Alpha score.
+tokenChainDetect plus tokenAnalysisService handle Solana. evmTokenAnalysisService pulls DexScreener for EVM. Both flow through GET /agent/tokens/memecoin-analysis. List views use a delayed skeleton.
 
 syraa.fun/analyzer`,
 
-  terminal: `This terminal card shows a scan in a real request path.
+  split: `Solana keeps the full stack. EVM ships a market MVP.
 
-A call to GET /agent/tokens/memecoin-analysis with an 0x address detects it as EVM, pulls the best pair and KOL data from DexScreener, and computes the Syra Alpha score before returning chain, market, and score fields together.
+Holders and security stay Solana. EVM gets price, liquidity (how much is in the pool so people can trade), volume, and KOL. Verdicts carry a chain badge and the same Syra Alpha score. Solana-only tabs stay gated on EVM. Feeds cap at ten.
 
 syraa.fun/analyzer`,
 
-  cta: `This closing card is the ship summary: open Analyzer and paste any token.
+  terminal: `A real scan in the stack.
 
-A Solana mint or an Ethereum address both run through the same Syra Alpha surface.
+GET /agent/tokens/memecoin-analysis with a 0x address detects EVM, pulls the best DexScreener pair plus KOL, computes Syra Alpha, and returns chain, market, and score together.
+
+syraa.fun/analyzer`,
+
+  cta: `Open Analyzer. Paste any token.
+
+A Solana mint or an Ethereum address runs on the same Syra Alpha surface.
 
 syraa.fun/analyzer
 syraa.fun/assets

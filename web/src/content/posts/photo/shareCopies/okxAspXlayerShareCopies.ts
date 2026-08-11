@@ -2,103 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy: OKX ASP + X Layer x402 + $SYRA flywheel. */
 export const OKX_ASP_XLAYER_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover announces that Syra is now an official Agent Service Provider on OKX, registered as ASP #2311.
+  cover: `Syra is an official Agent Service Provider on OKX.AI: ASP #2311.
 
-Payments settle over x402 on X Layer, and the badge on this card ties that directly to the $SYRA buyback: every paid call an OKX agent makes on Syra adds revenue that flows into buying $SYRA for the community airdrop pool.
-
-syraa.fun/playground`,
-
-  thesis: `This card states the thesis in one line: OKX's distribution meets $SYRA's demand.
-
-OKX has millions of wallets, and Syra now sits inside that ecosystem as ASP #2311 with more than 28 paid APIs. Around 80% of the x402 revenue those calls generate is used to buy $SYRA for holder airdrops, so more agent usage means more on-chain buy pressure.
-
-syraa.fun`,
-
-  quote: `The line on this card ties every payment back to the token: every agent payment is effectively a vote for $SYRA.
-
-Discovery happens on the OKX marketplace, settlement happens on X Layer in USDT, and the resulting revenue funds Jupiter buybacks. It is usage driving the number, not a promise.
-
-syraa.fun`,
-
-  flow: `This image walks the flywheel from a single agent payment to a buyback in four steps.
-
-1. An OKX Agentic Wallet discovers Syra as ASP #2311
-2. It pays USDT on X Layer through x402 for a single API call
-3. Syra returns the intelligence, whether that is a signal, news, or a brain response
-4. About 80% of that revenue goes into the Jupiter buyback pool for $SYRA
+X Layer x402 (pay only when you call). Every agent payment fuels $SYRA buybacks. Settle means the payment actually completes on X Layer.
 
 syraa.fun/playground`,
 
-  timeline: `This timeline covers what shipped to make Syra live on OKX.
+  thesis: `OKX distribution meets $SYRA demand.
 
-1. ASP #2311 registered as an ERC-8004 identity on X Layer mainnet
-2. An A2MCP catalog published, listing more than 28 pay-per-call crypto APIs
-3. An A2A service added for Syra's Brain research agent
-4. An OKX x402 facilitator wired in, settling USDT0 on eip155:196
+Millions of OKX wallets. Syra is ASP #2311 with 28+ paid APIs. About 80% of x402 revenue buys $SYRA for holder airdrops. More agent usage means more on-chain buy pressure.
 
 syraa.fun`,
 
-  pillars: `This bento layout names the four things driving demand for $SYRA.
+  quote: `Every agent payment is a vote for $SYRA.
 
-OKX.AI is the discovery layer, putting Syra's ASP listing in front of OKX's agent wallets. X Layer is the checkout, with native USDT x402 payments. Roughly 80% of the resulting fees go into the buyback, and staking $SYRA gives holders a discount on API usage, encouraging more of it.
-
-syraa.fun`,
-
-  checklist: `This checklist explains what the OKX integration means for $SYRA holders.
-
-1. OKX agent payments are real x402 revenue, not projected revenue
-2. That revenue buys $SYRA on Jupiter in production, not on paper
-3. The resulting buyback pool is reserved for community airdrops
-4. Staking $SYRA earns tiered discounts on API usage
-5. This listing went live before OKX's public marketplace review finished
+Discovery happens on the OKX marketplace. Settlement happens on X Layer in USDT. Jupiter buybacks come from real API revenue, so usage drives the token, not a slogan.
 
 syraa.fun`,
 
-  metrics: `The numbers on this card summarize the setup.
+  flow: `Pay on OKX, capture revenue, buy $SYRA.
 
-Syra holds ASP #2311 on OKX, with more than 28 paid APIs live, and roughly 80% of the revenue those calls generate routes into the buyback. OKX agents pay per call, Syra captures the revenue, and $SYRA holders share in what comes back.
+1. Agentic Wallet finds Syra ASP #2311 on OKX.AI
+2. Pay USDT on X Layer with an x402 micropayment per API call
+3. Get intelligence: signals, news, brain, OpenRouter APIs
+4. About 80% of revenue goes to the Jupiter buyback pool
 
-syraa.fun`,
+syraa.fun/playground`,
 
-  featured: `This featured card is about where the revenue actually goes.
+  timeline: `OKX x Syra. Live stack.
 
-Around 80% of x402 fees route into the $SYRA buyback pool. These are production settlements, not projections, and the buyback runs on every paid call before the OKX listing even goes fully public.
-
-syraa.fun`,
-
-  comparison: `This before-and-after card compares Syra's reach before and after the OKX integration.
-
-Before, Syra's x402 checkout only reached Solana and Base wallets, with no connection between usage and the $SYRA token story. Now Syra is listed as an ASP on OKX.AI, settles in USDT on X Layer, and every one of those OKX payments feeds the $SYRA buyback.
-
-syraa.fun`,
-
-  launch: `This partnership card marks Syra and OKX as live, with the listing still in review.
-
-Syra is registered as ASP #2311, giving OKX's Agentic Wallets machine money to pay for intelligence per call, with $SYRA capturing a share of the resulting revenue.
+1. ASP #2311: ERC-8004 identity on X Layer mainnet
+2. A2MCP catalog: 28+ pay-per-call crypto APIs listed
+3. A2A Brain: negotiated research agent service
+4. OKX x402: USDT0 facilitator on eip155:196
 
 syraa.fun`,
 
-  deepDive: `This deep-dive card lists the technical surface connecting OKX to $SYRA.
+  pillars: `Four engines for $SYRA demand.
 
-OKXFacilitatorClient runs on api.syraa.fun and handles verify and settle. USDT0 is accepted on eip155:196. buybackSYRAFromRevenue runs in production on every settlement. Staking tiers reduce API cost for holders, and the whole thing sits behind an OpenAPI spec with a 28-route x402 catalog.
-
-syraa.fun`,
-
-  split: `This split card shows both sides of the same loop: agents pay, and holders win.
-
-OKX Agentic Wallets discover Syra and pay USDT per intelligence call. On the other side, $SYRA stakers get usage discounts and a share of the buyback airdrop pool. Usage turns into revenue, and revenue turns into buybacks.
+OKX.AI is discovery: the ASP listing puts Syra in front of OKX agents. X Layer is USDT x402 checkout for Agentic Wallets. Buybacks take about 80% of fees and swap to $SYRA for airdrops. Staking discounts mean holders pay less and use more APIs.
 
 syraa.fun`,
 
-  terminal: `This terminal card shows a real X Layer payment triggering a buyback.
+  checklist: `What this means for holders.
 
-Calling a news endpoint returns 402 with a USDT0 accept on eip155:196. Paying through an OKX wallet on X Layer returns 200 with the content unlocked, and a $SYRA buyback swap gets queued from that revenue.
+1. OKX agent payments are real x402 revenue
+2. Revenue buys $SYRA on Jupiter in production
+3. Buyback pool is reserved for community airdrops
+4. Stake $SYRA for tiered API discounts
+5. First-mover ASP before public listing
 
 syraa.fun`,
 
-  cta: `This closing card is the summary: OKX agents are on the way, and $SYRA is the way to be positioned for it.
+  metrics: `Usage-backed token utility.
 
-Stake for discounts, hold for the buyback flywheel, or just try the playground today.
+ASP #2311. 28+ paid APIs. About 80% of fees to buyback.
+
+OKX agents pay per call. Syra captures revenue. $SYRA holders share the upside.
+
+syraa.fun`,
+
+  featured: `Revenue buys $SYRA.
+
+About 80% of fees go to buyback. Not vapor. Production x402 settles, and buyback runs on every paid call. Accumulate before OKX listing goes live.
+
+syraa.fun`,
+
+  comparison: `Crypto APIs vs agent-economy scale.
+
+Before, Solana and Base x402 only. Limited OKX wallet reach. Token story disconnected from OKX agents. Now OKX.AI ASP, X Layer USDT, and every OKX payment feeds $SYRA buybacks.
+
+syraa.fun`,
+
+  launch: `Syra x OKX is live, with listing still in review.
+
+ASP #2311 gives OKX Agentic Wallets machine money to pay for intelligence per call, with $SYRA capturing a share of the revenue.
+
+syraa.fun`,
+
+  deepDive: `OKX rails plus $SYRA capture.
+
+OKXFacilitatorClient on api.syraa.fun. USDT0 accepts on eip155:196. buybackSYRAFromRevenue in production. Staking tiers cut API cost for holders. OpenAPI plus a 28-route x402 catalog.
+
+syraa.fun`,
+
+  split: `Agents pay, and holders share the upside.
+
+OKX Agentic Wallets discover Syra and pay USDT per intelligence call. $SYRA stakers get discounts and share the buyback airdrop pool. Flywheel: usage, revenue, buyback. Position before listing goes public.
+
+syraa.fun`,
+
+  terminal: `X Layer payment, then $SYRA buyback.
+
+curl api.syraa.fun/news returns HTTP 402 with eip155:196 USDT0. An OKX wallet pays on X Layer. HTTP 200 unlocks headlines. A $SYRA swap is queued from that revenue.
+
+syraa.fun`,
+
+  cta: `OKX agents are coming, so position in $SYRA.
+
+Stake for discounts, hold for the buyback flywheel, or try the playground today.
 
 syraa.fun/playground
 syraa.fun

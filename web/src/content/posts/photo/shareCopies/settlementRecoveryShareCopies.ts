@@ -2,103 +2,105 @@ import type { PostPhotoCardRole } from "../photoCardSlots";
 
 /** Per-card X copy for settlement recovery proof photo deck. */
 export const SETTLEMENT_RECOVERY_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover is the settlement recovery ship log.
+  cover: `Settlement is healthy again.
 
-Settle fail rate fell from about 62% to 0.03% in 24 hours. Paid volume is back on healthy rails, and the numbers are public.
-
-syraa.fun`,
-
-  thesis: `This card names why settle health matters more than another feature slide.
-
-Agents stop paying when settlement fails. We removed the broken Celo Labs facilitator path and tightened settle so the 24h fail rate dropped to 0.03% on 3,370 attempts.
+Settlement means making sure the payment actually completed. Fail rate fell from about 62% to 0.03% in 24 hours. Paid calls, wallets, and rails you can verify.
 
 syraa.fun`,
 
-  quote: `The line on this card is the product promise in plain words: pay, settle, prove.
+  thesis: `Broken settle kills trust faster than missing features.
 
-Public metrics count only outcome=paid. Failures are not marketed as revenue.
+Agents stop paying when settlement fails, when the payment does not actually complete. We removed the broken Celo Labs path and the 24h fail rate dropped to 0.03% on 3,370 attempts.
+
+syraa.fun`,
+
+  quote: `Pay, settle, and prove.
+
+Public metrics count only paid outcomes. Failures are not marketed as revenue.
 
 api.syraa.fun/api/metrics`,
 
-  flow: `This image walks the settle path in four steps.
+  flow: `Pay, settle, then prove.
 
-1. An agent hits a paid route and sees payment required
-2. The wallet pays USDC on a healthy rail (Solana and Algorand lead live traffic)
-3. Syra counts only paid outcomes toward settled GMV
-4. Anyone can verify on GET /api/metrics and Solscan buyback links on /token
+1. Hit a paid route. x402 asks for USDC
+2. Settle on a healthy rail. Solana and Algorand lead
+3. Count paid only. GMV is outcome paid
+4. Verify live on /api/metrics and Solscan
 
 syraa.fun/token`,
 
-  timeline: `This timeline shows what shipped around the recovery.
+  timeline: `Recovery plus shipping, this week.
 
-1. Celo Labs x402 settle path removed from production
-2. 24h settle fail rate moved from ~62% to 0.03%
-3. Crossmint card to USDC onramp shipped on /wallet
-4. Flint market data and OKX Genesis finance surfaces landed the same week
-
-syraa.fun`,
-
-  pillars: `This bento layout is the user story in the live numbers.
-
-72 unique paying wallets in 7 days. 100% of wallets that saw a 402 converted to paid. 61% D7 repeat among eligible first-time payers. About $207 settled across 3,369 paid calls in the last day.
-
-api.syraa.fun/api/metrics`,
-
-  checklist: `This checklist is what you can verify yourself.
-
-1. 24h settle fail rate is 0.03%
-2. Last-day paid calls and settled USDC are public
-3. Unique paying wallets (7d) are public
-4. Buyback Solscan links live on /token
-5. Card onramp, Flint, and OKX Genesis surfaces are live this week
-
-syraa.fun/token`,
-
-  metrics: `The numbers on this card are from the last 24 hours.
-
-0.03% settle fail rate. 3,369 paid calls. 72 paying wallets in 7 days. Average paid call is about $0.05.
-
-api.syraa.fun/api/metrics`,
-
-  featured: `This featured card highlights the recovery headline.
-
-Settle fail rate: 0.03% in 24 hours, down from about 62% the day before. That is the trust number that unlocks the rest of the product story.
+1. Celo Labs path out: broken facilitator removed
+2. 0.03% fail in 24h on 3,370 settle attempts
+3. Crossmint onramp: card to USDC on /wallet
+4. Flint plus OKX Genesis: depth and finance surfaces
 
 syraa.fun`,
 
-  comparison: `This before-and-after card compares broken settle to healthy settle.
+  pillars: `Interesting user signals.
 
-Before, roughly 62% of settle attempts failed in a day and trust collapsed. Now 24h fail rate is 0.03%, with 3,369 paid calls and about $207 settled.
+72 wallets paid in 7 days. 100% of wallets that saw 402 converted to paid. 61% D7 repeat: 22 of 36 eligible payers returned in 7 days. $207 settled in 24h across 3,369 paid calls, about $0.05 each.
 
 api.syraa.fun/api/metrics`,
 
-  launch: `This launch card marks settlement health as a public ship log, not a private ops note.
+  checklist: `What you can verify yourself.
 
-Live metrics, Solscan buybacks, and paid-call surfaces stay open so builders and holders can check the same receipts.
+1. 24h settle fail rate: 0.03%
+2. 3,369 paid calls and about $207 settled in 24h
+3. 72 unique paying wallets in 7 days
+4. Buyback Solscan links on /token
+5. Crossmint, Flint, and OKX Genesis live this week
 
 syraa.fun/token`,
 
-  deepDive: `This deep-dive card lists what is interesting in the current traffic mix.
+  metrics: `Healthy settle and real demand.
 
-Top paid paths: gas-oracle, network-health, market-pulse. Leading rails by settled USDC: Algorand and Solana. Lifetime so far: about 16.8k paid calls, $812 settled, 77 unique paying wallets. 62 usage reward earners are accruing points.
+0.03% settle fail in 24h. 3,369 paid calls in 24h. 72 payers in 7 days.
+
+Top paths: gas-oracle, network-health, market-pulse. Leading rails: Algorand and Solana.
 
 api.syraa.fun/api/metrics`,
 
-  split: `This split card separates builders from holders without splitting the proof.
+  featured: `The trust number is 0.03%.
 
-Builders fund a wallet, make a paid call, and keep shipping agents. Holders verify buybacks on /token and watch usage rewards accrue on /rewards. Same public metrics for both.
+That is the 24h settle fail rate, down from about 62% the day before. Same public /api/metrics endpoint.
+
+syraa.fun`,
+
+  comparison: `Broken settle vs healthy settle.
+
+Before, about 62% of settle attempts failed in a day, and agents could not trust paid calls. Now 0.03% fail on 3,370 attempts, with 3,369 paid calls and about $207 settled in 24h.
+
+api.syraa.fun/api/metrics`,
+
+  launch: `Settlement proof is public.
+
+Metrics, Solscan buybacks (using revenue to buy the token), and paid-call surfaces stay open for everyone.
+
+syraa.fun/token`,
+
+  deepDive: `What users are actually calling.
+
+Top paths: /gas-oracle, /network-health, /market-pulse. Leading rails by settled USDC: Algorand, then Solana. Lifetime: about 16.8k paid calls, $812 settled, 77 payers. 62 usage reward earners accruing points. Buyback treasury holding about 165k $SYRA.
+
+api.syraa.fun/api/metrics`,
+
+  split: `Builders pay and holders verify.
+
+Fund a wallet, make a paid call, or check buybacks and rewards. Everyone reads the same metrics. Builders: /marketplace and /wallet. Holders: /token and /rewards. Everyone: /api/metrics. On-chain: Solscan buyback txs.
 
 syraa.fun/marketplace`,
 
-  terminal: `This terminal card shows the verification path.
+  terminal: `Verify in one request.
 
-GET /api/metrics returns settleFailRate, paid calls, unique wallets, path and network breakdowns. Buyback signatures link out to Solscan from /token.
+GET https://api.syraa.fun/api/metrics returns settlement.last24h.settleFailRate, northStar.uniquePayingWalletsLast7d, last24h calls and usdSettled, byPath, byNetwork, buyback, and funnel.d7RepeatRate.
 
 api.syraa.fun/api/metrics`,
 
-  cta: `This closing card is the ship summary: verify settle, then make a paid call.
+  cta: `Verify the settle. Then make a paid call.
 
-Read the metrics, check /token for buybacks, start on marketplace if you are building.
+Read public metrics, check buybacks on /token, start on marketplace if you are building.
 
 syraa.fun/marketplace
 api.syraa.fun/api/metrics`,

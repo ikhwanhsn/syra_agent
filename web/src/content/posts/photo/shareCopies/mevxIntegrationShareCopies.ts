@@ -1,35 +1,35 @@
 import type { PostPhotoCardRole } from "../photoCardSlots";
 
-/** Per-card X copy for MevX trading data photo deck. */
+/** Per-card X copy for MevX trading data photo deck. Proof-first, no meta card talk. */
 export const MEVX_INTEGRATION_PHOTO_SHARE_COPIES: Record<PostPhotoCardRole, string> = {
-  cover: `This cover announces MevX trading data landing inside Syra agents.
+  cover: `MevX trading data now sits inside Syra agents.
 
-Three new tools, mevx-trades, mevx-token, and mevx-pools, bring Solana DEX trade history, token snapshots, and pool markets straight into agent chat.
-
-syraa.fun/chat`,
-
-  thesis: `This card names the shift MevX enables.
-
-Agents can now trade on tape instead of vibes. MevX supplies recent DEX trades, token snapshots, and pool markets through Syra's agent tools, keyed to a single partner API key and delivered right inside the conversation.
+Three tools, mevx-trades, mevx-token, and mevx-pools, bring Solana DEX trade history, token snapshots, and pool markets into agent chat. Terminal data, delivered in conversation.
 
 syraa.fun/chat`,
 
-  quote: `The line on this card is the pitch in plain words: terminal data, agent delivery.
+  thesis: `Agents can trade on tape instead of vibes.
 
-Three tools sit behind one partner key, putting live market structure into the middle of a chat instead of a separate browser tab.
+MevX supplies recent DEX trades (the public record of swaps), token snapshots, and pool markets through Syra agent tools. Solana-first, keyed to a single partner API key, delivered in chat.
 
 syraa.fun/chat`,
 
-  flow: `This image walks the tool call in four steps.
+  quote: `Terminal data, delivered by the agent.
+
+Three tools sit behind one partner key. Live market structure shows up mid-conversation instead of in a separate browser tab.
+
+syraa.fun/chat`,
+
+  flow: `Chat to MevX to a trade-ready answer.
 
 1. Ask the agent for trades, token stats, or pool context
 2. The router picks mevx-trades, mevx-token, or mevx-pools
 3. Syra calls api.mevx.io with the partner key
-4. A structured, trade-ready reply comes back in chat
+4. A structured reply comes back in chat
 
 syraa.fun/chat`,
 
-  timeline: `This timeline shows how the MevX integration shipped.
+  timeline: `MevX shipped end to end.
 
 1. A mevxClient was added, authenticated with MEVX_API_KEY
 2. Three tools, mevx-trades, mevx-token, and mevx-pools, were registered
@@ -38,15 +38,15 @@ syraa.fun/chat`,
 
 syraa.fun/chat`,
 
-  pillars: `This bento layout breaks down the three MevX tools plus the key that runs them.
+  pillars: `Three MevX tools, plus the key that runs them.
 
-Trades pulls recent DEX history by pool or wallet. Token returns a market snapshot for a mint or address before sizing a trade. Pools shows where liquidity actually sits. Key is a single MEVX_API_KEY that covers all three, billed through the agent's own wallet.
+Trades pulls recent DEX history by pool or wallet. Token returns a market snapshot for a mint or address before you size a trade. Pools shows where liquidity actually sits. One MEVX_API_KEY covers all three, billed through the agent's own wallet.
 
 syraa.fun/chat`,
 
-  checklist: `This checklist is what shipped with the MevX integration.
+  checklist: `What shipped with the MevX integration.
 
-1. mevx-trades, mevx-token, and mevx-pools are all registered tools
+1. mevx-trades, mevx-token, and mevx-pools are registered tools
 2. They work through the existing POST /agent/tools/call endpoint
 3. Calls run through the Spend pillar and are listed in the MCP catalog
 4. A partner page is live at /partner/mevx
@@ -54,49 +54,51 @@ syraa.fun/chat`,
 
 syraa.fun/chat`,
 
-  metrics: `The numbers on this card describe the integration.
+  metrics: `Terminal data without leaving chat.
 
-Three agent tools are live, focused on Solana DEX data, all authenticated through one shared partner key. Agents can pull this data on demand without switching to a separate terminal.
+3 agent tools. Solana DEX focus. 1 partner key.
+
+Agents pull this data on demand. No separate terminal tab.
 
 syraa.fun/chat`,
 
-  featured: `This featured card is about what MevX puts inside Syra chat.
+  featured: `MevX tape now lives inside Syra chat.
 
-Recent trades, token snapshots, and pool markets, all reachable by asking once.
+Recent trades, token snapshots, and pool markets. Three live tools. Ask once.
 
 syraa.fun/partner/mevx`,
 
-  comparison: `This before-and-after card compares checking a terminal to calling a tool.
+  comparison: `Checking a terminal used to mean leaving the conversation.
 
-Before, getting this data meant leaving chat, opening a separate terminal, and pasting addresses by hand. Now, the mevx-* tools answer inside the same conversation, using the same wallet, with live DEX data.
+Before, you left chat, opened a separate terminal, and pasted addresses by hand. Now the mevx-* tools answer in the same conversation, with the same wallet, and live DEX data.
 
 syraa.fun/chat`,
 
-  launch: `This launch card marks MevX trading data going live inside Syra.
+  launch: `Syra and MevX are live together.
 
-Three tools cover trades, tokens, and pools for Solana DEX workflows, paid for through the existing Syra wallet path.
+Three tools cover trades, tokens, and pools for Solana DEX workflows. Paid through the existing Syra wallet path.
 
 syraa.fun/partner/mevx`,
 
-  deepDive: `This deep-dive card lists the technical surface behind the integration.
+  deepDive: `The partner rail is a thin client plus three agent tools.
 
-mevxClient calls out to api.mevx.io using MEVX_API_KEY, sourced from landing-api.mevx.io. The three tools are registered as agentDirect tools, routed through the Spend pillar at /mevx/* paths, alongside a partner marketing card.
+mevxClient calls api.mevx.io using MEVX_API_KEY from landing-api.mevx.io. The tools are registered as agentDirect: mevx-trades, mevx-token, and mevx-pools. Spend pillar routes sit at /mevx/*. There is a partner marketing page, and MevX on X is MEVX_Official.
 
 syraa.fun/partner/mevx`,
 
-  split: `This split card explains how MevX pairs with the rest of Syra.
+  split: `Tape in, then trade out in the same loop.
 
-mevx-token and mevx-pools cover research on a token or a pool. mevx-trades covers the tape itself. From there, the same conversation can move into a swap or an analyzer call to act on what was found.
-
-syraa.fun/chat`,
-
-  terminal: `This terminal card shows a real tool call in the request path.
-
-A call to POST /agent/tools/call with the mevx-token tool and a mint address returns a MevX market snapshot, which the agent turns into a structured reply. The mevx-trades tool works the same way for a given pool's recent tape.
+mevx-token and mevx-pools cover research on a token or a pool. mevx-trades covers the tape itself. From there, the same conversation can move into a swap or an analyzer call. Ops stay one partner key.
 
 syraa.fun/chat`,
 
-  cta: `This closing card is the ship summary: ask Syra for MevX data directly.
+  terminal: `A real tool call against MevX.
+
+POST /agent/tools/call with tool mevx-token and a mint address returns a MevX market snapshot, which the agent turns into a structured reply. mevx-trades works the same way for a given pool's recent tape.
+
+syraa.fun/chat`,
+
+  cta: `Ask Syra for MevX data directly.
 
 Fund the agent wallet, set MEVX_API_KEY, and call mevx-trades or mevx-token from chat.
 

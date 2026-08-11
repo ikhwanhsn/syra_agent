@@ -69,7 +69,7 @@ export function PostRecordStage({ children, showGuides }: PostRecordStageProps) 
               <span className="post-record-corner post-record-corner-tr" />
               <span className="post-record-corner post-record-corner-bl" />
               <span className="post-record-corner post-record-corner-br" />
-              <span className="post-record-tag font-mono text-[9px] uppercase tracking-[0.2em] text-[#F3BA2F]/55">
+              <span className="post-record-tag font-mono text-[9px] uppercase tracking-[0.2em] text-white/55">
                 16:9
               </span>
             </div>

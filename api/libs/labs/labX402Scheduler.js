@@ -49,10 +49,14 @@ const ALGORAND_FEE_HEAL_REASONS = new Set([
   'usdc_opt_in_failed',
 ]);
 
-function computeJitteredDelay(baseMs, jitterPct) {
-  const jitter = (jitterPct / 100) * baseMs;
-  const offset = (Math.random() * 2 - 1) * jitter;
-  return Math.max(60_000, Math.round(baseMs + offset));
+/** Random wait between scheduler batches. Interval/jitter settings are unused. */
+const AUTO_BATCH_DELAY_MIN_MS = 15 * 60_000;
+const AUTO_BATCH_DELAY_MAX_MS = 60 * 60_000;
+
+function computeRandomBatchDelay() {
+  const span = AUTO_BATCH_DELAY_MAX_MS - AUTO_BATCH_DELAY_MIN_MS;
+  const delay = AUTO_BATCH_DELAY_MIN_MS + Math.random() * span;
+  return Math.max(60_000, Math.round(delay));
 }
 
 /**
@@ -394,7 +398,7 @@ async function scheduleNext(chain, opts = {}) {
             autoCallPausedAt: settings.autoCallPausedAt,
             forceSlowRecheck: opts.forceSlowRecheck,
           })
-        : computeJitteredDelay(settings.intervalMs, settings.jitterPct);
+        : computeRandomBatchDelay();
     timerByChain.set(
       c,
       setTimeout(() => {
@@ -720,5 +724,7 @@ export const __test = {
   maintainAlgorandPayToFeeBuffer,
   TREASURY_SKIP_REASONS,
   ALGORAND_FEE_HEAL_REASONS,
-  computeJitteredDelay,
+  computeRandomBatchDelay,
+  AUTO_BATCH_DELAY_MIN_MS,
+  AUTO_BATCH_DELAY_MAX_MS,
 };
