@@ -26,6 +26,13 @@ import { linkifyBareHttpUrlsInMarkdown } from "@/lib/markdownLinkifyHttp";
 import { injectSolscanLinksInMarkdown } from "@/lib/solanaExplorerMarkdown";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
 import { AgentThinkingIndicator, ThinkingDots } from "@/components/chat/AgentThinkingIndicator";
+import { AgentThinkingTrace } from "@/components/chat/AgentThinkingTrace";
+import { ToolCallChips } from "@/components/chat/ToolCallChips";
+import { MessageSources } from "@/components/chat/MessageSources";
+import { FollowUpSuggestions } from "@/components/chat/FollowUpSuggestions";
+import { RecommendationCard } from "@/components/chat/RecommendationCard";
+import { ApprovalCard } from "@/components/chat/ApprovalCard";
+import type { ChatRecommendation, ChatSource, ReasoningStep } from "@/lib/chatStructuredUi";
 
 /** Match signed percentages in prose (e.g. -0.68%, +1.2%). Skipped inside code / links via tree walk. */
 const SIGNED_PERCENT_RE = /([+-]?\d+(?:\.\d+)?%)/g;
@@ -186,6 +193,10 @@ export interface ChatMessageModel {
   inlineUiDismissed?: boolean;
   swapActionsHidden?: boolean;
   swapInlineStatus?: "cancelled" | "submitted";
+  sources?: ChatSource[];
+  reasoningSteps?: ReasoningStep[];
+  followUps?: string[];
+  recommendation?: ChatRecommendation;
 }
 
 interface ChatMessageProps {
@@ -207,6 +218,7 @@ interface ChatMessageProps {
   onSubmitPumpfunCreateForm?: (payload: { assistantMessageId: string; prompt: string }) => void;
   /** Shared / read-only view: show form as static notice only */
   pumpfunCreateFormReadOnly?: boolean;
+  onFollowUp?: (question: string) => void;
 }
 
 export function ChatMessage({
@@ -221,6 +233,7 @@ export function ChatMessage({
   onDismissPumpfunCreateForm,
   onSubmitPumpfunCreateForm,
   pumpfunCreateFormReadOnly = false,
+  onFollowUp,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -695,6 +708,14 @@ export function ChatMessage({
                 </div>
               </div>
 
+              {!message.isStreaming && message.reasoningSteps?.length ? (
+                <AgentThinkingTrace steps={message.reasoningSteps} />
+              ) : null}
+
+              {!message.isStreaming && toolItems.length > 0 ? (
+                <ToolCallChips tools={toolItems} />
+              ) : null}
+
               {!message.isStreaming && pumpChartFromTools && (
                 <PumpfunPriceChart
                   {...(pumpChartFromTools.kind === "mint"
@@ -724,28 +745,82 @@ export function ChatMessage({
                   message.inlineUi?.type === "pumpfun-create-coin" &&
                   !message.inlineUiDismissed &&
                   (pumpfunCreateFormReadOnly || (onDismissPumpfunCreateForm && onSubmitPumpfunCreateForm) ? (
-                    <PumpfunCreateCoinInlineForm
-                      assistantMessageId={message.id}
-                      readOnly={pumpfunCreateFormReadOnly}
-                      onCreate={onSubmitPumpfunCreateForm ?? (() => {})}
-                      onCancel={onDismissPumpfunCreateForm ?? (() => {})}
-                    />
+                    <ApprovalCard
+                      question={
+                        message.inlineUi.question || "Launch this coin on pump.fun?"
+                      }
+                    >
+                      <PumpfunCreateCoinInlineForm
+                        assistantMessageId={message.id}
+                        readOnly={pumpfunCreateFormReadOnly}
+                        onCreate={onSubmitPumpfunCreateForm ?? (() => {})}
+                        onCancel={onDismissPumpfunCreateForm ?? (() => {})}
+                      />
+                    </ApprovalCard>
                   ) : null)}
                 {!message.isStreaming &&
                   (message.inlineUi?.type === "jupiter-swap" || message.inlineUi?.type === "pumpfun-swap") &&
                   !message.inlineUiDismissed &&
                   (pumpfunCreateFormReadOnly || (onDismissPumpfunCreateForm && onSubmitPumpfunCreateForm) ? (
-                    <AgentSwapInlineForm
-                      mode={message.inlineUi.type === "pumpfun-swap" ? "pumpfun" : "jupiter"}
-                      inlineUi={message.inlineUi}
-                      assistantMessageId={message.id}
-                      readOnly={pumpfunCreateFormReadOnly}
-                      actionsHidden={!!message.swapActionsHidden}
-                      swapInlineStatus={message.swapInlineStatus}
-                      onSwap={onSubmitPumpfunCreateForm ?? (() => {})}
-                      onCancel={onDismissPumpfunCreateForm ?? (() => {})}
-                    />
+                    <ApprovalCard
+                      question={message.inlineUi.question || "Confirm this swap?"}
+                    >
+                      <AgentSwapInlineForm
+                        mode={message.inlineUi.type === "pumpfun-swap" ? "pumpfun" : "jupiter"}
+                        inlineUi={message.inlineUi}
+                        assistantMessageId={message.id}
+                        readOnly={pumpfunCreateFormReadOnly}
+                        actionsHidden={!!message.swapActionsHidden}
+                        swapInlineStatus={message.swapInlineStatus}
+                        onSwap={onSubmitPumpfunCreateForm ?? (() => {})}
+                        onCancel={onDismissPumpfunCreateForm ?? (() => {})}
+                      />
+                    </ApprovalCard>
                   ) : null)}
+                {!message.isStreaming &&
+                  message.inlineUi?.type === "approval" &&
+                  !message.inlineUiDismissed && (
+                    <ApprovalCard question={message.inlineUi.question}>
+                      <div className="flex flex-wrap gap-1.5">
+                        {message.inlineUi.options.map((opt) => (
+                          <Button
+                            key={opt.id}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-9 min-h-[40px] rounded-full touch-manipulation"
+                            disabled={pumpfunCreateFormReadOnly || !onFollowUp}
+                            onClick={() => onFollowUp?.(opt.label)}
+                          >
+                            {opt.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </ApprovalCard>
+                  )}
+                {!message.isStreaming && message.sources?.length ? (
+                  <div className="mt-4">
+                    <MessageSources sources={message.sources} />
+                  </div>
+                ) : null}
+                {!message.isStreaming && message.recommendation ? (
+                  <div className="mt-4">
+                    <RecommendationCard
+                      recommendation={message.recommendation}
+                      readOnly={pumpfunCreateFormReadOnly}
+                      onAction={onFollowUp}
+                    />
+                  </div>
+                ) : null}
+                {!message.isStreaming && message.followUps?.length ? (
+                  <div className="mt-4">
+                    <FollowUpSuggestions
+                      questions={message.followUps}
+                      onSelect={onFollowUp}
+                      disabled={isRegenerateDisabled || pumpfunCreateFormReadOnly}
+                    />
+                  </div>
+                ) : null}
                 {!message.isStreaming && pumpfunCreateResult ? (
                   <PumpfunCreateCoinResultBar
                     mint={pumpfunCreateResult.mint}
@@ -758,7 +833,7 @@ export function ChatMessage({
               </div>
 
               {!message.isStreaming && (
-                <div className="flex flex-wrap items-center gap-1 border-t border-border/30 pt-3.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                <div className="flex flex-wrap items-center gap-1 border-t border-border/30 pt-3.5">
                   <Button
                     variant="ghost"
                     size="sm"

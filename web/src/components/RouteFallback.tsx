@@ -1,5 +1,8 @@
 import { useLocation } from "react-router-dom";
-import { ArticlesPageSkeleton } from "@/components/marketing/ArticlesSkeleton";
+import { AboutPageSkeleton } from "@/components/about/AboutPageSkeleton";
+import { ArticleDetailSkeleton, ArticlesPageSkeleton } from "@/components/marketing/ArticlesSkeleton";
+import { LegalPageSkeleton } from "@/components/legal/LegalPageSkeleton";
+import { TokenPageSkeleton } from "@/components/token/TokenPageSkeleton";
 import { AssetsPageSkeleton } from "@/components/assets/AssetsPageSkeleton";
 import { AssetDetailSkeleton } from "@/components/assets/AssetDetailSkeleton";
 import {
@@ -27,12 +30,16 @@ import { LpPoolsContentSkeleton } from "@/components/lp/LpPoolsContentSkeleton";
 import { OverviewPageSkeleton } from "@/components/dashboard/overview/OverviewPageSkeleton";
 import { BtcPageSkeleton } from "@/components/btc/BtcPageSkeleton";
 import { AgentSetupPageSkeleton } from "@/components/settings/AgentSetupPageSkeleton";
-import {
-  InternalAgentDetailSkeleton,
-  InternalMonitorPageSkeleton,
-} from "@/components/internal/InternalPageSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import {
+  dashboardFallbackShellClass,
+  isDashboardLayoutRoute,
+} from "@/lib/dashboardLayoutRoutes";
+import {
+  growthFallbackShellClass,
+  isGrowthContentRoute,
+} from "@/lib/growthLayoutRoutes";
 import { cn } from "@/lib/utils";
 
 export { LpPoolsContentSkeleton };
@@ -133,16 +140,32 @@ export function RewardsStatsSkeleton() {
 export function RewardsPageSkeleton() {
   return (
     <div
-      className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 animate-in fade-in duration-300 sm:px-6"
+      className="space-y-6 animate-in fade-in duration-300"
       aria-busy="true"
       aria-label="Loading rewards"
       role="status"
     >
-      <div className="space-y-3">
-        <Skeleton className="h-9 w-40" />
-        <Skeleton className="h-4 w-72 max-w-full" />
+      <div className="max-w-2xl space-y-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-9 w-56 max-w-full" />
+        <Skeleton className="h-4 w-full max-w-xl" />
+        <div className="flex flex-wrap gap-2 pt-1">
+          <Skeleton className="h-9 w-28 rounded-lg" />
+          <Skeleton className="h-9 w-28 rounded-lg" />
+          <Skeleton className="h-9 w-28 rounded-lg" />
+        </div>
       </div>
-      <RewardsStatsSkeleton />
+      <div className="grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className={cn(overviewCardShell, "space-y-2 p-5")}>
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-7 w-24" />
+          </div>
+        ))}
+      </div>
+      <div className={cn(overviewCardShell, "p-6 sm:p-8")}>
+        <RewardsStatsSkeleton />
+      </div>
     </div>
   );
 }
@@ -179,24 +202,6 @@ export function StreamflowPageSkeleton() {
             </div>
             <Skeleton className="h-8 w-20 shrink-0 rounded-md" />
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function InternalTableSkeleton({ rows = 6 }: { rows?: number }) {
-  return (
-    <div
-      className="space-y-4 animate-in fade-in duration-300"
-      aria-busy="true"
-      aria-label="Loading"
-      role="status"
-    >
-      <Skeleton className="h-10 w-full max-w-sm rounded-full" />
-      <div className={cn(overviewCardShell, "space-y-2 p-4")}>
-        {Array.from({ length: rows }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-lg" />
         ))}
       </div>
     </div>
@@ -299,9 +304,13 @@ function skeletonForPath(pathname: string, search = "") {
   if (root === "btc") return <BtcPageSkeleton />;
   if (root === "agent-setup") return <AgentSetupPageSkeleton />;
   if (root === "lp") return <LpPoolsContentSkeleton />;
+  if (root === "articles" && parts[1]) return <ArticleDetailSkeleton />;
   if (root === "articles") return <ArticlesPageSkeleton />;
+  if (root === "about") return <AboutPageSkeleton />;
+  if (root === "token") return <TokenPageSkeleton />;
   if (root === "marketplace" || root === "playground") return <PlaygroundCatalogPageSkeleton />;
   if (root === "rewards") return <RewardsPageSkeleton />;
+  if (root === "privacy" || root === "terms" || root === "cookies") return <LegalPageSkeleton />;
   if (root === "staking") return <StreamflowPageSkeleton />;
   if (root === "organize") {
     return (
@@ -320,9 +329,6 @@ function skeletonForPath(pathname: string, search = "") {
   }
   if (root === "labs") return <LabsPageSkeleton />;
   if (root === "llm") return <LlmPageSkeleton />;
-  if (root === "internal" && parts[1] === "wallets") return <InternalTableSkeleton />;
-  if (root === "internal" && parts[1]) return <InternalAgentDetailSkeleton />;
-  if (root === "internal") return <InternalMonitorPageSkeleton />;
   if (root === "lp-experiment" && parts[1] === "agent") return <ProfileDetailSkeleton />;
   if (root === "lp-experiment") return <ExperimentPageSkeleton accent="neutral" panelCount={3} />;
   if (root === "lp-robinhood") return <ExperimentPageSkeleton accent="amber" panelCount={3} />;
@@ -362,14 +368,22 @@ function pathUsesSelfPaddedSkeleton(pathname: string) {
 
 /**
  * Suspense fallback for lazy route chunks.
- * Keeps shell chrome visible; shows a path-matched content skeleton.
+ * Dashboard routes keep the real sidebar mounted and only skeleton the main column.
+ * Growth More pages use the same GROWTH_CONTENT_SHELL as the live page.
  */
 export function RouteFallback() {
   const { pathname, search } = useLocation();
+  const dashboard = isDashboardLayoutRoute(pathname);
+  const growth = !dashboard && isGrowthContentRoute(pathname);
   const selfPadded = pathUsesSelfPaddedSkeleton(pathname);
   return (
     <div
-      className={cn("w-full flex-1", !selfPadded && "py-4 sm:py-6")}
+      className={cn(
+        "w-full flex-1",
+        dashboard && dashboardFallbackShellClass(pathname),
+        growth && growthFallbackShellClass(),
+        !dashboard && !growth && !selfPadded && "py-4 sm:py-6",
+      )}
       role="status"
       aria-live="polite"
       aria-busy="true"

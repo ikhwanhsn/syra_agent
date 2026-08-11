@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TaskRows } from "@/components/chat/TaskRows";
 
 export function ThinkingDots({ className }: { className?: string }) {
   return (
@@ -148,7 +149,7 @@ export function AgentThinkingIndicator({
                     <li
                       key={`${i}-${step}`}
                       className={cn(
-                        "h-1.5 rounded-full transition-all duration-500",
+                        "h-1.5 rounded-full transition-all duration-500 motion-reduce:transition-none",
                         i === stepIndex
                           ? "w-6 bg-primary shadow-[0_0_12px_-2px_hsl(var(--primary)/0.8)]"
                           : i < stepIndex
@@ -159,6 +160,19 @@ export function AgentThinkingIndicator({
                   ))}
                 </ul>
               </div>
+
+              <TaskRows
+                steps={safeSteps.map((label, i) => ({
+                  id: `load-${i}`,
+                  label,
+                  status:
+                    i === stepIndex
+                      ? "running"
+                      : i < stepIndex
+                        ? "complete"
+                        : "skipped",
+                }))}
+              />
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@
 import { isMongooseConnected } from "../config/mongoose.js";
 import HolderFunnelSnapshot from "../models/HolderFunnelSnapshot.js";
 import { SYRA_TOKEN_MINT } from "./syraToken.js";
-import { gatherHolderPulseSnapshot } from "./syraHolderPulseService.js";
+import { gatherHolderPulseSnapshot } from "./syraHolderSnapshot.js";
 
 const SNAPSHOT_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
 

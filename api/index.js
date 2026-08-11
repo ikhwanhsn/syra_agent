@@ -55,16 +55,12 @@ import { createLeaderboardRouter } from "./routes/leaderboard.js";
 import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createPublicMetricsRouter } from "./routes/publicMetrics.js";
 import { createFreeTierRouter } from "./routes/freeTier.js";
-import { createInternalResearchRouter } from "./routes/internalResearch.js";
-import { createInternalPartnershipScoutRouter } from "./routes/internalPartnershipScout.js";
 import { createInternalBuybackRouter } from "./routes/internalBuyback.js";
 import {
   createSyraRewardsRouter,
   createInternalRewardsRouter,
 } from "./routes/syraRewards.js";
 import { createInternalHackathonScoutRouter } from "./routes/internalHackathonScout.js";
-import { createInternalToolsRouter } from "./routes/internalTools.js";
-import { createInternalAgentWalletsRouter } from "./routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "./routes/internalTesterAgent.js";
 import {
   SYRA_PROBE_BASE_URL,
@@ -979,11 +975,8 @@ app.use(
         isX402Route(p) ||
         isGatewayOpenApiFreeRoute(p) ||
         p.startsWith("/internal/tester-agent") ||
-        p.startsWith("/internal/trend-scout/run") ||
-        p.startsWith("/internal/growth-scout/run") ||
         p.startsWith("/internal/syra-telegram/webhook") ||
         p.startsWith("/internal/crossmint/webhook") ||
-        p.startsWith("/internal/partnership-scout/run") ||
         p.startsWith("/internal/buyback/run") ||
         p.startsWith("/internal/buyback/sync") ||
         p.startsWith("/internal/buyback/record")
@@ -1022,40 +1015,6 @@ app.use(
       const secret = (process.env.TESTER_AGENT_CRON_SECRET || "").trim();
       if (secret) {
         const got = (req.get("x-tester-agent-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      p === "/internal/trend-scout/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (process.env.SYRA_TREND_SCOUT_CRON_SECRET || "").trim();
-      if (secret) {
-        const got = (req.get("x-syra-trend-scout-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      p === "/internal/growth-scout/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (process.env.SYRA_GROWTH_SCOUT_CRON_SECRET || "").trim();
-      if (secret) {
-        const got = (req.get("x-syra-growth-scout-cron-secret") || "").trim();
-        if (got === secret) return true;
-      }
-    }
-    if (
-      p === "/internal/partnership-scout/run" &&
-      String(req.method || "").toUpperCase() === "POST"
-    ) {
-      const secret = (
-        process.env.SYRA_PARTNERSHIP_SCOUT_CRON_SECRET || ""
-      ).trim();
-      if (secret) {
-        const got = (
-          req.get("x-syra-partnership-scout-cron-secret") || ""
-        ).trim();
         if (got === secret) return true;
       }
     }
@@ -1278,7 +1237,7 @@ app.get("/", (req, res) => {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 `;
 
-  const ogImageUrl = "https://www.syraa.fun/images/og-banner.png";
+  const ogImageUrl = "https://www.syraa.fun/images/og-banner.png?v=5";
   // Absolute brand assets so scrapers (x402scan) resolve icons even if relative paths fail.
   const faviconSvgUrl = "https://www.syraa.fun/favicon.svg";
   const faviconPngUrl = "https://api.syraa.fun/favicon-96x96.png";
@@ -1296,13 +1255,16 @@ app.get("/", (req, res) => {
       <meta name="description" content="${SYRA_META_DESCRIPTION}" />
 
       <!-- OG Metadata -->
+      <meta property="og:site_name" content="Syra" />
+      <meta property="og:locale" content="en_US" />
       <meta property="og:title" content="Syra" />
       <meta property="og:description" content="${SYRA_META_DESCRIPTION}" />
       <meta property="og:image" content="${ogImageUrl}" />
+      <meta property="og:image:secure_url" content="${ogImageUrl}" />
       <meta property="og:image:type" content="image/png" />
       <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="628" />
-      <meta property="og:image:alt" content="Syra — ${SYRA_TAGLINE}" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="Syra. Machine money for agents. x402 pay-per-call APIs, MCP, and typed SDK." />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://api.syraa.fun/" />
 
@@ -1312,7 +1274,7 @@ app.get("/", (req, res) => {
       <meta name="twitter:title" content="Syra" />
       <meta name="twitter:description" content="${SYRA_META_DESCRIPTION}" />
       <meta name="twitter:image" content="${ogImageUrl}" />
-      <meta name="twitter:image:alt" content="Syra — ${SYRA_TAGLINE}" />
+      <meta name="twitter:image:alt" content="Syra. Machine money for agents. x402 pay-per-call APIs, MCP, and typed SDK." />
 
       <!-- Favicons: x402scan priority = SVG > large PNG (≥96) > apple-touch > ico -->
       <link rel="icon" href="${faviconSvgUrl}" type="image/svg+xml" />
@@ -1490,20 +1452,15 @@ app.use("/create-signal", await createAgentSignalRouter());
 app.use("/leaderboard", await createLeaderboardRouter());
 // Sentinel Dashboard: spend, agents, alerts (API key auth); same storage as wrapWithSentinel
 app.use("/internal/sentinel", await createSentinelDashboardRouter());
-// Tester agent (cron smoke); mount before /internal so paths are not swallowed by research router
+// Tester agent (cron smoke); mount before /internal so paths are not swallowed by other /internal routers
 app.use("/internal/tester-agent", createInternalTesterAgentRouter());
 app.use("/internal", createSyraTradingTelegramWebhookRouter());
 app.use("/internal", createSyraTelegramWebhookRouter());
 app.use("/internal", createCrossmintWebhookRouter());
-// Internal dashboard: research-store + scouts (API key auth, no x402)
-app.use("/internal", createInternalPartnershipScoutRouter());
 app.use("/internal", createInternalBuybackRouter());
 app.use("/internal", createInternalRewardsRouter());
 app.use("/rewards", createSyraRewardsRouter());
 app.use("/internal", createInternalHackathonScoutRouter());
-app.use("/internal", createInternalToolsRouter());
-app.use("/internal", createInternalAgentWalletsRouter());
-app.use("/internal", await createInternalResearchRouter());
 app.use("/experiment/spcx", createSpcxExperimentRouter());
 // LP agent experiment lab (Meteora DLMM dry-run simulation only)
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
@@ -2916,17 +2873,6 @@ app.listen(PORT, () => {
       ),
     );
 
-  import("./libs/syraTrendScoutScheduler.js")
-    .then(({ startSyraTrendScoutScheduler }) => {
-      startSyraTrendScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[syra-trend-scout] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
   import("./libs/syraTelegramBot/bootstrap.js")
     .then(({ startSyraTelegramBot }) => startSyraTelegramBot())
     .catch((e) =>
@@ -2950,28 +2896,6 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[syra-telegram-scoreboard] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/syraPartnershipScoutScheduler.js")
-    .then(({ startSyraPartnershipScoutScheduler }) => {
-      startSyraPartnershipScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[syra-partnership-scout] load failed:",
-        e instanceof Error ? e.message : e,
-      ),
-    );
-
-  import("./libs/syraGrowthScoutScheduler.js")
-    .then(({ startSyraGrowthScoutScheduler }) => {
-      startSyraGrowthScoutScheduler();
-    })
-    .catch((e) =>
-      console.warn(
-        "[syra-growth-scout] load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

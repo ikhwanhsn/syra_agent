@@ -81,6 +81,14 @@ import { runAgentPartnerDirectTool } from '../../libs/agentPartnerDirectTools.js
 import { chargeAgentForInternalTool } from '../../libs/agentInternalToolCharge.js';
 import { requireSession } from '../../utils/requireSession.js';
 import { sanitizeUserMessage, validateLlmToolSelection } from '../../libs/promptSanitizer.js';
+import {
+  extraAssistantUiFields,
+  extractRecommendationFromToolData,
+  extractSourcesFromToolData,
+  FOLLOWUPS_SYNTHESIS_NOTE,
+  kindForToolId,
+  splitFollowUpsFromResponse,
+} from '../../libs/agentChatStructuredUi.js';
 
 const router = express.Router();
 
@@ -1411,6 +1419,7 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     systemParts.push(
       `Response format: Always reply in clear, human-readable text. Use markdown: headings (##), bullet points, numbered lists, and tables where they help readability. Format numbers, prices, and percentages clearly (e.g. $1,234.56, +2.5%). NEVER include raw JSON, code blocks showing tool calls, "tool_calls:" blocks, or blocks like {"tool": "..."} or {"name": "...", "arguments": "..."} in your reply—turn all data into plain, well-formatted prose and tables only. Tools are called automatically by the system; you must NEVER output tool_calls or function_call JSON yourself. When you receive results from multiple tools (separated by ---), synthesize them into one coherent answer that addresses the user's question.`
     );
+    systemParts.push(FOLLOWUPS_SYNTHESIS_NOTE);
     systemParts.push(
       `Model disclosure: If asked what LLM/model powers Syra or you, answer with the language model name only (the server appends the exact name for this session before inference). Never name third-party inference or API provider brands.`
     );
@@ -1495,6 +1504,36 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     let amountChargedUsd = 0;
     /** @type {Array<{ name: string; status: 'complete' | 'error' | 'skipped'; costUsd?: number; included?: boolean }>} */
     let toolUsages = [];
+    /** @type {Array<{ id: string; label: string; kind: string; status: string; costUsd?: number; included?: boolean }>} */
+    const reasoningSteps = [];
+    /** @type {Array<{ url: string; title: string; origin?: string }>} */
+    const collectedSources = [];
+    /** @type {{ title: string; detail?: string; confidence?: number; actions?: Array<{ id: string; label: string }> } | null} */
+    let collectedRecommendation = null;
+    const pushReasoningStep = (partial) => {
+      reasoningSteps.push({
+        id: `step-${reasoningSteps.length + 1}`,
+        status: 'complete',
+        kind: 'reasoning',
+        ...partial,
+      });
+    };
+    if (matchedTools?.length) {
+      const names = matchedTools
+        .map((m) => getAgentTool(m.toolId)?.name || m.toolId)
+        .filter(Boolean);
+      pushReasoningStep({
+        label: names.length
+          ? `Selected ${names.join(', ')}`
+          : 'Chose tools for this question',
+        kind: 'reasoning',
+      });
+    } else {
+      pushReasoningStep({
+        label: 'Answered from conversation (no paid tool this turn)',
+        kind: 'reasoning',
+      });
+    }
     let hadToolResults = false;
     /** When pump.fun create-coin was skipped for missing params, client shows an inline launch form. */
     let offerPumpfunCreateUi = false;
@@ -2201,6 +2240,14 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
             ...chartUi,
             ...createCoinUi,
           });
+          const moreSources = extractSourcesFromToolData(tool.id, toolData);
+          for (const src of moreSources) {
+            if (collectedSources.length >= 12) break;
+            if (!collectedSources.some((s) => s.url === src.url)) collectedSources.push(src);
+          }
+          if (!collectedRecommendation) {
+            collectedRecommendation = extractRecommendationFromToolData(tool.id, toolData);
+          }
           const formatted = formatToolResultForLlm(toolData, tool.id, adaptive.maxToolResultChars);
           const presentInstruction =
             tool.id === 'trending-jupiter'
@@ -2246,6 +2293,20 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       apiMessages.push({
         role: 'user',
         content: `[The user asked for paid tool(s) (${toolIds}) but no agent wallet is linked. Reply that they need to connect or create an agent wallet and deposit USDC to use Syra's paid features.]`,
+      });
+    }
+
+    for (const u of toolUsages) {
+      const matched = (matchedTools || []).find((m) => {
+        const t = getAgentTool(m.toolId);
+        return t && t.name === u.name;
+      });
+      pushReasoningStep({
+        label: u.name,
+        kind: kindForToolId(matched?.toolId || u.name),
+        status: u.status,
+        ...(u.costUsd != null ? { costUsd: u.costUsd } : {}),
+        ...(u.included ? { included: true } : {}),
       });
     }
 
@@ -2382,6 +2443,20 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
       }
     }
 
+    let followUps = [];
+    if (typeof response === 'string' && response.trim() && !skipFinalLlmForSilentSwapUi) {
+      const split = splitFollowUpsFromResponse(response);
+      response = split.response;
+      followUps = split.followUps;
+    }
+    if (!skipFinalLlmForSilentSwapUi) {
+      pushReasoningStep({
+        label: hadToolResults ? 'Wrote answer from tool results' : 'Wrote answer',
+        kind: 'reasoning',
+        status: 'complete',
+      });
+    }
+
     const tokensThisTurn = tokensFromUsage(toolSelectUsage) + tokensFromUsage(mainCompletionUsage);
     if (chatIdForBudget && anonymousId && tokensThisTurn > 0) {
       await Chat.findOneAndUpdate(
@@ -2417,11 +2492,19 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     if (amountChargedUsd > 0) payload.amountChargedUsd = amountChargedUsd;
     if (usedFallbackModel) payload.usedFallbackModel = true;
     if (toolUsages && toolUsages.length > 0) payload.toolUsages = toolUsages;
+    if (reasoningSteps.length > 0) payload.reasoningSteps = reasoningSteps;
+    if (collectedSources.length > 0) payload.sources = collectedSources;
+    if (followUps.length > 0) payload.followUps = followUps;
+    if (collectedRecommendation) payload.recommendation = collectedRecommendation;
     if (offerPumpfunCreateUi) {
-      payload.inlineUi = { type: 'pumpfun-create-coin' };
+      payload.inlineUi = {
+        type: 'pumpfun-create-coin',
+        question: 'Launch this coin on pump.fun?',
+      };
     } else if (offerPumpfunSwapUi) {
       payload.inlineUi = {
         type: 'pumpfun-swap',
+        question: 'Confirm this swap?',
         ...(pumpfunSwapInlineHints?.suggestedMints?.length
           ? { suggestedMints: pumpfunSwapInlineHints.suggestedMints }
           : {}),
@@ -2595,6 +2678,7 @@ router.get('/share/:shareId', async (req, res) => {
         ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
         ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
         ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+        ...extraAssistantUiFields(m),
       }));
       return res.json({
         id: chat._id.toString(),
@@ -2629,6 +2713,7 @@ router.get('/share/:shareId', async (req, res) => {
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
       ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+      ...extraAssistantUiFields(m),
     }));
     res.json({
       id: chat._id.toString(),
@@ -2764,6 +2849,7 @@ router.get('/:id', async (req, res) => {
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
       ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+      ...extraAssistantUiFields(m),
     }));
 
     res.json({
@@ -2864,6 +2950,7 @@ router.put('/:id/messages', async (req, res) => {
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
       ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+      ...extraAssistantUiFields(m),
     }));
 
     const update = { messages: normalized };
@@ -2891,6 +2978,7 @@ router.put('/:id/messages', async (req, res) => {
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
       ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+      ...extraAssistantUiFields(m),
     }));
 
     res.json({
@@ -2928,6 +3016,7 @@ router.post('/:id/messages', async (req, res) => {
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
       ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+      ...extraAssistantUiFields(m),
     }));
 
     const chat = await Chat.findOneAndUpdate(
@@ -2953,6 +3042,7 @@ router.post('/:id/messages', async (req, res) => {
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
       ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+      ...extraAssistantUiFields(m),
     }));
 
     res.json({

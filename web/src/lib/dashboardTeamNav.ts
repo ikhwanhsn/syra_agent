@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ClipboardList, FlaskConical, Sparkles, UsersRound } from "lucide-react";
-import { INTERNAL_BASE_PATH, isInternalRoute } from "@/lib/internalRoutes";
+import { ClipboardList, FlaskConical, Sparkles } from "lucide-react";
 
 export type DashboardTeamNavItem = {
   id: string;
@@ -11,7 +10,7 @@ export type DashboardTeamNavItem = {
   isActive: (pathname: string) => boolean;
 };
 
-/** Admin-only team tools, Labs, LLM, Organize, Internal. */
+/** Admin-only team tools: Labs, LLM, Organize. */
 export const DASHBOARD_TEAM_NAV: readonly DashboardTeamNavItem[] = [
   {
     id: "labs",
@@ -36,14 +35,6 @@ export const DASHBOARD_TEAM_NAV: readonly DashboardTeamNavItem[] = [
     icon: ClipboardList,
     to: "/organize",
     isActive: (p) => p === "/organize" || p.startsWith("/organize/"),
-  },
-  {
-    id: "internal",
-    label: "Internal",
-    description: "Scout agents & team hub",
-    icon: UsersRound,
-    to: INTERNAL_BASE_PATH,
-    isActive: (p) => isInternalRoute(p),
   },
 ];
 

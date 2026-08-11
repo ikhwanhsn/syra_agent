@@ -10,6 +10,7 @@ import type { PlaygroundPaymentLane } from '@/lib/paymentLane';
 import { shouldShowNonX402Hint } from '@/lib/nonX402ResponseHint';
 import { isLocalApiUnreachableBody } from '@/lib/devApiProxyHint';
 import { BRAND_NAME } from '@/lib/branding';
+import { SyraMascot } from '@/components/brand/SyraMascot';
 
 interface ResponseViewerProps {
   response?: ApiResponse;
@@ -268,8 +269,8 @@ export function ResponseViewer({
         <div className="mb-4 shrink-0 animate-fade-in overflow-hidden rounded-xl border border-border bg-gradient-to-br from-muted/60 via-card/40 to-transparent">
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-3 py-3 sm:px-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary">
-              <Zap className="h-5 w-5 text-foreground" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
+              <SyraMascot size={44} decorative className="h-11 w-11" />
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-foreground">

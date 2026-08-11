@@ -260,7 +260,7 @@ export function AgentSwapInlineForm({
   const frozen = actionsHidden;
 
   return (
-    <div className="mt-4 w-full min-w-0">
+    <div className="w-full min-w-0">
       <div
         role="group"
         aria-label={`Token swap (${venueLabel})`}

@@ -2,6 +2,7 @@
 
 import { Link } from "@/lib/navigation";
 import { ArrowRight, ArrowUpRight, BookOpen, Plug, Terminal, Zap } from "lucide-react";
+import { SyraMascot } from "@/components/brand/SyraMascot";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -58,26 +59,16 @@ export function EmptyState({ agentName = "Syra Agent" }: EmptyStateProps) {
           className="animate-in fade-in zoom-in-95 fill-mode-both duration-500"
           style={{ animationDelay: "0ms" }}
         >
-          <div className="relative mx-auto mb-6 h-[3.75rem] w-[3.75rem] sm:h-16 sm:w-16">
+          <div className="relative mx-auto mb-6 h-28 w-28 sm:h-36 sm:w-36">
             <div
-              className="absolute inset-0 rounded-[1.15rem] bg-foreground/[0.06] blur-xl sm:rounded-[1.25rem]"
+              className="absolute inset-[8%] rounded-full bg-foreground/[0.07] blur-2xl"
               aria-hidden
             />
-            <div
-              className={cn(
-                "relative flex h-full w-full items-center justify-center overflow-hidden rounded-[1.15rem] sm:rounded-[1.25rem]",
-                "border border-border/55 bg-gradient-to-br from-card via-card/95 to-muted/35",
-                "shadow-[0_8px_32px_-12px_rgba(0,0,0,0.28),inset_0_1px_0_0_rgba(255,255,255,0.06)]",
-                "ring-1 ring-inset ring-white/[0.05]",
-              )}
-            >
-              <img
-                src="/logo.jpg"
-                alt="Syra"
-                className="h-full w-full object-cover"
-                draggable={false}
-              />
-            </div>
+            <SyraMascot
+              size={144}
+              alt="Syra"
+              className="relative h-full w-full drop-shadow-[0_10px_28px_rgba(0,0,0,0.28)]"
+            />
           </div>
         </div>
 

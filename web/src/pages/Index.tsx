@@ -14,6 +14,12 @@ import {
   getApiBaseUrl,
   type AgentInlineUiPayload,
 } from "@/lib/chatApi";
+import {
+  extraAssistantUiFromUnknown,
+  type ChatRecommendation,
+  type ChatSource,
+  type ReasoningStep,
+} from "@/lib/chatStructuredUi";
 import { resolveAssistantSwapInlineUi } from "@/lib/swapIntentFromMessage";
 import { getAgentSystemPrompt } from "@/lib/agentSetupStorage";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
@@ -57,6 +63,10 @@ interface Message {
   inlineUiDismissed?: boolean;
   swapActionsHidden?: boolean;
   swapInlineStatus?: "cancelled" | "submitted";
+  sources?: ChatSource[];
+  reasoningSteps?: ReasoningStep[];
+  followUps?: string[];
+  recommendation?: ChatRecommendation;
 }
 
 interface Chat {
@@ -102,6 +112,10 @@ function toMessage(m: {
   inlineUiDismissed?: boolean;
   swapActionsHidden?: boolean;
   swapInlineStatus?: "cancelled" | "submitted";
+  sources?: unknown;
+  reasoningSteps?: unknown;
+  followUps?: unknown;
+  recommendation?: unknown;
 }): Message {
   return {
     id: m.id,
@@ -115,6 +129,7 @@ function toMessage(m: {
     ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
     ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
     ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+    ...extraAssistantUiFromUnknown(m),
   };
 }
 
@@ -155,6 +170,7 @@ function messageToApiPayload(m: Message) {
     ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
     ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
     ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+    ...extraAssistantUiFromUnknown(m),
   };
 }
 
@@ -237,6 +253,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(defaultAgents[0]);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [chatsLoading, setChatsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>(
@@ -833,6 +850,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         amountChargedUsd,
         toolUsages,
         inlineUi,
+        sources,
+        reasoningSteps,
+        followUps,
+        recommendation,
       } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: getAgentSystemPrompt(),
@@ -843,6 +864,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
+        model: selectedModelId,
       });
 
       if (amountChargedUsd != null && amountChargedUsd > 0) {
@@ -868,6 +890,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               isStreaming: false,
               ...(toolUsages?.length ? { toolUsages } : {}),
               ...(mergedInlineUi ? { inlineUi: mergedInlineUi } : {}),
+              ...(sources?.length ? { sources } : {}),
+              ...(reasoningSteps?.length ? { reasoningSteps } : {}),
+              ...(followUps?.length ? { followUps } : {}),
+              ...(recommendation ? { recommendation } : {}),
             },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
@@ -1104,6 +1130,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         amountChargedUsd,
         toolUsages,
         inlineUi,
+        sources,
+        reasoningSteps,
+        followUps,
+        recommendation,
       } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: getAgentSystemPrompt(),
@@ -1111,6 +1141,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
+        model: selectedModelId,
       });
 
       if (amountChargedUsd != null && amountChargedUsd > 0) {
@@ -1136,6 +1167,10 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               isStreaming: false,
               ...(toolUsages?.length ? { toolUsages } : {}),
               ...(mergedInlineUi ? { inlineUi: mergedInlineUi } : {}),
+              ...(sources?.length ? { sources } : {}),
+              ...(reasoningSteps?.length ? { reasoningSteps } : {}),
+              ...(followUps?.length ? { followUps } : {}),
+              ...(recommendation ? { recommendation } : {}),
             },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
@@ -1386,6 +1421,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 onUpdateUserMessage={handleUpdateUserMessage}
                 onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
                 onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
+                selectedModelId={selectedModelId}
+                onSelectModel={setSelectedModelId}
               />
             )}
           </main>
@@ -1422,6 +1459,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 onUpdateUserMessage={handleUpdateUserMessage}
                 onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
                 onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
+                selectedModelId={selectedModelId}
+                onSelectModel={setSelectedModelId}
               />
           )}
         </main>

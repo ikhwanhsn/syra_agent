@@ -1,4 +1,4 @@
-import { BookOpen, Compass, GitBranch, Shield, Sparkles, Zap } from "lucide-react";
+import { BookOpen, Compass, Sparkles, Zap } from "lucide-react";
 import { defineVideoUpdate } from "./videoDeck";
 
 /**
@@ -103,23 +103,23 @@ github.com/solana-foundation/tokens`,
       headline: "Foundation truth. Syra decisions.",
       cards: [
         {
-          icon: Shield,
           title: "Canonical identity",
+          subtitle: "Tokens.xyz",
           detail: "Tokens owns assetId, variants, markets, and risk.",
         },
         {
-          icon: Sparkles,
           title: "Syra intelligence",
+          subtitle: "On top",
           detail: "News, sentiment, events, and signal on the same asset.",
         },
         {
-          icon: Zap,
           title: "Pay per call",
+          subtitle: "x402",
           detail: "MCP and x402 charge only when agents call.",
         },
         {
-          icon: GitBranch,
           title: "Open upstream",
+          subtitle: "GitHub",
           detail: "Contribute and track github.com/solana-foundation/tokens.",
         },
       ],
@@ -127,7 +127,7 @@ github.com/solana-foundation/tokens`,
     {
       id: "surfaces",
       kind: "surfaces",
-      layout: "surfaces-grid",
+      layout: "surfaces-tiles",
       label: "Surfaces",
       kicker: "Where to find it",
       headline: "Board, API, MCP, docs",
@@ -135,29 +135,32 @@ github.com/solana-foundation/tokens`,
         {
           icon: Compass,
           title: "Assets hub",
-          detail: "Browse the Tokens universe on syraa.fun/assets.",
+          description: "Browse the Tokens universe on syraa.fun/assets.",
+          href: "https://www.syraa.fun/assets",
         },
         {
           icon: BookOpen,
           title: "Tokens OSS",
-          detail: "Read the live monorepo on GitHub.",
+          description: "Read the live monorepo on GitHub.",
+          href: "https://github.com/solana-foundation/tokens",
         },
         {
           icon: Zap,
           title: "Agent tools",
-          detail: "tokens-* plus asset-research for one-shot decisions.",
+          description: "tokens-* plus asset-research for one-shot decisions.",
         },
         {
           icon: Sparkles,
           title: "Marketplace",
-          detail: "Paid /assets routes under the tokens.xyz brand.",
+          description: "Paid /assets routes under the tokens.xyz brand.",
+          href: "https://www.syraa.fun/marketplace",
         },
       ],
     },
     {
       id: "impact",
       kind: "impact",
-      layout: "impact-stat-trio",
+      layout: "impact-stats",
       label: "Impact",
       kicker: "Proof",
       headline: "Already integrated. Now amplified.",
@@ -172,10 +175,10 @@ github.com/solana-foundation/tokens`,
     {
       id: "closing",
       kind: "closing",
-      layout: "closing-cta",
+      layout: "closing-links",
       label: "CTA",
       headline: "Canonical mint in. Decision out.",
-      subtitle:
+      subline:
         "Open the Assets hub, call asset-research from an agent, or read the Tokens monorepo.",
       links: [
         { label: "Assets", value: "syraa.fun/assets", href: "https://www.syraa.fun/assets" },

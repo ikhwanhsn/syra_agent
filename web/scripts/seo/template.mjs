@@ -8,7 +8,9 @@ export const SITE_ORIGIN = "https://www.syraa.fun";
 export const DOCS_ORIGIN = "https://docs.syraa.fun";
 export const API_ORIGIN = "https://api.syraa.fun";
 
-const OG_IMAGE = `${SITE_ORIGIN}/images/og-banner.png`;
+const OG_IMAGE = `${SITE_ORIGIN}/images/og-banner.png?v=5`;
+const OG_IMAGE_ALT =
+  "Syra. Machine money for agents. x402 pay-per-call APIs, MCP, and typed SDK.";
 
 /** Escape text for HTML body / attributes. */
 export function escapeHtml(value) {
@@ -128,16 +130,23 @@ export function renderSeoPage({
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png?v=3" />
   <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml" />
   <meta property="og:site_name" content="Syra" />
+  <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="${escapeHtml(fullTitle)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="${escapeHtml(canonical)}" />
   <meta property="og:image" content="${escapeHtml(OG_IMAGE)}" />
+  <meta property="og:image:secure_url" content="${escapeHtml(OG_IMAGE)}" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@syra_agent" />
   <meta name="twitter:title" content="${escapeHtml(fullTitle)}" />
   <meta name="twitter:description" content="${escapeHtml(description)}" />
   <meta name="twitter:image" content="${escapeHtml(OG_IMAGE)}" />
+  <meta name="twitter:image:alt" content="${escapeHtml(OG_IMAGE_ALT)}" />
   <script type="application/ld+json">${JSON.stringify({
     "@context": "https://schema.org",
     "@graph": graph,

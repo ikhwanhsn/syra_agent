@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { GROWTH_EASE, GrowthCountUp } from "@/components/growth/growthMotion";
 import {
   growthKickerClass,
   growthMonoChipClass,
@@ -73,9 +74,10 @@ export type GrowthX402FlowProps = {
 };
 
 function formatNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return n.toLocaleString();
+  const v = Math.round(n);
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+  return v.toLocaleString();
 }
 
 function formatUsd(n: number): string {
@@ -178,21 +180,30 @@ export function GrowthX402Flow({
           />
 
           <ol className="relative min-h-[8.5rem] space-y-1.5 sm:min-h-[9rem]" aria-live="polite">
-            {lines.slice(0, visibleCount).map((line) => (
-              <li key={line.id} className="flex gap-2.5">
-                <span className="shrink-0 text-muted-foreground/50">{line.prefix}</span>
-                <span
-                  className={cn(
-                    line.tone === "ok" && "text-emerald-400",
-                    line.tone === "warn" && "text-foreground/85",
-                    line.tone === "muted" && "text-muted-foreground",
-                    line.tone === "default" && "text-foreground/90",
-                  )}
+            <AnimatePresence initial={false}>
+              {lines.slice(0, visibleCount).map((line) => (
+                <motion.li
+                  key={`${loopKey}-${line.id}`}
+                  className="flex gap-2.5"
+                  initial={reduceMotion ? false : { opacity: 0, y: 6, x: 4 }}
+                  animate={{ opacity: 1, y: 0, x: 0 }}
+                  exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
+                  transition={{ duration: 0.35, ease: GROWTH_EASE }}
                 >
-                  {line.text}
-                </span>
-              </li>
-            ))}
+                  <span className="shrink-0 text-muted-foreground/50">{line.prefix}</span>
+                  <span
+                    className={cn(
+                      line.tone === "ok" && "text-emerald-400",
+                      line.tone === "warn" && "text-foreground/85",
+                      line.tone === "muted" && "text-muted-foreground",
+                      line.tone === "default" && "text-foreground/90",
+                    )}
+                  >
+                    {line.text}
+                  </span>
+                </motion.li>
+              ))}
+            </AnimatePresence>
             {showCaret ? (
               <li className="flex gap-2.5 text-muted-foreground/60" aria-hidden>
                 <span className="shrink-0">▋</span>
@@ -240,19 +251,19 @@ export function GrowthX402Flow({
             <div className="min-w-0">
               <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Calls · 7d</p>
               <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                {paid7d != null ? formatNum(paid7d) : "-"}
+                {paid7d != null ? <GrowthCountUp value={paid7d} format={formatNum} /> : "-"}
               </p>
             </div>
             <div className="min-w-0">
               <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Wallets</p>
               <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                {payers7d != null ? formatNum(payers7d) : "-"}
+                {payers7d != null ? <GrowthCountUp value={payers7d} format={formatNum} /> : "-"}
               </p>
             </div>
             <div className="min-w-0">
               <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Settled</p>
               <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                {settledUsd != null ? formatUsd(settledUsd) : "-"}
+                {settledUsd != null ? <GrowthCountUp value={settledUsd} format={formatUsd} /> : "-"}
               </p>
             </div>
           </div>

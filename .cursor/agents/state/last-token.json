@@ -1,0 +1,46 @@
+{
+  "date": "2026-08-11",
+  "updatedAt": "2026-08-11T17:08:00.000Z",
+  "source": "https://api.syraa.fun/api/metrics",
+  "loopHealth": "Open",
+  "checklistItem": "Fund rewards epoch (maxSyraToFund=50000) so totalClaimableSyra > 0. Hold #34 publish until ≥5 consecutive 24h-green settle days; draft may be refreshed with live 7d + Solscan s3n9W9kL… but not shipped today.",
+  "northStar": {
+    "paidCallsLast7d": 28520,
+    "uniquePayingWalletsLast7d": 110,
+    "usdSettled7d": 2411.38
+  },
+  "buyback": {
+    "totalBuybackUsdSpent": 24.39,
+    "treasurySyraBalance": 172452.066761,
+    "lastBuybackSolscan": "https://solscan.io/tx/s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG",
+    "lastFlushAt": "2026-08-06T15:54:52.754Z"
+  },
+  "rewards": {
+    "uniqueEarners": 108,
+    "totalClaimableSyra": 50000,
+    "totalClaimedSyra": 0,
+    "totalPendingPoints": 8189.736650000021,
+    "fundAttempt": "success 2026-08-11T17:08Z — fundedWallets=3 totalSyraFunded=50000 rate=1000. Render syra_agent clear-cache deploy + BUYBACK_CRON_SECRET set on service (value not stored in repo)."
+  },
+  "holders": {
+    "marketCapUsd": 61756,
+    "liquidityUsd": 23338.27,
+    "volume24hUsd": 1690.66,
+    "uniqueStakers": 1
+  },
+  "settlement": {
+    "settleFailRate24h": 0.0337,
+    "meetsLaunchGuardrail24h": true,
+    "settleFailRate1h": 0.0657,
+    "topFailReason": "Facilitator settle failed (settle_timeout); local Solana settle did not confirm"
+  },
+  "publish": {
+    "status": "held_for_settlement_streak",
+    "postVideo": "https://www.syraa.fun/post/video/34",
+    "postPhoto": "https://www.syraa.fun/post/photo/34",
+    "draftReady": true,
+    "reason": "24h green (Mon 0.038 + Tue 0.0337) but CEO week requires ≥5 consecutive green days; 1h still 0.0657"
+  },
+  "oneAction": "Epoch funded. Next: optional Solana session claim for proof tx. Hold #34 publish until 5-day settle streak.",
+  "notes": "Mint Tue 2026-08-11. Receipt Closed-but-quiet. Claim: no fund cron; dual auth. Lock: 1 staker vs 110 payers. Desk: refresh #34 later, do not publish."
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "@/lib/navigation";
 import { chatApi, type ApiChat, type ApiMessage, type AgentInlineUiPayload } from "@/lib/chatApi";
+import { extraAssistantUiFromUnknown } from "@/lib/chatStructuredUi";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,10 @@ function toMessage(m: {
   inlineUiDismissed?: boolean;
   swapActionsHidden?: boolean;
   swapInlineStatus?: "cancelled" | "submitted";
+  sources?: unknown;
+  reasoningSteps?: unknown;
+  followUps?: unknown;
+  recommendation?: unknown;
 }) {
   return {
     id: m.id,
@@ -32,6 +37,7 @@ function toMessage(m: {
     ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
     ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
     ...(m.swapInlineStatus ? { swapInlineStatus: m.swapInlineStatus } : {}),
+    ...extraAssistantUiFromUnknown(m),
   };
 }
 

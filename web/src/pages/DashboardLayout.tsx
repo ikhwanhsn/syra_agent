@@ -25,7 +25,6 @@ import {
 import { useWalletContext } from "@/contexts/WalletContext";
 import { MachineMoneyPreviewProvider, useMachineMoneyPreview } from "@/contexts/MachineMoneyPreviewContext";
 import { isAdminWallet } from "@/constants/adminWallet";
-import { getInternalAgentMeta, isInternalAgentSlug } from "@/lib/internalAgentsCatalog";
 import { DASHBOARD_PILLAR_NAV, isPillarGated, MACHINE_MONEY_SOON_BADGE } from "@/lib/dashboardPillarNav";
 import { DASHBOARD_MARKET_INTEL_NAV } from "@/lib/dashboardMarketIntelNav";
 import { DASHBOARD_EXPERIMENT_NAV } from "@/lib/dashboardExperimentNav";
@@ -58,17 +57,6 @@ function dashboardPageTitle(pathname: string, search: string): string {
   if (parts[0] === "labs") return "Labs";
   if (parts[0] === "llm") return "LLM";
   if (parts[0] === "organize") return "Organize";
-  if (parts[0] === "internal") {
-    if (parts[1]) {
-      const slug = parts[1];
-      if (isInternalAgentSlug(slug)) {
-        const meta = getInternalAgentMeta(slug);
-        if (meta) return meta.name;
-      }
-      return "Internal agent";
-    }
-    return "Internal";
-  }
   return "Overview";
 }
 

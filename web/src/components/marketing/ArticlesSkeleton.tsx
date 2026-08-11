@@ -84,3 +84,39 @@ export function ArticlesPageSkeleton() {
     </div>
   );
 }
+
+/** Matches ArticlePage: cover + body column + right rail. */
+export function ArticleDetailSkeleton() {
+  return (
+    <div
+      className="animate-in fade-in duration-300"
+      aria-busy="true"
+      aria-label="Loading article"
+      role="status"
+    >
+      <div className="space-y-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-10 w-full max-w-3xl sm:h-12" />
+        <Skeleton className="h-10 w-4/5 max-w-2xl sm:hidden" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+
+      <div className="mt-6 min-w-0 sm:mt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-start lg:gap-6 xl:gap-8">
+        <div className="min-w-0 space-y-6 sm:space-y-8">
+          <Skeleton className="aspect-video w-full rounded-2xl" />
+          <div className="space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className={cn("h-4", i % 3 === 2 ? "w-2/3" : "w-full")} />
+            ))}
+          </div>
+          <Skeleton className="h-40 w-full rounded-2xl" />
+        </div>
+        <aside className="mt-8 hidden min-w-0 space-y-4 lg:mt-0 lg:block">
+          <Skeleton className="h-28 w-full rounded-2xl" />
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
+        </aside>
+      </div>
+    </div>
+  );
+}

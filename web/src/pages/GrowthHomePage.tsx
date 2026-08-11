@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@/lib/navigation";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -26,6 +26,7 @@ import {
   growthCtaSecondaryClass,
   growthDividerClass,
   growthEyebrowClass,
+  growthInnerLiftClass,
   growthKickerClass,
   growthMonoChipClass,
   growthPanelClass,
@@ -38,11 +39,16 @@ import {
   growthTerminalFrameClass,
   growthTerminalTitlebarClass,
 } from "@/components/growth/growthHomeStyles";
+import {
+  GrowthCountUp,
+  useGrowthReveal,
+} from "@/components/growth/growthMotion";
 
 function formatNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return n.toLocaleString();
+  const v = Math.round(n);
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
+  return v.toLocaleString();
 }
 
 function formatUsd(n: number): string {
@@ -177,11 +183,13 @@ function MetricSkeleton() {
 function ProofStat({
   label,
   value,
+  format,
   hint,
   large,
 }: {
   label: string;
-  value: string;
+  value: number;
+  format: (n: number) => string;
   hint?: string;
   large?: boolean;
 }) {
@@ -194,7 +202,7 @@ function ProofStat({
           large ? "mt-2 text-3xl sm:text-4xl" : "mt-2 text-2xl sm:text-[1.75rem]",
         )}
       >
-        {value}
+        <GrowthCountUp value={value} format={format} />
       </p>
       {hint ? <p className="mt-1.5 text-xs leading-snug text-muted-foreground/80">{hint}</p> : null}
     </div>
@@ -224,24 +232,28 @@ function MetricsBody({
       <div className="grid gap-6 border-b border-border/35 pb-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
         <ProofStat
           label="Paid calls · 7d"
-          value={formatNum(paid7d)}
+          value={paid7d}
+          format={formatNum}
           hint="North star volume"
           large
         />
         <ProofStat
           label="Paying wallets · 7d"
-          value={formatNum(payers7d)}
+          value={payers7d}
+          format={formatNum}
           hint="Weekly active payers"
           large
         />
         <ProofStat
           label="Lifetime calls"
-          value={formatNum(data.lifetime.totalCalls)}
+          value={data.lifetime.totalCalls}
+          format={formatNum}
           hint={`${formatNum(data.last24h.calls)} in last 24h`}
         />
         <ProofStat
           label="USDC settled"
-          value={formatUsd(data.lifetime.totalUsdSettled)}
+          value={data.lifetime.totalUsdSettled}
+          format={formatUsd}
           hint={`${formatUsd(data.last24h.usdSettled)} last 24h`}
         />
       </div>
@@ -262,15 +274,18 @@ function MetricsBody({
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <ProofStat
               label="Saw 402"
-              value={formatNum(data.funnel.payersSawPaymentRequired)}
+              value={data.funnel.payersSawPaymentRequired}
+              format={formatNum}
             />
             <ProofStat
               label="Converted"
-              value={formatNum(data.funnel.payersConvertedToPaid)}
+              value={data.funnel.payersConvertedToPaid}
+              format={formatNum}
             />
             <ProofStat
               label="D7 repeat"
-              value={formatNum(data.funnel.d7RepeatPayers)}
+              value={data.funnel.d7RepeatPayers}
+              format={formatNum}
               hint={
                 data.funnel.d7EligiblePayers > 0
                   ? `${(data.funnel.d7RepeatRate * 100).toFixed(1)}% of eligible`
@@ -279,7 +294,8 @@ function MetricsBody({
             />
             <ProofStat
               label="First paid · 30d"
-              value={formatNum(data.funnel.firstPaidPayersLast30d)}
+              value={data.funnel.firstPaidPayersLast30d}
+              format={formatNum}
             />
           </div>
         </div>
@@ -302,21 +318,25 @@ function MetricsBody({
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <ProofStat
               label="Settled USD · 7d"
-              value={formatUsd(data.settlement.last7d.settledUsd)}
+              value={data.settlement.last7d.settledUsd}
+              format={formatUsd}
               hint={`${formatUsd(data.settlement.last24h?.settledUsd ?? 0)} last 24h`}
             />
             <ProofStat
               label="Paid settles · 7d"
-              value={formatNum(data.settlement.last7d.outcomes.paid)}
+              value={data.settlement.last7d.outcomes.paid}
+              format={formatNum}
             />
             <ProofStat
               label="Settle failed · 7d"
-              value={formatNum(data.settlement.last7d.outcomes.settle_failed)}
+              value={data.settlement.last7d.outcomes.settle_failed}
+              format={formatNum}
               hint="Target under 5% of attempts"
             />
             <ProofStat
               label="402 challenges · 7d"
-              value={formatNum(data.settlement.last7d.outcomes.payment_required)}
+              value={data.settlement.last7d.outcomes.payment_required}
+              format={formatNum}
             />
           </div>
         </div>
@@ -380,11 +400,13 @@ function MetricsBody({
             <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border/35 pt-4">
               <ProofStat
                 label="Wallets · life"
-                value={formatNum(data.lifetime.uniquePayingWallets)}
+                value={data.lifetime.uniquePayingWallets}
+                format={formatNum}
               />
               <ProofStat
                 label="Avg / call"
-                value={`$${data.lifetime.avgUsdPerCall.toFixed(4)}`}
+                value={data.lifetime.avgUsdPerCall}
+                format={(n) => `$${n.toFixed(4)}`}
               />
             </div>
           </div>
@@ -472,6 +494,38 @@ function MetricsBody({
 export default function GrowthHomePage() {
   const { data, isLoading, isError, error } = usePublicMetrics();
   const reduceMotion = useReducedMotion();
+  const {
+    viewport,
+    reveal,
+    item,
+    container,
+    initial,
+    whileInView,
+    animate,
+  } = useGrowthReveal();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const [scrollBound, setScrollBound] = useState(false);
+
+  useEffect(() => {
+    const node = rootRef.current;
+    if (!node) return;
+    let el: HTMLElement | null = node.parentElement;
+    while (el) {
+      const overflowY = getComputedStyle(el).overflowY;
+      if (overflowY === "auto" || overflowY === "scroll") {
+        scrollContainerRef.current = el;
+        setScrollBound(true);
+        return;
+      }
+      el = el.parentElement;
+    }
+  }, []);
+
+  const { scrollY } = useScroll({
+    container: scrollBound ? scrollContainerRef : undefined,
+  });
+  const atmosphereY = useTransform(scrollY, [0, 720], [0, 40]);
 
   useEffect(() => {
     document.title = "Syra · Machine Money for Agents";
@@ -484,24 +538,12 @@ export default function GrowthHomePage() {
   const payers7d =
     data?.northStar?.uniquePayingWalletsLast7d ?? data?.last7d.uniquePayingWallets ?? 0;
 
-  const fadeUp = (delay = 0) =>
-    reduceMotion
-      ? { initial: false as const, animate: { opacity: 1 } }
-      : {
-          initial: { opacity: 0, y: 16 },
-          animate: { opacity: 1, y: 0 },
-          transition: {
-            duration: 0.55,
-            delay,
-            ease: [0.16, 1, 0.3, 1] as const,
-          },
-        };
-
   return (
-    <div className={growthRootClass}>
+    <div ref={rootRef} className={growthRootClass}>
       {/* Atmosphere: full-bleed plane framing the hero */}
-      <div
+      <motion.div
         className="pointer-events-none absolute inset-x-0 top-0 h-[min(96vh,880px)]"
+        style={reduceMotion ? undefined : { y: atmosphereY }}
         aria-hidden
       >
         <div
@@ -529,16 +571,18 @@ export default function GrowthHomePage() {
           }}
         />
         <div className={cn(growthDividerClass, "absolute inset-x-0 bottom-0 opacity-55")} />
-      </div>
+      </motion.div>
 
       <div className={cn(growthShellClass, "relative pb-24 pt-10 sm:pb-32 sm:pt-14 lg:pt-16")}>
         {/* Hero: brand story + x402 handshake terminal */}
         <header className="grid items-center gap-12 lg:grid-cols-12 lg:gap-14 xl:gap-16">
           <motion.div
-            {...fadeUp(0)}
             className="flex flex-col items-center text-center lg:col-span-6 lg:items-start lg:text-left xl:col-span-6"
+            variants={container(0.09, 0.04)}
+            initial={initial}
+            animate={animate}
           >
-            <div className="relative mb-7 sm:mb-8">
+            <motion.div variants={item} className="relative mb-7 sm:mb-8">
               <div
                 className="absolute -inset-7 rounded-[2rem] bg-foreground/[0.045] blur-2xl motion-reduce:hidden"
                 aria-hidden
@@ -560,26 +604,38 @@ export default function GrowthHomePage() {
                   draggable={false}
                 />
               </div>
-            </div>
+            </motion.div>
 
-            <div className="mb-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+            <motion.div
+              variants={item}
+              className="mb-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start"
+            >
               <p className={cn(growthEyebrowClass, "before:hidden sm:before:block")}>
                 <span className="gradient-text font-semibold tracking-[0.32em]">Syra</span>
               </p>
               <span className={growthMonoChipClass}>agent → 402 → settled</span>
-            </div>
+            </motion.div>
 
-            <h1 className="max-w-[16ch] text-balance font-display text-[2.65rem] font-semibold leading-[1.02] tracking-[-0.055em] text-foreground sm:text-5xl md:text-[3.75rem] md:leading-[0.98] lg:max-w-none">
+            <motion.h1
+              variants={item}
+              className="max-w-[16ch] text-balance font-display text-[2.65rem] font-semibold leading-[1.02] tracking-[-0.055em] text-foreground sm:text-5xl md:text-[3.75rem] md:leading-[0.98] lg:max-w-none"
+            >
               <span className="gradient-text">{SYRA_TAGLINE}</span>
-            </h1>
+            </motion.h1>
 
-            <p className={cn(growthProseClass, "mt-5 max-w-md text-pretty lg:max-w-lg")}>
+            <motion.p
+              variants={item}
+              className={cn(growthProseClass, "mt-5 max-w-md text-pretty lg:max-w-lg")}
+            >
               Earn · Treasury · Invest · Spend · Grow on Solana.
               <span className="mt-1.5 block text-foreground/80">{SYRA_LIVE_SUBLINE}.</span>
               <span className="mt-2 block text-sm text-muted-foreground">{SYRA_OUTCOMES_SUBLINE}</span>
-            </p>
+            </motion.p>
 
-            <div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:max-w-none">
+            <motion.div
+              variants={item}
+              className="mt-9 flex w-full max-w-md flex-col gap-3 sm:max-w-none"
+            >
               <Link
                 to="/marketplace"
                 className={cn(growthCtaPrimaryClass, "w-full sm:w-auto sm:self-start")}
@@ -607,9 +663,9 @@ export default function GrowthHomePage() {
                   label="Buy $SYRA"
                 />
               </div>
-            </div>
+            </motion.div>
 
-            <p className="mt-4 text-sm text-muted-foreground/85">
+            <motion.p variants={item} className="mt-4 text-sm text-muted-foreground/85">
               Or{" "}
               <Link
                 to="/agent"
@@ -617,13 +673,16 @@ export default function GrowthHomePage() {
               >
                 open the reference agent
               </Link>
-            </p>
+            </motion.p>
           </motion.div>
 
           <motion.div
-            {...fadeUp(0.1)}
             className="flex flex-col gap-5 lg:col-span-6 xl:col-span-6"
             aria-live="polite"
+            variants={reveal}
+            initial={initial}
+            animate={animate}
+            transition={{ delay: 0.12, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
             <GrowthX402Flow
               avgUsdPerCall={data?.lifetime.avgUsdPerCall ?? null}
@@ -640,9 +699,12 @@ export default function GrowthHomePage() {
 
         {/* How it works: connected agent pipeline */}
         <motion.section
-          {...fadeUp(0.16)}
           className="mt-24 sm:mt-32"
           aria-labelledby="how-heading"
+          variants={reveal}
+          initial={initial}
+          whileInView={whileInView}
+          viewport={viewport}
         >
           <div className="mb-10 flex flex-col gap-4 sm:mb-12 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
             <div className="max-w-2xl">
@@ -656,7 +718,13 @@ export default function GrowthHomePage() {
             </p>
           </div>
 
-          <ol className="relative grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 lg:grid-cols-3">
+          <motion.ol
+            className="relative grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 lg:grid-cols-3"
+            variants={container(0.1, 0.08)}
+            initial={initial}
+            whileInView={whileInView}
+            viewport={viewport}
+          >
             {/* Hairline connectors between steps (desktop) */}
             <div
               className="pointer-events-none absolute inset-x-[16.66%] top-[2.75rem] z-10 hidden h-px lg:block"
@@ -673,7 +741,7 @@ export default function GrowthHomePage() {
                 "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               );
               const inner = (
-                <>
+                <div className={cn("flex h-full flex-col", growthInnerLiftClass)}>
                   <div className="mb-8 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
                       <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-foreground/75">
@@ -704,10 +772,10 @@ export default function GrowthHomePage() {
                       aria-hidden
                     />
                   </span>
-                </>
+                </div>
               );
               return (
-                <li key={n} className="min-h-0">
+                <motion.li key={n} className="min-h-0" variants={item}>
                   {external ? (
                     <a
                       href={href}
@@ -722,23 +790,32 @@ export default function GrowthHomePage() {
                       {inner}
                     </Link>
                   )}
-                </li>
+                </motion.li>
               );
             })}
-          </ol>
+          </motion.ol>
         </motion.section>
 
         {/* Reviews */}
-        <motion.div {...fadeUp(0.1)} className="mt-24 sm:mt-32">
+        <motion.div
+          className="mt-24 sm:mt-32"
+          variants={reveal}
+          initial={initial}
+          whileInView={whileInView}
+          viewport={viewport}
+        >
           <GrowthTestimonials />
         </motion.div>
 
         {/* Metrics */}
         <motion.section
-          {...fadeUp(0.08)}
           id="metrics"
           className="mt-24 scroll-mt-24 sm:mt-32"
           aria-labelledby="metrics-heading"
+          variants={reveal}
+          initial={initial}
+          whileInView={whileInView}
+          viewport={viewport}
         >
           <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-12">
             <div className="max-w-2xl">
@@ -778,15 +855,24 @@ export default function GrowthHomePage() {
         </motion.section>
 
         {/* Token */}
-        <motion.div {...fadeUp(0.06)} className="mt-24 sm:mt-32">
+        <motion.div
+          className="mt-24 sm:mt-32"
+          variants={reveal}
+          initial={initial}
+          whileInView={whileInView}
+          viewport={viewport}
+        >
           <GrowthTokenSection />
         </motion.div>
 
         {/* Close CTA band */}
         <motion.section
-          {...fadeUp(0.04)}
           className="mt-24 sm:mt-32"
           aria-labelledby="close-heading"
+          variants={reveal}
+          initial={initial}
+          whileInView={whileInView}
+          viewport={viewport}
         >
           <div
             className={cn(

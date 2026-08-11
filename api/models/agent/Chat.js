@@ -24,6 +24,45 @@ const toolUsageEntrySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const chatSourceSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true },
+    title: { type: String, default: '' },
+    origin: { type: String },
+  },
+  { _id: false }
+);
+
+const reasoningStepSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    label: { type: String, required: true },
+    kind: { type: String, enum: ['reasoning', 'search', 'tool', 'coding'], default: 'reasoning' },
+    status: { type: String, enum: ['running', 'complete', 'error', 'skipped'], default: 'complete' },
+    costUsd: { type: Number },
+    included: { type: Boolean },
+  },
+  { _id: false }
+);
+
+const recommendationActionSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    label: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const recommendationSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    detail: { type: String },
+    confidence: { type: Number },
+    actions: { type: [recommendationActionSchema], default: undefined },
+  },
+  { _id: false }
+);
+
 const messageSchema = new mongoose.Schema(
   {
     id: { type: String, required: true },
@@ -38,6 +77,14 @@ const messageSchema = new mongoose.Schema(
     },
     /** Full tool list for an assistant turn (preferred over toolUsage when present). */
     toolUsages: { type: [toolUsageEntrySchema], default: undefined },
+    /** Citation chips from tool results (news URLs, crawl pages). */
+    sources: { type: [chatSourceSchema], default: undefined },
+    /** Pipeline trace for thinking UI (tool-select, each tool, synthesis). */
+    reasoningSteps: { type: [reasoningStepSchema], default: undefined },
+    /** Suggested next questions parsed from the synthesis reply. */
+    followUps: { type: [String], default: undefined },
+    /** Agent suggestion card from asset-research / signal tools. */
+    recommendation: { type: recommendationSchema, default: undefined },
     /** Rich client UI hint (e.g. pump.fun launch form when create params were missing). */
     inlineUi: { type: mongoose.Schema.Types.Mixed, default: undefined },
     inlineUiDismissed: { type: Boolean, default: undefined },

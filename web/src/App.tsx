@@ -9,9 +9,9 @@ import { AppProviders } from "@/components/providers/AppProviders";
 import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import GrowthHomePage from "@/pages/GrowthHomePage";
+import DashboardLayout from "@/pages/DashboardLayout";
 import { RouteFallback } from "@/components/RouteFallback";
 
-const DashboardLayout = lazy(() => import("@/pages/DashboardLayout"));
 const DashboardOverview = lazy(() => import("@/pages/DashboardOverview"));
 const DashboardSettings = lazy(() => import("@/pages/DashboardSettings"));
 const AgentWalletPage = lazy(() => import("@/pages/AgentWalletPage"));
@@ -74,15 +74,7 @@ const MmExperiment = lazy(() => import("@/pages/MmExperiment"));
 const LabsPage = lazy(() => import("@/pages/labs/LabsPage"));
 const LlmPage = lazy(() => import("@/pages/llm/LlmPage"));
 const OrganizePage = lazy(() => import("@/pages/organize/OrganizePage"));
-const InternalTeamAgentsMonitor = lazy(() => import("@/pages/InternalTeamAgentsMonitor"));
-const InternalWalletsPage = lazy(() => import("@/pages/InternalWalletsPage"));
-const InternalAgentDetailPage = lazy(() => import("@/pages/InternalAgentDetailPage"));
 const MultiWalletRecoverPage = lazy(() => import("@/pages/MultiWalletRecoverPage"));
-const LegacyInternalTeamAgentsRedirect = lazy(() =>
-  import("@/pages/LegacyInternalRedirect").then((m) => ({
-    default: m.LegacyInternalTeamAgentsRedirect,
-  })),
-);
 const LegacyDashboardPrefixRedirect = lazy(() =>
   import("@/pages/LegacyDashboardRedirects").then((m) => ({
     default: m.LegacyDashboardPrefixRedirect,
@@ -124,12 +116,6 @@ function DashboardLayoutRoute() {
 function AdminExperimentRoute({ children }: { children: ReactNode }) {
   return (
     <AdminDashboardGate featureLabel="Experiment desks">{children}</AdminDashboardGate>
-  );
-}
-
-function AdminInternalRoute({ children }: { children: ReactNode }) {
-  return (
-    <AdminDashboardGate featureLabel="Internal hub">{children}</AdminDashboardGate>
   );
 }
 
@@ -371,31 +357,6 @@ function AppRoutes() {
             </AdminDashboardGate>
           }
         />
-        <Route
-          path="/internal"
-          element={
-            <AdminInternalRoute>
-              <InternalTeamAgentsMonitor />
-            </AdminInternalRoute>
-          }
-        />
-        <Route
-          path="/internal/wallets"
-          element={
-            <AdminInternalRoute>
-              <InternalWalletsPage />
-            </AdminInternalRoute>
-          }
-        />
-        <Route
-          path="/internal/:agentSlug"
-          element={
-            <AdminInternalRoute>
-              <InternalAgentDetailPage />
-            </AdminInternalRoute>
-          }
-        />
-        <Route path="/internal-team-agents/*" element={<LegacyInternalTeamAgentsRedirect />} />
       </Route>
 
       <Route path="/marketplace" element={<PlaygroundHub />} />
@@ -419,6 +380,9 @@ function AppRoutes() {
       <Route path="/lp-experiment/history/:id" element={<Navigate to="/lp-experiment" replace />} />
       <Route path="/token-check" element={<Navigate to="/assets" replace />} />
       <Route path="/dossier" element={<Navigate to="/assets" replace />} />
+      <Route path="/internal" element={<Navigate to="/overview" replace />} />
+      <Route path="/internal/*" element={<Navigate to="/overview" replace />} />
+      <Route path="/internal-team-agents/*" element={<Navigate to="/overview" replace />} />
       <Route path="/staking/dashboard/internal" element={<Navigate to="/staking/admin" replace />} />
       <Route path="/mpp" element={<Navigate to="/marketplace" replace />} />
       <Route path="/playground/mpp" element={<Navigate to="/marketplace" replace />} />

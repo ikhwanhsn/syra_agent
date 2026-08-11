@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from "@/lib/navigation";
 import { Bot, Check, ChevronDown, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { INTERNAL_BASE_PATH } from "@/lib/internalRoutes";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,7 +29,6 @@ function isDashboardRoute(pathname: string): boolean {
       "/assets",
       "/analyzer",
       "/pumpfun",
-      INTERNAL_BASE_PATH,
     ].some((route) => pathname === route || pathname.startsWith(`${route}/`)) ||
     isDashboardPillarRoute(pathname)
   );

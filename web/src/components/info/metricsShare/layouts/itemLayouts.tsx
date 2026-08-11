@@ -142,7 +142,7 @@ export function MonetizationReceipt({ section, item }: MetricShareLayoutProps) {
             <span>{r.value}</span>
           </div>
         ))}
-        <p className="metrics-share-receipt-footer">syraa.fun/internal · {section.title}</p>
+        <p className="metrics-share-receipt-footer">syraa.fun · {section.title}</p>
       </div>
     </MetricsShareShell>
   );

@@ -11,10 +11,12 @@ import {
   Move,
   Sparkles,
   Boxes,
+  Cat,
 } from "lucide-react";
 import { Navbar } from "@/components/marketing/Navbar";
 import { Footer } from "@/components/marketing/Footer";
 import { SyraLogo } from "@/components/marketing/SyraLogo";
+import { SyraMascot, SYRA_MASCOT_SRC } from "@/components/brand/SyraMascot";
 import logoMark from "/images/logo.jpg";
 import {
   SYRA_META_DESCRIPTION,
@@ -211,7 +213,81 @@ export default function Brand() {
               />
             </motion.section>
 
-            {/* 02 Color */}
+            {/* 02 Mascot */}
+            <motion.section
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.5 }}
+              className="scroll-mt-28"
+              id="mascot"
+            >
+              <div className="mb-8 flex flex-wrap items-end gap-4">
+                <SectionNumber n="02" />
+                <div className="flex items-center gap-3">
+                  <Cat className="h-5 w-5 text-muted-foreground" />
+                  <h2 className="text-2xl font-bold sm:text-3xl">Mascot</h2>
+                </div>
+              </div>
+              <p className="mb-10 max-w-2xl text-muted-foreground">
+                Syra is a compact geometric lynx: an agent you send out to settle x402, fetch intel,
+                and come back. Sticker, not statue. The official shield mark stays the logo. The
+                lynx wears it.
+              </p>
+
+              <div className="mb-10 grid gap-6 lg:grid-cols-2">
+                <div className="glass-card flex flex-col items-center justify-center p-8">
+                  <p className="mb-6 self-start text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Default pose
+                  </p>
+                  <div className="flex w-full items-center justify-center rounded-2xl bg-[#050505] py-10">
+                    <SyraMascot size={220} className="h-52 w-52 sm:h-56 sm:w-56" />
+                  </div>
+                  <p className="mt-6 text-sm text-muted-foreground">
+                    Personality: calm, precise, paid. One ear tipped. Sits on a node cube.
+                  </p>
+                </div>
+                <div className="glass-card p-8">
+                  <p className="mb-6 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Where it lives
+                  </p>
+                  <ul className="space-y-3 text-sm text-muted-foreground">
+                    <li>
+                      <span className="font-medium text-foreground">Chat empty state</span>
+                      {" "}
+                      (<Link to="/agent" className="underline-offset-4 hover:underline">/agent</Link>):
+                      first meet, idle.
+                    </li>
+                    <li>
+                      <span className="font-medium text-foreground">Marketplace 402 card</span>
+                      : pay-per-call moment, not a new page.
+                    </li>
+                    <li>
+                      <span className="font-medium text-foreground">This page</span>
+                      : canonical rules. Nav, footer, and loaders keep the mark.
+                    </li>
+                  </ul>
+                  <p className="mt-8 text-sm text-muted-foreground">
+                    Four faces only: idle, 402, success, error. Same head, same proportions.
+                  </p>
+                </div>
+              </div>
+
+              <DoDont
+                dos={[
+                  "Foreground the lynx. One product fact per post or screen.",
+                  "Crop to the silhouette. It must still read as Syra at small size.",
+                  "Stamp the official mark file on the collar. Never redraw an S or $.",
+                ]}
+                donts={[
+                  "Replace the logo in nav, footer, or the page loader with the lynx.",
+                  "Drop cinematic robot scenes, coin chests, or a second character.",
+                  "Invent a new costume or face per page.",
+                ]}
+              />
+            </motion.section>
+
+            {/* 03 Color */}
             <motion.section
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -220,7 +296,7 @@ export default function Brand() {
               id="color"
             >
               <div className="mb-8 flex flex-wrap items-end gap-4">
-                <SectionNumber n="02" />
+                <SectionNumber n="03" />
                 <div className="flex items-center gap-3">
                   <Palette className="h-5 w-5 text-muted-foreground" />
                   <h2 className="text-2xl font-bold sm:text-3xl">Color</h2>
@@ -323,7 +399,7 @@ export default function Brand() {
               </div>
             </motion.section>
 
-            {/* 03 Typography */}
+            {/* 04 Typography */}
             <motion.section
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -332,7 +408,7 @@ export default function Brand() {
               id="typography"
             >
               <div className="mb-8 flex flex-wrap items-end gap-4">
-                <SectionNumber n="03" />
+                <SectionNumber n="04" />
                 <div className="flex items-center gap-3">
                   <Type className="h-5 w-5 text-muted-foreground" />
                   <h2 className="text-2xl font-bold sm:text-3xl">Typography</h2>
@@ -385,7 +461,7 @@ export default function Brand() {
               </div>
             </motion.section>
 
-            {/* 04 Voice */}
+            {/* 05 Voice */}
             <motion.section
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -394,7 +470,7 @@ export default function Brand() {
               id="voice"
             >
               <div className="mb-8 flex flex-wrap items-end gap-4">
-                <SectionNumber n="04" />
+                <SectionNumber n="05" />
                 <div className="flex items-center gap-3">
                   <MessageSquare className="h-5 w-5 text-muted-foreground" />
                   <h2 className="text-2xl font-bold sm:text-3xl">Voice &amp; tone</h2>
@@ -445,7 +521,7 @@ export default function Brand() {
               />
             </motion.section>
 
-            {/* 05 UI */}
+            {/* 06 UI */}
             <motion.section
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -454,7 +530,7 @@ export default function Brand() {
               id="ui"
             >
               <div className="mb-8 flex flex-wrap items-end gap-4">
-                <SectionNumber n="05" />
+                <SectionNumber n="06" />
                 <div className="flex items-center gap-3">
                   <LayoutGrid className="h-5 w-5 text-muted-foreground" />
                   <h2 className="text-2xl font-bold sm:text-3xl">UI components</h2>
@@ -508,7 +584,7 @@ export default function Brand() {
               </div>
             </motion.section>
 
-            {/* 06 Spacing */}
+            {/* 07 Spacing */}
             <motion.section
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -517,7 +593,7 @@ export default function Brand() {
               id="spacing"
             >
               <div className="mb-8 flex flex-wrap items-end gap-4">
-                <SectionNumber n="06" />
+                <SectionNumber n="07" />
                 <div className="flex items-center gap-3">
                   <Boxes className="h-5 w-5 text-muted-foreground" />
                   <h2 className="text-2xl font-bold sm:text-3xl">Spacing</h2>
@@ -543,7 +619,7 @@ export default function Brand() {
               </div>
             </motion.section>
 
-            {/* 07 Motion */}
+            {/* 08 Motion */}
             <motion.section
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -552,7 +628,7 @@ export default function Brand() {
               id="motion"
             >
               <div className="mb-8 flex flex-wrap items-end gap-4">
-                <SectionNumber n="07" />
+                <SectionNumber n="08" />
                 <div className="flex items-center gap-3">
                   <Move className="h-5 w-5 text-muted-foreground" />
                   <h2 className="text-2xl font-bold sm:text-3xl">Motion</h2>
@@ -580,7 +656,7 @@ export default function Brand() {
               </ul>
             </motion.section>
 
-            {/* 08 Quick reference */}
+            {/* 09 Quick reference */}
             <motion.section
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -589,7 +665,7 @@ export default function Brand() {
               id="downloads"
             >
               <div className="mb-8 flex flex-wrap items-end gap-4">
-                <SectionNumber n="08" />
+                <SectionNumber n="09" />
                 <h2 className="text-2xl font-bold sm:text-3xl">Quick reference</h2>
               </div>
               <div className="glass-card grid gap-8 p-8 md:grid-cols-2 md:items-center">
@@ -623,7 +699,11 @@ export default function Brand() {
                   <p className="mt-2 text-sm text-muted-foreground">
                     Use the official mark bundled with the product repo (
                     <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">/images/logo.jpg</code>
-                    ). Request vector or alternate formats from the team for print or broadcast.
+                    ). Mascot sticker:{" "}
+                    <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                      {SYRA_MASCOT_SRC}
+                    </code>
+                    . Request vector or alternate formats from the team for print or broadcast.
                   </p>
                 </div>
               </div>

@@ -72,6 +72,12 @@ export const growthCtaPrimaryClass = cn(
   "active:scale-[0.98]",
 );
 
+/** Inner-content lift for cards inside overflow-hidden grids. */
+export const growthInnerLiftClass = cn(
+  "motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out",
+  "motion-safe:group-hover:-translate-y-0.5",
+);
+
 export const growthCtaSecondaryClass = cn(
   "inline-flex h-12 min-h-12 items-center justify-center gap-2 rounded-xl border border-border/55 px-6",
   "bg-background/40 text-sm font-semibold text-foreground backdrop-blur-md",

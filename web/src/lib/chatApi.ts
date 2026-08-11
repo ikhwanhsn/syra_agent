@@ -4,6 +4,12 @@ import { normalizeAgentChain } from "@/lib/agentWalletUi";
 import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 
 import { env, getApiBaseUrl as getApiBaseUrlFromEnv } from "@/lib/env";
+import type {
+  ChatRecommendation,
+  ChatSource,
+  ReasoningStep,
+} from "@/lib/chatStructuredUi";
+import { extraAssistantUiFromUnknown } from "@/lib/chatStructuredUi";
 
 export const getApiBaseUrl = getApiBaseUrlFromEnv;
 
@@ -25,22 +31,34 @@ const agentWalletBase = () => getApiBaseUrl() + "/agent/wallet";
 
 /** Rich UI rendered in the agent chat (forms when swap/create params need user input). */
 export type AgentInlineUiPayload =
-  | { type: "pumpfun-create-coin" }
+  | { type: "pumpfun-create-coin"; question?: string }
   | {
       type: "jupiter-swap";
+      question?: string;
       suggestedMints?: string[];
       suggestedAmount?: string;
     }
   | {
       type: "pumpfun-swap";
+      question?: string;
       suggestedMints?: string[];
       suggestedAmount?: string;
+    }
+  | {
+      type: "approval";
+      question: string;
+      options: Array<{ id: string; label: string }>;
     };
 
 export function isAgentInlineUiPayload(v: unknown): v is AgentInlineUiPayload {
   if (!v || typeof v !== "object") return false;
   const t = (v as { type?: string }).type;
-  return t === "pumpfun-create-coin" || t === "jupiter-swap" || t === "pumpfun-swap";
+  return (
+    t === "pumpfun-create-coin" ||
+    t === "jupiter-swap" ||
+    t === "pumpfun-swap" ||
+    t === "approval"
+  );
 }
 
 export interface ApiToolUsageEntry {
@@ -68,6 +86,10 @@ export interface ApiMessage {
   timestamp: string | Date;
   toolUsage?: ApiToolUsageEntry;
   toolUsages?: ApiToolUsageEntry[];
+  sources?: ChatSource[];
+  reasoningSteps?: ReasoningStep[];
+  followUps?: string[];
+  recommendation?: ChatRecommendation;
   inlineUi?: AgentInlineUiPayload;
   inlineUiDismissed?: boolean;
   /** Jupiter/pump inline swap: actions hidden after user Swap or Cancel. */
@@ -202,6 +224,7 @@ export const chatApi = {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(m.toolUsages?.length ? { toolUsages: m.toolUsages } : {}),
+      ...extraAssistantUiFromUnknown(m),
       ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
@@ -229,6 +252,7 @@ export const chatApi = {
       timestamp: m.timestamp,
       toolUsage: m.toolUsage,
       ...(m.toolUsages?.length ? { toolUsages: m.toolUsages } : {}),
+      ...extraAssistantUiFromUnknown(m),
       ...(m.inlineUi ? { inlineUi: m.inlineUi } : {}),
       ...(m.inlineUiDismissed ? { inlineUiDismissed: true } : {}),
       ...(m.swapActionsHidden ? { swapActionsHidden: true } : {}),
@@ -274,7 +298,16 @@ export const chatApi = {
     toolRequest?: { toolId: string; params?: Record<string, string> } | null;
     /** Internal: payment header for retry after 402 (set by completion wrapper) */
     paymentHeader?: string | null;
-  }): Promise<{ response: string }> {
+  }): Promise<{
+    response: string;
+    amountChargedUsd?: number;
+    toolUsages?: ApiToolUsageEntry[];
+    inlineUi?: AgentInlineUiPayload;
+    sources?: ChatSource[];
+    reasoningSteps?: ReasoningStep[];
+    followUps?: string[];
+    recommendation?: ChatRecommendation;
+  }> {
     const stepStart = Date.now();
     const headers: Record<string, string> = { "Content-Type": "application/json", ...getApiHeaders() };
     if (params.paymentHeader) {
@@ -343,10 +376,15 @@ export const chatApi = {
       amountChargedUsd?: number;
       toolUsages?: ApiToolUsageEntry[];
       inlineUi?: AgentInlineUiPayload;
+      sources?: ChatSource[];
+      reasoningSteps?: ReasoningStep[];
+      followUps?: string[];
+      recommendation?: ChatRecommendation;
     }>(res);
     if (data.success === false) {
       throw new Error(data.error || "Completion failed");
     }
+    const extra = extraAssistantUiFromUnknown(data);
     return {
       response: data.response ?? "",
       ...(typeof data.amountChargedUsd === "number" && data.amountChargedUsd > 0
@@ -356,6 +394,7 @@ export const chatApi = {
         ? { toolUsages: data.toolUsages }
         : {}),
       ...(isAgentInlineUiPayload(data.inlineUi) ? { inlineUi: data.inlineUi } : {}),
+      ...extra,
     };
   },
 };

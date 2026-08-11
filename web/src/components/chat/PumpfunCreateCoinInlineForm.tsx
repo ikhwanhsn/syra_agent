@@ -83,7 +83,7 @@ export function PumpfunCreateCoinInlineForm({
   }
 
   return (
-    <div className="mt-4 w-full min-w-0">
+    <div className="w-full min-w-0">
       <div
         className={cn(
           "relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-card/95 via-card/80 to-card/60",

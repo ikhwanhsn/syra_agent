@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   Bot,
   LayoutDashboard,
-  UsersRound,
   FileSearch,
   Droplets,
   Rocket,
@@ -65,9 +64,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       !p.includes("-experiment") &&
       !p.startsWith("/assets") &&
       !p.startsWith("/analyzer") &&
-      !p.startsWith("/pumpfun") &&
-      !p.startsWith("/internal-team") &&
-      !p.startsWith("/internal"),
+      !p.startsWith("/pumpfun"),
   },
   {
     id: "dashboard",
@@ -84,7 +81,6 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/pumpfun") ||
       p.includes("-experiment") ||
       p.startsWith("/arbitrage") ||
-      p.startsWith("/internal") ||
       p.startsWith("/labs") ||
       p.startsWith("/llm") ||
       p.startsWith("/organize"),
@@ -118,13 +114,6 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
         label: "Organize",
         icon: ClipboardList,
         description: "Track hackathons, funding & events",
-        adminOnly: true,
-      },
-      {
-        href: "/internal",
-        label: "Internal hub",
-        icon: UsersRound,
-        description: "Team agent monitor & scouts",
         adminOnly: true,
       },
       {
@@ -252,13 +241,6 @@ export const SITE_NAV_ADMIN_MORE: NavLinkItem[] = [
     label: "Syra reference",
     icon: BookMarked,
     description: "Full internal product reference",
-    adminOnly: true,
-  },
-  {
-    href: "/internal",
-    label: "Internal hub",
-    icon: UsersRound,
-    description: "Team agent monitor & scouts",
     adminOnly: true,
   },
 ];

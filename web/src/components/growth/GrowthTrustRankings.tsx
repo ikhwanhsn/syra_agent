@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowUpRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { SYRA_TRUST_RANKINGS } from "@/content/syraAbout";
 import { cn } from "@/lib/utils";
+import { GrowthCountUp, useGrowthReveal } from "@/components/growth/growthMotion";
 import {
   growthEyebrowClass,
   growthMonoChipClass,
@@ -14,29 +15,14 @@ import {
 /**
  * Ecosystem trust rankings strip for growth home, static, link-out proof near Buy $SYRA.
  */
+function parseRankNumber(rank: string): number | null {
+  const match = rank.match(/^#(\d+)$/);
+  if (!match) return null;
+  return Number(match[1]);
+}
+
 export function GrowthTrustRankings({ className }: { className?: string }) {
-  const reduceMotion = useReducedMotion();
-
-  const container = reduceMotion
-    ? undefined
-    : {
-        hidden: { opacity: 0 },
-        show: {
-          opacity: 1,
-          transition: { staggerChildren: 0.08, delayChildren: 0.06 },
-        },
-      };
-
-  const item = reduceMotion
-    ? undefined
-    : {
-        hidden: { opacity: 0, y: 10 },
-        show: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as const },
-        },
-      };
+  const { viewport, item, container, initial, whileInView } = useGrowthReveal();
 
   return (
     <div className={cn("relative mx-auto w-full max-w-2xl", className)}>
@@ -75,9 +61,10 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
           "sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0",
         )}
         role="list"
-        variants={container}
-        initial={reduceMotion ? undefined : "hidden"}
-        animate={reduceMotion ? undefined : "show"}
+        variants={container(0.08, 0.06)}
+        initial={initial}
+        whileInView={whileInView}
+        viewport={viewport}
       >
         {/* Inner sheen, static depth, no looping animation */}
         <div
@@ -93,6 +80,7 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
 
         {SYRA_TRUST_RANKINGS.map((ranking, index) => {
           const isLead = index === 0;
+          const rankNumber = parseRankNumber(ranking.rank);
           return (
             <motion.a
               key={ranking.id}
@@ -135,7 +123,17 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
                       "transition-transform duration-200 motion-safe:group-hover:translate-y-[-1px]",
                   )}
                 >
-                  {ranking.rank}
+                  {rankNumber != null ? (
+                    <>
+                      #
+                      <GrowthCountUp
+                        value={rankNumber}
+                        format={(n) => String(Math.round(n))}
+                      />
+                    </>
+                  ) : (
+                    ranking.rank
+                  )}
                 </span>
                 <ArrowUpRight
                   className={cn(

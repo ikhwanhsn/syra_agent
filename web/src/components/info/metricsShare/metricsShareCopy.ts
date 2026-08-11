@@ -153,7 +153,7 @@ Every call tracked: 402 issued, payment verified, USDC settled. Full telemetry i
 
 ${item.hint ? `→ ${item.hint}\n` : ""}Reliability you can measure.
 
-→ syraa.fun/internal`,
+→ syraa.fun`,
 
   "Unique payers": ({ item }) =>
     `${item.value} unique wallets paid Syra via x402.
@@ -171,7 +171,7 @@ We log every verify fail, settle fail, and upstream error. Know exactly what bro
 
 ${item.hint ? `→ ${item.hint}\n` : ""}Build in public. Fix in public.
 
-→ syraa.fun/internal`,
+→ syraa.fun`,
 
   "402 → paid conversion": ({ item }) =>
     `${item.value} conversion from 402 issued to paid on Syra.
@@ -189,7 +189,7 @@ Inbound = clients paying Syra APIs. Outbound = agents paying for tools. Both rai
 
 ${item.hint ? `→ ${item.hint}\n` : ""}Full-stack x402 telemetry.
 
-→ syraa.fun/internal`,
+→ syraa.fun`,
 };
 
 const SECTION_COPY: Record<string, (ctx: MetricShareCopyContext) => string> = {
@@ -344,7 +344,7 @@ ${hero ? `${hero}\n${section.heroHint ? `→ ${section.heroHint}\n` : ""}` : ""}
 
 Every step tracked: issued, verified, settled. Full visibility into the paid rail.
 
-→ syraa.fun/internal`;
+→ syraa.fun`;
   },
 
   "x402-volume": ({ section }) => {

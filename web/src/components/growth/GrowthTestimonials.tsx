@@ -6,6 +6,7 @@ import { SYRA_TESTIMONIALS } from "@/content/syraAbout";
 import { cn } from "@/lib/utils";
 import {
   growthEyebrowClass,
+  growthInnerLiftClass,
   growthMonoChipClass,
   growthProseClass,
   growthSectionTitleClass,
@@ -77,6 +78,7 @@ export function GrowthTestimonials({ className }: { className?: string }) {
                 "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
+              <div className={cn("flex h-full min-h-0 flex-col", growthInnerLiftClass)}>
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <span
@@ -129,6 +131,7 @@ export function GrowthTestimonials({ className }: { className?: string }) {
                     {testimonial.metricLabel}
                   </div>
                 </div>
+              </div>
               </div>
             </a>
           </motion.li>

@@ -10,6 +10,7 @@ import { EmptyState } from "./EmptyState";
 import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
 import type { AgentInlineUiPayload } from "@/lib/chatApi";
+import type { ChatRecommendation, ChatSource, ReasoningStep } from "@/lib/chatStructuredUi";
 import {
   CHAT_CONTENT_INNER_CLASS,
   CHAT_MESSAGES_SCROLL_CLASS,
@@ -48,6 +49,10 @@ interface Message {
   inlineUiDismissed?: boolean;
   swapActionsHidden?: boolean;
   swapInlineStatus?: "cancelled" | "submitted";
+  sources?: ChatSource[];
+  reasoningSteps?: ReasoningStep[];
+  followUps?: string[];
+  recommendation?: ChatRecommendation;
 }
 
 interface ChatAreaProps {
@@ -71,6 +76,8 @@ interface ChatAreaProps {
   onUpdateUserMessage?: (messageId: string, content: string) => void;
   onDismissPumpfunCreateForm?: (assistantMessageId: string) => void;
   onSubmitPumpfunCreateForm?: (payload: { assistantMessageId: string; prompt: string }) => void;
+  selectedModelId?: string | null;
+  onSelectModel?: (modelId: string | null) => void;
 }
 
 export function ChatArea({
@@ -90,6 +97,8 @@ export function ChatArea({
   onUpdateUserMessage,
   onDismissPumpfunCreateForm,
   onSubmitPumpfunCreateForm,
+  selectedModelId = null,
+  onSelectModel,
 }: ChatAreaProps) {
   const { openConnectModal } = useConnectModal();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -212,6 +221,7 @@ export function ChatArea({
                   onUpdateUserMessage={onUpdateUserMessage}
                   onDismissPumpfunCreateForm={onDismissPumpfunCreateForm}
                   onSubmitPumpfunCreateForm={onSubmitPumpfunCreateForm}
+                  onFollowUp={onSendMessage}
                 />
               );
             })}
@@ -227,6 +237,8 @@ export function ChatArea({
           onStop={onStopGeneration}
           placeholder={`Message ${selectedAgent.name}…`}
           showExampleQuestions={messages.length === 0}
+          selectedModelId={selectedModelId}
+          onSelectModel={onSelectModel}
         />
       )}
     </div>

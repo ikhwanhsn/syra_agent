@@ -113,9 +113,6 @@
         "/info/*",
         "/prediction-game/health",
         "/internal/tester-agent*",
-        "/internal/trend-scout/run",
-        "/internal/growth-scout/run",
-        "/internal/partnership-scout/run",
         "/internal/buyback/run",
         "/internal/buyback/sync",
         "/internal/buyback/record"

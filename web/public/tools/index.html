@@ -10,17 +10,24 @@
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png?v=3" />
   <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml" />
   <meta property="og:site_name" content="Syra" />
+  <meta property="og:locale" content="en_US" />
   <meta property="og:title" content="Syra MCP tools for crypto agents" />
   <meta property="og:description" content="Browse curated Syra MCP tools, news, smart money, DEX, oracles, and more. Pay per call with USDC over x402." />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="https://www.syraa.fun/tools/" />
-  <meta property="og:image" content="https://www.syraa.fun/images/og-banner.png" />
+  <meta property="og:image" content="https://www.syraa.fun/images/og-banner.png?v=5" />
+  <meta property="og:image:secure_url" content="https://www.syraa.fun/images/og-banner.png?v=5" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Syra. Machine money for agents. x402 pay-per-call APIs, MCP, and typed SDK." />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@syra_agent" />
   <meta name="twitter:title" content="Syra MCP tools for crypto agents" />
   <meta name="twitter:description" content="Browse curated Syra MCP tools, news, smart money, DEX, oracles, and more. Pay per call with USDC over x402." />
-  <meta name="twitter:image" content="https://www.syraa.fun/images/og-banner.png" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","@id":"https://www.syraa.fun/tools/#page","headline":"MCP tools","name":"MCP tools","description":"Browse curated Syra MCP tools, news, smart money, DEX, oracles, and more. Pay per call with USDC over x402.","url":"https://www.syraa.fun/tools/","image":"https://www.syraa.fun/images/og-banner.png","author":{"@type":"Organization","name":"Syra","url":"https://www.syraa.fun"},"publisher":{"@type":"Organization","name":"Syra","url":"https://www.syraa.fun","logo":{"@type":"ImageObject","url":"https://www.syraa.fun/android-chrome-512x512.png"}}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.syraa.fun/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.syraa.fun/tools/"}]}]}</script>
+  <meta name="twitter:image" content="https://www.syraa.fun/images/og-banner.png?v=5" />
+  <meta name="twitter:image:alt" content="Syra. Machine money for agents. x402 pay-per-call APIs, MCP, and typed SDK." />
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"TechArticle","@id":"https://www.syraa.fun/tools/#page","headline":"MCP tools","name":"MCP tools","description":"Browse curated Syra MCP tools, news, smart money, DEX, oracles, and more. Pay per call with USDC over x402.","url":"https://www.syraa.fun/tools/","image":"https://www.syraa.fun/images/og-banner.png?v=5","author":{"@type":"Organization","name":"Syra","url":"https://www.syraa.fun"},"publisher":{"@type":"Organization","name":"Syra","url":"https://www.syraa.fun","logo":{"@type":"ImageObject","url":"https://www.syraa.fun/android-chrome-512x512.png"}}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.syraa.fun/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.syraa.fun/tools/"}]}]}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -162,6 +169,8 @@
       <li><a href="/tools/8004-agents-search/">syra_earn_8004_agents_search</a><span class="meta">earn · 8004 search agents by owner, creator, collection (optional limit, offset)</span></li>
       <li><a href="/tools/8004-leaderboard/">syra_earn_8004_leaderboard</a><span class="meta">earn · 8004 agent leaderboard by trust tier (optional minTier, limit)</span></li>
       <li><a href="/tools/8004-stats/">syra_earn_8004_stats</a><span class="meta">earn · 8004 registry global stats: total agents, feedbacks, trust tiers</span></li>
+      <li><a href="/tools/topledger-analyze-wallet/">syra_grow_topledger_analyze_wallet</a><span class="meta">grow · Full Solana wallet portfolio analysis — net worth, holdings, lending, perps, LP, staking, yield, rewards, governance (20+ protocols)</span></li>
+      <li><a href="/tools/topledger-lending/">syra_grow_topledger_lending</a><span class="meta">grow · Lending deposits, borrows, and net value across Kamino, marginfi, Jupiter Lend, Loopscale, and more</span></li>
       <li><a href="/tools/bankr-balances/">syra_invest_bankr_balances</a><span class="meta">invest · Wallet balances across chains (optional query: chains=base,solana). Requires BANKR_API_KEY in API.</span></li>
       <li><a href="/tools/bankr-prompt/">syra_invest_bankr_prompt</a><span class="meta">invest · Submit a natural language prompt to Bankr agent (body: prompt, optional threadId). Returns jobId; poll bankr-job tool with jobId for result.</span></li>
       <li><a href="/tools/giza-agent/">syra_invest_giza_agent</a><span class="meta">invest · Get or create Giza smart account (deposit address) for an owner EOA. Params: owner (0x... address)</span></li>
@@ -178,31 +187,44 @@
       <li><a href="/tools/rise-portfolio-positions/">syra_invest_rise_portfolio_positions</a><span class="meta">invest · Get RISE wallet positions (optional page, limit)</span></li>
       <li><a href="/tools/rise-portfolio-summary/">syra_invest_rise_portfolio_summary</a><span class="meta">invest · Get RISE wallet portfolio summary</span></li>
       <li><a href="/tools/rise-repay-and-withdraw/">syra_invest_rise_repay_and_withdraw</a><span class="meta">invest · Build RISE repay+withdraw transaction (wallet, market, withdrawAmount)</span></li>
-      <li><a href="/tools/rise-scout/">syra_invest_rise_scout</a><span class="meta">invest · Live RISE intelligence, view=intel\</span></li>
+      <li><a href="/tools/rise-scout/">syra_invest_rise_scout</a><span class="meta">invest · Live RISE intelligence — view=intel\</span></li>
       <li><a href="/tools/rise-sell-token/">syra_invest_rise_sell_token</a><span class="meta">invest · Build RISE sell transaction (wallet, market, tokenIn, minCashOut)</span></li>
       <li><a href="/tools/rise-stream-new/">syra_invest_rise_stream_new</a><span class="meta">invest · Returns integration note for RISE SSE stream endpoint /markets/stream/new</span></li>
-      <li><a href="/tools/squid-route/">syra_invest_squid_route</a><span class="meta">invest · Get cross-chain route/quote from Squid Router (100+ chains); returns route and transactionRequest for first leg, user signs on source chain</span></li>
+      <li><a href="/tools/squid-route/">syra_invest_squid_route</a><span class="meta">invest · Get cross-chain route/quote from Squid Router (100+ chains); returns route and transactionRequest for first leg — user signs on source chain</span></li>
       <li><a href="/tools/squid-status/">syra_invest_squid_status</a><span class="meta">invest · Check status of a cross-chain transaction (transactionId, requestId, fromChainId, toChainId, quoteId)</span></li>
+      <li><a href="/tools/yield-balances/">syra_invest_yield_balances</a><span class="meta">invest · Active positions, pending actions, and claimable rewards for a wallet on a network. Params: address (required), network (required, e.g. base\</span></li>
+      <li><a href="/tools/yield-find/">syra_invest_yield_find</a><span class="meta">invest · Search 3,000+ onchain yield opportunities across 80+ networks (lending, vaults, staking, RWAs, LST). Params: token, search, networks[], types[], inputTokens[], providers[], yieldIds[], sort (rewardRateDesc\</span></li>
+      <li><a href="/tools/yield-get/">syra_invest_yield_get</a><span class="meta">invest · Full metadata for one yield: fees, lockup/cooldown, reward mechanics, entry/exit status, risk summary. Param: yieldId (required), e.g. &quot;base-usdc-aave-v3&quot;.</span></li>
+      <li><a href="/tools/yield-networks/">syra_invest_yield_networks</a><span class="meta">invest · List all networks supported by Yield.xyz AgentKit (id, name, category).</span></li>
+      <li><a href="/tools/yield-providers/">syra_invest_yield_providers</a><span class="meta">invest · List yield protocols and validator providers (id, name, type, tvlUsd). Params: limit, offset.</span></li>
+      <li><a href="/tools/yield-reward-history/">syra_invest_yield_reward_history</a><span class="meta">invest · Historical APY / reward-rate snapshots for a yield. Params: yieldId (required); optional period (1d–all), interval (day\</span></li>
+      <li><a href="/tools/yield-risk/">syra_invest_yield_risk</a><span class="meta">invest · Aggregate risk rating for a yield (letter grade, numeric score, provider URL). Strongest coverage for vault-type yields. Param: yieldId (required).</span></li>
+      <li><a href="/tools/yield-tvl-history/">syra_invest_yield_tvl_history</a><span class="meta">invest · Historical TVL snapshots for a yield. Params: yieldId (required); optional period, interval, limit, offset. Strongest coverage for vault-type yields.</span></li>
       <li><a href="/tools/analytics-summary/">syra_spend_analytics_summary</a><span class="meta">spend · Bundled analytics: Jupiter trending, Nansen smart money, Binance correlation</span></li>
       <li><a href="/tools/arbitrage/">syra_spend_arbitrage</a><span class="meta">spend · CMC top tradable assets plus live cross-CEX USDT spot snapshots; ranked best buy/sell routes (gross spread, not financial advice)</span></li>
       <li><a href="/tools/browser-use/">syra_spend_browser_use</a><span class="meta">spend · Run a natural-language browser task (e.g. open a URL, extract data); returns text or structured output. Body: task (required), optional model (bu-mini / bu-max), maxCostUsd.</span></li>
-      <li><a href="/tools/coingecko-scout/">syra_spend_coingecko_scout</a><span class="meta">spend · Live CoinGecko scout, view=brief\</span></li>
-      <li><a href="/tools/defillama-tvl/">syra_spend_defillama_tvl</a><span class="meta">spend · Protocol or chain TVL from DefiLlama, protocol slug (e.g. aave) OR chain name (e.g. Solana).</span></li>
-      <li><a href="/tools/dexscreener-pairs/">syra_spend_dexscreener_pairs</a><span class="meta">spend · Onchain DEX pairs from DexScreener, chainId + tokenAddress OR q search. Returns price, liquidity, volume, txns.</span></li>
-      <li><a href="/tools/equity-intelligence/">syra_spend_equity_intelligence</a><span class="meta">spend · Parametric xStocks intel, Nasdaq vs on-chain premium/discount for TSLAx, NVDAx, AAPLx, and catalog symbols</span></li>
+      <li><a href="/tools/coingecko-scout/">syra_spend_coingecko_scout</a><span class="meta">spend · Live CoinGecko scout — view=brief\</span></li>
+      <li><a href="/tools/defillama-tvl/">syra_spend_defillama_tvl</a><span class="meta">spend · Protocol or chain TVL from DefiLlama — protocol slug (e.g. aave) OR chain name (e.g. Solana).</span></li>
+      <li><a href="/tools/dexscreener-pairs/">syra_spend_dexscreener_pairs</a><span class="meta">spend · Onchain DEX pairs from DexScreener — chainId + tokenAddress OR q search. Returns price, liquidity, volume, txns.</span></li>
+      <li><a href="/tools/equity-intelligence/">syra_spend_equity_intelligence</a><span class="meta">spend · Parametric xStocks intel — Nasdaq vs on-chain premium/discount for TSLAx, NVDAx, AAPLx, and catalog symbols</span></li>
       <li><a href="/tools/event/">syra_spend_event</a><span class="meta">spend · Event data and updates</span></li>
-      <li><a href="/tools/geckoterminal-pools/">syra_spend_geckoterminal_pools</a><span class="meta">spend · Trending or new DEX pools from GeckoTerminal, network (default solana), kind=trending\</span></li>
+      <li><a href="/tools/flint-book/">syra_spend_flint_book</a><span class="meta">spend · Flint L1/L2/L3 virtual order book snapshot — base + quote (default USDC) or baseId/quoteId; level=L1\</span></li>
+      <li><a href="/tools/flint-candles/">syra_spend_flint_candles</a><span class="meta">spend · Flint historical candles (interval 1M\</span></li>
+      <li><a href="/tools/flint-external-tape/">syra_spend_flint_external_tape</a><span class="meta">spend · Short snapshot of external aggregator fills (Jupiter/OKX/DFlow/Titan) and venue reference quotes for a Flint pair.</span></li>
+      <li><a href="/tools/flint-pairs/">syra_spend_flint_pairs</a><span class="meta">spend · Flint Solana multi-maker spot pair catalog — base/quote mints, spot ids, last price. Market data only (not MM or swaps).</span></li>
+      <li><a href="/tools/flint-stats/">syra_spend_flint_stats</a><span class="meta">spend · Flint venue summary — active pairs/makers, 1h/24h/30d quote volume, fills, unique traders, total NAV.</span></li>
+      <li><a href="/tools/geckoterminal-pools/">syra_spend_geckoterminal_pools</a><span class="meta">spend · Trending or new DEX pools from GeckoTerminal — network (default solana), kind=trending\</span></li>
       <li><a href="/tools/health/">syra_spend_health</a><span class="meta">spend · Liveness and connectivity check (paid x402 health endpoint)</span></li>
       <li><a href="/tools/nansen-smart-money-netflow/">syra_spend_nansen_smart_money_netflow</a><span class="meta">spend · Smart money net flow / accumulation (chains e.g. [&quot;solana&quot;]; optional filters, pagination)</span></li>
       <li><a href="/tools/news/">syra_spend_news</a><span class="meta">spend · Get latest crypto news and market updates (optional ticker: BTC, ETH, or &quot;general&quot;)</span></li>
       <li><a href="/tools/neynar-user/">syra_spend_neynar_user</a><span class="meta">spend · Farcaster user by username or by FIDs (query: username or fids). Requires NEYNAR_API_KEY.</span></li>
-      <li><a href="/tools/pumpfun-scout/">syra_spend_pumpfun_scout</a><span class="meta">spend · Live pump.fun scout, segment=alpha\</span></li>
-      <li><a href="/tools/pyth-price/">syra_spend_pyth_price</a><span class="meta">spend · Real-time Pyth oracle prices via Hermes, symbols (comma-separated, e.g. BTC/USD,SOL/USD).</span></li>
-      <li><a href="/tools/rugcheck-report/">syra_spend_rugcheck_report</a><span class="meta">spend · Solana token risk report from RugCheck, mint (required). Returns risk score, authorities, top holders.</span></li>
+      <li><a href="/tools/pumpfun-scout/">syra_spend_pumpfun_scout</a><span class="meta">spend · Live pump.fun scout — segment=alpha\</span></li>
+      <li><a href="/tools/pyth-price/">syra_spend_pyth_price</a><span class="meta">spend · Real-time Pyth oracle prices via Hermes — symbols (comma-separated, e.g. BTC/USD,SOL/USD).</span></li>
+      <li><a href="/tools/rugcheck-report/">syra_spend_rugcheck_report</a><span class="meta">spend · Solana token risk report from RugCheck — mint (required). Returns risk score, authorities, top holders.</span></li>
       <li><a href="/tools/sentiment/">syra_spend_sentiment</a><span class="meta">spend · Get market sentiment analysis</span></li>
       <li><a href="/tools/signal/">syra_spend_signal</a><span class="meta">spend · Spot OHLC + technical signal; Syra Agent chat uses CoinGecko by default (set source for CEX or n8n\</span></li>
       <li><a href="/tools/siwa-nonce/">syra_spend_siwa_nonce</a><span class="meta">spend · Get a SIWA nonce for agent sign-in (body: address, agentId, agentRegistry?). Requires RECEIPT_SECRET, SIWA_RPC_URL.</span></li>
-      <li><a href="/tools/spcx-intelligence/">syra_spend_spcx_intelligence</a><span class="meta">spend · Tokenized SpaceX equity intel, Nasdaq vs on-chain SPCX/SPCXx premium/discount spread, liquidity, agent bias</span></li>
+      <li><a href="/tools/spcx-intelligence/">syra_spend_spcx_intelligence</a><span class="meta">spend · Tokenized SpaceX equity intel — Nasdaq vs on-chain SPCX/SPCXx premium/discount spread, liquidity, agent bias</span></li>
       <li><a href="/tools/sundown-digest/">syra_spend_sundown_digest</a><span class="meta">spend · Sundown digest / daily summary</span></li>
       <li><a href="/tools/trending-headline/">syra_spend_trending_headline</a><span class="meta">spend · Trending headlines</span></li>
       <li><a href="/tools/web-search/">syra_spend_web_search</a><span class="meta">spend · Free web search via DuckDuckGo/Bing scrape – dynamic query only</span></li>
