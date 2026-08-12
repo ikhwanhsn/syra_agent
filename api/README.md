@@ -346,6 +346,7 @@ Optional env:
 
 - `SAID_API_BASE_URL` — default `https://api.saidprotocol.com`
 - `SAID_PLATFORM_KEY` — optional; used for POST `/api/cards` when SAID requires `X-Platform-Key` (directory listing uses public `/api/register/pending` by default)
+- `SAID_IPFS_GATEWAY` — optional HTTPS IPFS gateway prefix for AgentCard metadata URIs (default `https://ipfs.io/ipfs`). Prefer HTTPS over `ipfs://` so SAID's directory indexer can read name/description.
 - `SYRA_SAID_NAME`, `SYRA_SAID_DESCRIPTION` — override agent metadata (defaults from `config/syraBranding.js`)
 - `SYRA_AGENT_IMAGE_URI`, `SYRA_COLLECTION_X_URL`, `SYRA_COLLECTION_EXTERNAL_URL` — branding
 

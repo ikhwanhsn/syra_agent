@@ -13,7 +13,7 @@ export function AmbientBackground() {
   const frame = useCurrentFrame();
   const t = frame / fps;
   const pulse = 0.5 + 0.5 * Math.sin(t * 0.45);
-  const topGold = 0.045 + pulse * 0.015;
+  const topGold = 0.04 + pulse * 0.012;
   const gradId = "syra-video-ambient-wash";
 
   return (
@@ -40,14 +40,13 @@ export function AmbientBackground() {
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#F3BA2F" stopOpacity={topGold} />
-            <stop offset="38%" stopColor={theme.bg} stopOpacity={1} />
-            <stop offset="62%" stopColor={theme.bg} stopOpacity={1} />
-            <stop offset="100%" stopColor="#000000" stopOpacity={1} />
+            <stop offset="42%" stopColor={theme.bg} stopOpacity={1} />
+            <stop offset="100%" stopColor="#F4F4F5" stopOpacity={1} />
           </linearGradient>
         </defs>
         <rect width={width} height={height} fill={theme.bg} />
         <rect width={width} height={height} fill={`url(#${gradId})`} />
-        <rect width={width} height={2} fill={theme.accent} opacity={0.2} />
+        <rect width={width} height={2} fill={theme.accent} opacity={0.35} />
       </svg>
     </AbsoluteFill>
   );

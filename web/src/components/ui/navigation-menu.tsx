@@ -72,7 +72,7 @@ const NavigationMenuTrigger = React.forwardRef<
   >
     {children}{" "}
     <ChevronDown
-      className="relative top-px ml-0.5 h-3.5 w-3.5 opacity-50 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[state=open]:rotate-180 group-data-[state=open]:opacity-80"
+      className="relative top-px ml-0.5 h-3.5 w-3.5 opacity-50 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[state=open]:rotate-180 group-data-[state=open]:opacity-80 motion-reduce:transition-none"
       aria-hidden="true"
     />
   </NavigationMenuPrimitive.Trigger>
@@ -87,8 +87,13 @@ const NavigationMenuContent = React.forwardRef<
     ref={ref}
     className={cn(
       "left-0 top-0 w-full md:absolute md:w-auto",
-      "data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out data-[motion^=from-]:fade-in-0 data-[motion^=to-]:fade-out-0 data-[motion^=from-]:duration-200 data-[motion^=to-]:duration-150",
-      "data-[motion=from-end]:slide-in-from-right-6 data-[motion=from-start]:slide-in-from-left-6 data-[motion=to-end]:slide-out-to-right-6 data-[motion=to-start]:slide-out-to-left-6",
+      "data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out",
+      "data-[motion^=from-]:fade-in-0 data-[motion^=to-]:fade-out-0",
+      "data-[motion^=from-]:zoom-in-[0.98] data-[motion^=to-]:zoom-out-[0.98]",
+      "data-[motion^=from-]:slide-in-from-top-2 data-[motion^=to-]:slide-out-to-top-1",
+      "data-[motion^=from-]:duration-200 data-[motion^=to-]:duration-150",
+      "data-[motion^=from-]:ease-[cubic-bezier(0.16,1,0.3,1)] data-[motion^=to-]:ease-in",
+      "motion-reduce:data-[motion^=from-]:!animate-none motion-reduce:data-[motion^=to-]:!animate-none",
       className,
     )}
     {...props}

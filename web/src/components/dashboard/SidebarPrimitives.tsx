@@ -578,10 +578,12 @@ type SidebarNavHeaderProps = {
   onDismiss: () => void;
   /** Mobile drawer uses close; desktop expanded uses panel collapse */
   dismissVariant: "close" | "collapse";
+  /** Current page label — updates as the user navigates. */
+  pageTitle: string;
 };
 
 /** Top chrome for dashboard sidebar, label balances the dismiss control. */
-function SidebarNavHeader({ onDismiss, dismissVariant }: SidebarNavHeaderProps) {
+function SidebarNavHeader({ onDismiss, dismissVariant, pageTitle }: SidebarNavHeaderProps) {
   return (
     <div className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-b border-sidebar-border/60 bg-gradient-to-b from-muted/20 to-transparent px-3 py-2.5">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -599,7 +601,7 @@ function SidebarNavHeader({ onDismiss, dismissVariant }: SidebarNavHeaderProps) 
             Dashboard
           </p>
           <p className="truncate text-[13px] font-semibold tracking-tight text-foreground">
-            Navigation
+            {pageTitle}
           </p>
         </div>
       </div>
@@ -617,12 +619,24 @@ function SidebarNavHeader({ onDismiss, dismissVariant }: SidebarNavHeaderProps) 
   );
 }
 
-export function SidebarMobileDrawerHeader({ onClose }: { onClose: () => void }) {
-  return <SidebarNavHeader onDismiss={onClose} dismissVariant="close" />;
+export function SidebarMobileDrawerHeader({
+  onClose,
+  pageTitle,
+}: {
+  onClose: () => void;
+  pageTitle: string;
+}) {
+  return <SidebarNavHeader onDismiss={onClose} dismissVariant="close" pageTitle={pageTitle} />;
 }
 
-export function SidebarCollapseHeader({ onCollapse }: { onCollapse: () => void }) {
-  return <SidebarNavHeader onDismiss={onCollapse} dismissVariant="collapse" />;
+export function SidebarCollapseHeader({
+  onCollapse,
+  pageTitle,
+}: {
+  onCollapse: () => void;
+  pageTitle: string;
+}) {
+  return <SidebarNavHeader onDismiss={onCollapse} dismissVariant="collapse" pageTitle={pageTitle} />;
 }
 
 /** Collapsed icon rail, compact expand control at top. */

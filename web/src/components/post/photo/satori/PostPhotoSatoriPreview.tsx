@@ -73,23 +73,23 @@ export function PostPhotoSatoriPreview({
       >
         {loading && !svg ? (
           <div
-            className="flex h-full w-full items-center justify-center bg-[#050505]"
+            className="flex h-full w-full items-center justify-center bg-white"
             style={{ width: PHOTO_SIZE.width, height: PHOTO_SIZE.height }}
           >
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/35">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-400">
               Rendering…
             </p>
           </div>
         ) : null}
         {error ? (
           <div
-            className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#050505] px-8"
+            className="flex h-full w-full flex-col items-center justify-center gap-2 bg-white px-8"
             style={{ width: PHOTO_SIZE.width, height: PHOTO_SIZE.height }}
           >
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-red-400/80">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-red-600">
               Preview failed
             </p>
-            <p className="max-w-md text-center text-sm text-white/45">{error}</p>
+            <p className="max-w-md text-center text-sm text-neutral-500">{error}</p>
           </div>
         ) : null}
         {svg ? (

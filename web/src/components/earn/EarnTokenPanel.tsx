@@ -357,24 +357,6 @@ export function EarnTokenPanel({
         </Button>
       </header>
 
-      {myLaunches.length > 0 ? (
-        <div className="space-y-4">
-          <div className="flex items-baseline justify-between gap-3">
-            <h3 className="font-display text-[1.05rem] font-semibold tracking-tight text-foreground">
-              Your tokens
-            </h3>
-            <p className="text-[12px] tabular-nums text-muted-foreground">
-              {myLaunches.length} launch{myLaunches.length === 1 ? "" : "es"}
-            </p>
-          </div>
-          <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
-            {myLaunches.map((launch, index) => (
-              <TokenCard key={launch.id} launch={launch} staggerIndex={index} />
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative min-w-0 flex-1 sm:max-w-sm">
           <Search
@@ -423,6 +405,24 @@ export function EarnTokenPanel({
           ))}
         </div>
       </div>
+
+      {myLaunches.length > 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-display text-[1.05rem] font-semibold tracking-tight text-foreground">
+              Your tokens
+            </h3>
+            <p className="text-[12px] tabular-nums text-muted-foreground">
+              {myLaunches.length} launch{myLaunches.length === 1 ? "" : "es"}
+            </p>
+          </div>
+          <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
+            {myLaunches.map((launch, index) => (
+              <TokenCard key={launch.id} launch={launch} staggerIndex={index} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {showSkeleton ? (
         <EarnCardGridSkeleton count={6} heightClass="h-[17rem]" />

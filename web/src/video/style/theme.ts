@@ -27,19 +27,19 @@ export interface PostVideoTheme {
   };
 }
 
-/** Syra Cinematic, black / white / gold, depth stage, smooth springs. */
+/** Syra Cinematic, white canvas / dark type / gold accent, depth stage, smooth springs. */
 export const SYRA_VIDEO_THEME: PostVideoTheme = {
-  bg: "#050505",
-  fg: "rgba(255,255,255,0.95)",
-  muted: "rgba(255,255,255,0.45)",
+  bg: "#FFFFFF",
+  fg: "rgba(0,0,0,0.92)",
+  muted: "rgba(0,0,0,0.55)",
   accent: "#F3BA2F",
-  accentSoft: "rgba(243,186,47,0.18)",
+  accentSoft: "rgba(243,186,47,0.16)",
   accentLine: "rgba(243,186,47,0.55)",
-  cardBorder: "rgba(255,255,255,0.1)",
+  cardBorder: "rgba(0,0,0,0.12)",
   cardBg:
-    "linear-gradient(165deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 55%, transparent 100%)",
-  faint: "rgba(255,255,255,0.12)",
-  vignette: "rgba(0,0,0,0.55)",
+    "linear-gradient(165deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.015) 55%, transparent 100%)",
+  faint: "rgba(0,0,0,0.12)",
+  vignette: "rgba(0,0,0,0.08)",
   revealOffsetY: 28,
   enterFrames: 24,
   exitFrames: 12,

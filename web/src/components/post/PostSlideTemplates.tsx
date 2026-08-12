@@ -63,8 +63,8 @@ function TokenCard({
       className={cn(
         "post-token-card post-slide-card h-full",
         card.accent === "gold"
-          ? "border-white/20 bg-gradient-to-br from-white/12 via-white/[0.04] to-transparent"
-          : "border-white/[0.08] bg-white/[0.03]",
+          ? "border-neutral-300 bg-gradient-to-br from-neutral-100 via-neutral-50 to-transparent"
+          : "border-neutral-200 bg-neutral-50",
         className,
       )}
     >
@@ -93,7 +93,7 @@ function renderCover(slide: PostCoverSlide, isActive: boolean): ReactNode {
               <img
                 src="/images/logo.jpg"
                 alt=""
-                className="post-cover-logo h-12 w-12 rounded-xl border border-white/10 object-cover shadow-2xl sm:h-14 sm:w-14"
+                className="post-cover-logo h-12 w-12 rounded-xl border border-neutral-200 object-cover shadow-2xl sm:h-14 sm:w-14"
               />
               <h1 className="post-slide-title post-slide-balance">
                 {slide.title}
@@ -125,7 +125,7 @@ function renderCover(slide: PostCoverSlide, isActive: boolean): ReactNode {
                 <img
                   src="/images/logo.jpg"
                   alt=""
-                  className="h-11 w-11 rounded-xl border border-white/10 object-cover"
+                  className="h-11 w-11 rounded-xl border border-neutral-200 object-cover"
                 />
                 <h1 className="post-slide-title post-slide-balance">
                   {slide.title}
@@ -293,8 +293,8 @@ function renderHero(slide: PostHeroSlide, isActive: boolean): ReactNode {
           <ul className="post-slide-list post-slide-prose w-full">
             {slide.highlights.map((item, i) => (
               <PostReveal key={item} isActive={isActive} delayMs={280 + i * 90}>
-                <li className="post-highlight-row flex gap-2.5 rounded-lg border border-white/[0.07] bg-gradient-to-r from-white/[0.06] to-transparent px-3 py-2.5">
-                  <span className="post-check shrink-0 font-mono text-white/80">
+                <li className="post-highlight-row flex gap-2.5 rounded-lg border border-neutral-200 bg-gradient-to-r from-neutral-50 to-transparent px-3 py-2.5">
+                  <span className="post-check shrink-0 font-mono text-neutral-700">
                     ✓
                   </span>
                   <span className="post-slide-copy text-left">{item}</span>
@@ -331,7 +331,7 @@ function renderHero(slide: PostHeroSlide, isActive: boolean): ReactNode {
             {slide.highlights.map((item, i) => (
               <PostReveal key={item} isActive={isActive} delayMs={280 + i * 80}>
                 <li className="post-slide-card post-highlight-row flex gap-2 px-3 py-2">
-                  <span className="font-mono text-[10px] text-white/75">
+                  <span className="font-mono text-[10px] text-neutral-700">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span className="post-slide-card-copy text-left">{item}</span>
@@ -360,7 +360,7 @@ function renderHero(slide: PostHeroSlide, isActive: boolean): ReactNode {
           <ul className="post-slide-list w-full max-w-[50ch]">
             {slide.highlights.map((item, i) => (
               <PostReveal key={item} isActive={isActive} delayMs={160 + i * 70}>
-                <li className="post-slide-card-copy border-b border-white/[0.06] py-2 text-center last:border-0">
+                <li className="post-slide-card-copy border-b border-neutral-200 py-2 text-center last:border-0">
                   {item}
                 </li>
               </PostReveal>
@@ -391,7 +391,7 @@ function renderHero(slide: PostHeroSlide, isActive: boolean): ReactNode {
             {slide.highlights.slice(0, 3).map((item, i) => (
               <PostReveal key={item} isActive={isActive} delayMs={200 + i * 90}>
                 <div className="post-slide-card post-pillar text-center">
-                  <p className="font-mono text-xs text-white/70">
+                  <p className="font-mono text-xs text-neutral-600">
                     {String(i + 1).padStart(2, "0")}
                   </p>
                   <p className="post-slide-card-copy mt-2">{item}</p>
@@ -439,7 +439,7 @@ function renderFlow(slide: PostFlowSlide, isActive: boolean): ReactNode {
                       aria-hidden
                     />
                   ) : null}
-                  <p className="post-slide-meta text-white/70">
+                  <p className="post-slide-meta text-neutral-600">
                     {step.step}
                   </p>
                   <h3 className="post-slide-card-title mt-1.5">{step.title}</h3>
@@ -661,12 +661,12 @@ function renderSurfaces(
                 <>
                   <div className="flex items-start justify-between gap-2">
                     <item.icon
-                      className="h-4 w-4 shrink-0 text-white/50"
+                      className="h-4 w-4 shrink-0 text-neutral-500"
                       strokeWidth={1.5}
                     />
                     {item.href ? (
                       <>
-                        <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 shrink-0 text-white/25 group-hover:text-white/80" />
+                        <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 shrink-0 text-neutral-300 group-hover:text-neutral-800" />
                         <PostVideoLinkArrow />
                       </>
                     ) : null}
@@ -727,7 +727,7 @@ function renderSurfaces(
               >
                 <li className="post-surface-list-item">
                   <item.icon
-                    className="h-4 w-4 shrink-0 text-white/65"
+                    className="h-4 w-4 shrink-0 text-neutral-600"
                     strokeWidth={1.5}
                   />
                   <div className="min-w-0 flex-1">
@@ -739,7 +739,7 @@ function renderSurfaces(
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 text-white/30 hover:text-white/80"
+                      className="shrink-0 text-neutral-400 hover:text-neutral-800"
                     >
                       <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5" />
                       <PostVideoLinkArrow />
@@ -783,7 +783,7 @@ function renderImpact(slide: PostImpactSlide, isActive: boolean): ReactNode {
               >
                 <div className="post-stat-card post-slide-card text-center">
                   <p className="post-slide-stat">{stat.value}</p>
-                  <p className="post-slide-card-copy mt-1 font-medium text-white/75">
+                  <p className="post-slide-card-copy mt-1 font-medium text-neutral-700">
                     {stat.label}
                   </p>
                 </div>
@@ -817,7 +817,7 @@ function renderImpact(slide: PostImpactSlide, isActive: boolean): ReactNode {
               <p className="post-slide-stat post-slide-stat--xl">
                 {slide.stats[0]?.value}
               </p>
-              <p className="post-slide-card-copy mt-2 font-medium text-white/80">
+              <p className="post-slide-card-copy mt-2 font-medium text-neutral-700">
                 {slide.stats[0]?.label}
               </p>
             </div>
@@ -935,7 +935,7 @@ function renderClosing(slide: PostClosingSlide, isActive: boolean): ReactNode {
                       {link.value}
                     </p>
                   </div>
-                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 shrink-0 text-white/30 group-hover:text-white/80" />
+                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 shrink-0 text-neutral-400 group-hover:text-neutral-800" />
                   <PostVideoLinkArrow />
                 </a>
               </PostReveal>

@@ -53,8 +53,8 @@ function TokenCard({
       className={cn(
         "post-token-card post-slide-card h-full",
         card.accent === "gold"
-          ? "border-white/20 bg-gradient-to-br from-white/12 via-white/[0.04] to-transparent"
-          : "border-white/[0.08] bg-white/[0.03]",
+          ? "border-neutral-300 bg-gradient-to-br from-neutral-100 via-neutral-50 to-transparent"
+          : "border-neutral-200 bg-neutral-50",
         className,
       )}
     >
@@ -86,7 +86,7 @@ export function renderCoverBatch3(
                 <img
                   src="/images/logo.jpg"
                   alt=""
-                  className="post-cover-logo mx-auto h-12 w-12 rounded-xl border border-white/10 object-cover sm:h-14 sm:w-14"
+                  className="post-cover-logo mx-auto h-12 w-12 rounded-xl border border-neutral-200 object-cover sm:h-14 sm:w-14"
                 />
                 <CoverBadge
                   text={slide.badge}
@@ -129,7 +129,7 @@ export function renderCoverBatch3(
                   isActive={isActive}
                   delayMs={80}
                 />
-                <span className="post-batch3-stamp-coords font-mono text-[9px] uppercase tracking-[0.25em] text-white/30">
+                <span className="post-batch3-stamp-coords font-mono text-[9px] uppercase tracking-[0.25em] text-neutral-400">
                   SYRA · SHIP LOG
                 </span>
               </div>
@@ -151,7 +151,7 @@ export function renderCoverBatch3(
                 <img
                   src="/images/logo.jpg"
                   alt=""
-                  className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-white/20 object-cover sm:h-12 sm:w-12"
+                  className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-neutral-300 object-cover sm:h-12 sm:w-12"
                 />
                 <span className="post-batch3-corner-line" aria-hidden />
               </div>
@@ -195,7 +195,7 @@ export function renderCoverBatch3(
           <div className="post-batch3-dual-badge-row">
             <CoverBadge text={slide.badge} isActive={isActive} delayMs={280} />
             <PostReveal isActive={isActive} delayMs={360}>
-              <span className="post-batch3-dual-badge-chip font-mono text-[10px] uppercase tracking-[0.18em] text-white/45">
+              <span className="post-batch3-dual-badge-chip font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-500">
                 v3 · batch
               </span>
             </PostReveal>
@@ -399,7 +399,7 @@ export function renderHeroBatch3(
                 delayMs={180 + i * 70}
                 className="post-batch3-pillar-compact-item"
               >
-                <span className="post-batch3-pillar-compact-index font-mono text-[10px] text-white/75">
+                <span className="post-batch3-pillar-compact-index font-mono text-[10px] text-neutral-700">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <span className="post-slide-card-copy">{item}</span>
@@ -533,11 +533,11 @@ export function renderFlowBatch3(
                 >
                   <div className="post-slide-card post-batch3-ladder-card">
                     <div className="flex items-center gap-2">
-                      <span className="post-slide-meta text-white/70">
+                      <span className="post-slide-meta text-neutral-600">
                         {step.step}
                       </span>
                       <ArrowRight
-                        className="h-3 w-3 text-white/50"
+                        className="h-3 w-3 text-neutral-500"
                         aria-hidden
                       />
                       <h3 className="post-slide-card-title">{step.title}</h3>
@@ -714,7 +714,7 @@ export function renderSurfacesBatch3(
                 <div className="post-batch3-icon-row-item">
                   <div className="post-batch3-icon-row-circle">
                     <item.icon
-                      className="h-4 w-4 text-white/75"
+                      className="h-4 w-4 text-neutral-700"
                       strokeWidth={1.5}
                     />
                   </div>
@@ -751,7 +751,7 @@ export function renderSurfacesBatch3(
                 <div className="post-batch3-diamond-cell">
                   <div className="post-batch3-diamond-inner">
                     <item.icon
-                      className="h-4 w-4 text-white/55"
+                      className="h-4 w-4 text-neutral-500"
                       strokeWidth={1.5}
                     />
                     <p className="post-slide-card-title mt-1.5">{item.title}</p>
@@ -879,7 +879,7 @@ export function renderImpactBatch3(
             <PostReveal isActive={isActive} delayMs={160}>
               <div className="post-batch3-mega-stat">
                 <p className="post-batch3-mega-value">{slide.stats[0].value}</p>
-                <p className="post-slide-card-copy mt-2 font-medium text-white/80">
+                <p className="post-slide-card-copy mt-2 font-medium text-neutral-700">
                   {slide.stats[0].label}
                 </p>
               </div>
@@ -990,7 +990,7 @@ export function renderClosingBatch3(
                 >
                   <span className="post-slide-card-title">{link.label}</span>
                   <span className="post-slide-meta">{link.value}</span>
-                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-white/60 group-hover:text-white" />
+                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-neutral-500 group-hover:text-neutral-900" />
                   <PostVideoLinkArrow />
                 </a>
               </PostReveal>

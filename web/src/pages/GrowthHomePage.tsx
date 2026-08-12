@@ -637,9 +637,9 @@ export default function GrowthHomePage() {
           </div>
 
           <ol className="relative grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 lg:grid-cols-3">
-            {/* Hairline connectors between steps (desktop) */}
+            {/* Hairline connectors between steps (desktop); under icon marks via z-index */}
             <div
-              className="pointer-events-none absolute inset-x-[16.66%] top-[2.75rem] z-10 hidden h-px lg:block"
+              className="pointer-events-none absolute inset-x-[16.66%] top-[2.75rem] z-[1] hidden h-px lg:block"
               aria-hidden
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-border/70 to-transparent" />
@@ -666,7 +666,7 @@ export default function GrowthHomePage() {
                         />
                       ) : null}
                     </div>
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-muted/15 text-foreground/70 transition-colors group-hover:border-border/65 group-hover:text-foreground">
+                    <span className="relative z-[2] flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 bg-background text-foreground/70 shadow-[0_0_0_6px_hsl(var(--background))] transition-colors group-hover:border-border/65 group-hover:bg-card group-hover:text-foreground group-hover:shadow-[0_0_0_6px_hsl(var(--card))]">
                       <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                     </span>
                   </div>

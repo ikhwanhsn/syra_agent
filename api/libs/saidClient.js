@@ -286,7 +286,7 @@ export function buildTokenAgentCard(input) {
   const mint = String(input.mint || "").trim();
   const description =
     (typeof input.description === "string" && input.description.trim()) ||
-    `${name}${symbol ? ` ($${symbol})` : ""}: community token launched on Syra Earn / pump.fun.`;
+    `${name}${symbol ? ` ($${symbol})` : ""}: community token launched on Syra Earn / pump.fun. Powered by Syra machine-money agents.`;
   const image =
     (typeof input.image === "string" && input.image.trim()) ||
     process.env.SYRA_AGENT_IMAGE_URI?.trim() ||
@@ -297,18 +297,17 @@ export function buildTokenAgentCard(input) {
   const rawTwitter = process.env.SYRA_COLLECTION_X_URL?.trim() || "@syra_agent";
   const twitter = normalizeSaidTwitterHandle(rawTwitter);
 
+  // Match Syra's directory card shape so SAID identity/ecosystem fields populate the same way.
+  // Trust score still comes from SAID's model (longevity, activity, etc.) and cannot be forced.
   return {
     name,
     description,
     twitter,
     website,
     wallet,
-    capabilities: ["x402", "token", "pumpfun", "earn"],
-    skills: [
-      "natural_language_processing/information_retrieval_synthesis/knowledge_synthesis",
-      "tool_interaction/tool_use_planning",
-    ],
-    serviceTypes: ["A2A"],
+    capabilities: ["x402", "mcp", "agent-wallets", "treasury", "micropayments"],
+    skills: ["x402", "mcp", "trading-intelligence", "sentiment", "signals"],
+    serviceTypes: ["MCP", "A2A"],
     mcpEndpoint: "https://api.syraa.fun",
     a2aEndpoint: "https://api.syraa.fun",
     image,
@@ -317,6 +316,10 @@ export function buildTokenAgentCard(input) {
 }
 
 /**
+ * Host AgentCard JSON on IPFS (Pinata) and return a SAID-valid metadata URI.
+ * Prefer HTTPS gateway URLs so SAID's on-chain-sync indexer can fetch name/description
+ * (Syra's live profile uses https://ipfs.io/ipfs/…; bare ipfs:// often leaves "Unnamed Agent").
+ *
  * @param {Record<string, unknown>} card
  * @returns {Promise<string>}
  */
@@ -349,8 +352,36 @@ export async function uploadAgentCardMetadata(card) {
     throw new Error("Pinata upload did not return IpfsHash");
   }
 
-  // Prefer ipfs:// for on-chain URI (≤200 chars; SAID program validates length/prefix).
-  return `ipfs://${cid}`;
+  return toSaidMetadataUri(cid);
+}
+
+/**
+ * SAID accepts https:// | ipfs:// | ar:// (10–200 chars). Prefer HTTPS for directory sync.
+ * @param {string} cid
+ * @returns {string}
+ */
+export function toSaidMetadataUri(cid) {
+  const gateway =
+    process.env.SAID_IPFS_GATEWAY?.trim().replace(/\/$/, "") || "https://ipfs.io/ipfs";
+  const httpsUri = `${gateway}/${cid}`;
+  if (httpsUri.length <= 200) return httpsUri;
+  const compact = `ipfs://${cid}`;
+  if (compact.length > 200) {
+    throw new Error(`SAID metadata URI too long (${compact.length}); need ≤200 chars`);
+  }
+  return compact;
+}
+
+/**
+ * True when SAID directory is missing profile fields the AgentCard already has on IPFS.
+ * @param {string} wallet
+ * @returns {Promise<boolean>}
+ */
+export async function saidDirectoryNeedsMetadataHeal(wallet) {
+  const details = await getAgentDetails(wallet).catch(() => ({ success: false }));
+  if (!details.success || !details.data || typeof details.data !== "object") return true;
+  const name = /** @type {{ name?: unknown }} */ (details.data).name;
+  return typeof name !== "string" || !name.trim() || /^unnamed agent$/i.test(name.trim());
 }
 
 /**
@@ -744,6 +775,7 @@ export async function syncSyraSaidMetadata(wallet) {
  *   }) => Promise<string>;
  *   card: import('said-sdk').AgentCard;
  *   skipOffChain?: boolean;
+ *   forceMetadataRefresh?: boolean;
  *   offChainCard?: {
  *     name: string;
  *     description: string;
@@ -752,12 +784,14 @@ export async function syncSyraSaidMetadata(wallet) {
  *     capabilities?: string[];
  *   };
  * }} input
+ *   forceMetadataRefresh re-pins AgentCard and runs update_agent (heals Unnamed profiles).
  * @returns {Promise<{
  *   wallet: string;
  *   agentPDA?: string;
  *   metadataUri?: string;
  *   registerSignature?: string | null;
  *   verifySignature?: string | null;
+ *   updateSignature?: string | null;
  *   verified: boolean;
  *   alreadyRegistered: boolean;
  *   alreadyVerified: boolean;
@@ -786,6 +820,28 @@ export async function registerAndVerifyAgentCard(input) {
   }
 
   const card = { ...input.card, wallet };
+  const offChainPayload = input.offChainCard || {
+    name: card.name,
+    description: card.description || SYRA_TAGLINE_SHORT,
+    twitter: card.twitter,
+    website: card.website,
+    capabilities: card.capabilities,
+  };
+
+  // Directory-first: pending registration stores name/description before on-chain-sync can create an empty row.
+  if (!input.skipOffChain) {
+    const pre = await registerOffChain({
+      wallet,
+      name: offChainPayload.name,
+      description: offChainPayload.description,
+      twitter: offChainPayload.twitter,
+      website: offChainPayload.website,
+      capabilities: offChainPayload.capabilities,
+    });
+    if (!pre.success) {
+      console.warn("[saidClient] pre-register directory sync failed:", pre.error);
+    }
+  }
 
   const { SAID } = await import("said-sdk");
   const [agentPdaKey] = SAID.deriveAgentPDA(new PublicKey(wallet));
@@ -816,9 +872,18 @@ export async function registerAndVerifyAgentCard(input) {
 
   let existing = await lookupOnChainAgent(wallet);
   let registerSignature = null;
+  let updateSignature = null;
   let agentPDA = existing?.pubkey || agentPdaKey.toBase58();
   let metadataUri = existing?.metadataUri;
   let alreadyRegistered = !!existing;
+
+  const directoryNeedsHeal = await saidDirectoryNeedsMetadataHeal(wallet);
+  const uriNeedsHttpsRefresh =
+    typeof metadataUri === "string" &&
+    metadataUri.startsWith("ipfs://") &&
+    !metadataUri.startsWith("https://");
+  const shouldRefreshMetadata =
+    input.forceMetadataRefresh === true || directoryNeedsHeal || uriNeedsHttpsRefresh;
 
   if (!existing) {
     metadataUri = await uploadAgentCardMetadata(card);
@@ -833,6 +898,19 @@ export async function registerAndVerifyAgentCard(input) {
       existing = await lookupOnChainAgent(wallet);
       agentPDA = existing?.pubkey || agentPdaKey.toBase58();
       metadataUri = existing?.metadataUri || metadataUri;
+    }
+  } else if (shouldRefreshMetadata) {
+    // Heal Unnamed / ipfs:// profiles so SAID indexer can read AgentCard fields.
+    metadataUri = await uploadAgentCardMetadata(card);
+    const updateIx = buildUpdateAgentInstruction(agentPdaKey, feePayer, metadataUri);
+    const updateTx = new Transaction().add(updateIx);
+    try {
+      updateSignature = await submitTx(updateTx);
+    } catch (err) {
+      console.warn(
+        "[saidClient] update_agent metadata refresh failed:",
+        err instanceof Error ? err.message : err,
+      );
     }
   }
 
@@ -853,20 +931,13 @@ export async function registerAndVerifyAgentCard(input) {
   }
 
   if (!input.skipOffChain) {
-    const off = input.offChainCard || {
-      name: card.name,
-      description: card.description || SYRA_TAGLINE_SHORT,
-      twitter: card.twitter,
-      website: card.website,
-      capabilities: card.capabilities,
-    };
     const offChain = await registerOffChain({
       wallet,
-      name: off.name,
-      description: off.description,
-      twitter: off.twitter,
-      website: off.website,
-      capabilities: off.capabilities,
+      name: offChainPayload.name,
+      description: offChainPayload.description,
+      twitter: offChainPayload.twitter,
+      website: offChainPayload.website,
+      capabilities: offChainPayload.capabilities,
     });
     if (!offChain.success || offChain.listed === false) {
       console.warn(
@@ -887,6 +958,7 @@ export async function registerAndVerifyAgentCard(input) {
     metadataUri: metadataUri || onChainFinal?.metadataUri,
     registerSignature,
     verifySignature,
+    updateSignature,
     verified: status.verified === true || wasVerified,
     alreadyRegistered,
     alreadyVerified: wasVerified,

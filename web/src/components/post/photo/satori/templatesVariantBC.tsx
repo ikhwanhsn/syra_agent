@@ -394,8 +394,8 @@ function PartnershipExtras({
             borderRadius: 14,
             objectFit: content.partnerLogoSolidBg ? "contain" : "cover",
             background: content.partnerLogoSolidBg
-              ? "#ffffff"
-              : "rgba(255,255,255,0.06)",
+              ? PHOTO.white
+              : PHOTO.accentSoft,
           }}
         />
         <div
@@ -442,7 +442,7 @@ function LaunchBrandTile({
           height: 80,
           borderRadius: 20,
           border: `1px solid ${PHOTO.accentLine}`,
-          background: "rgba(255,255,255,0.06)",
+          background: PHOTO.accentSoft,
         }}
       >
         <div
@@ -454,7 +454,7 @@ function LaunchBrandTile({
             height: 60,
             borderRadius: 14,
             border: `1px solid ${PHOTO.cardBorder}`,
-            background: solidBg ? "#ffffff" : "rgba(0,0,0,0.55)",
+            background: solidBg ? PHOTO.white : "rgba(0,0,0,0.55)",
           }}
         >
           <img
@@ -1363,7 +1363,7 @@ export function ComparisonLayoutB({ content }: { content: PostPhotoContent }) {
             padding: "18px 20px",
             borderRadius: 14,
             border: `1px solid ${PHOTO.cardBorder}`,
-            background: "rgba(255,255,255,0.03)",
+            background: PHOTO.cardBg,
           }}
         >
           <div
@@ -1433,7 +1433,7 @@ export function ComparisonLayoutC({ content }: { content: PostPhotoContent }) {
             padding: "22px 20px",
             borderRadius: 16,
             border: `1px solid ${PHOTO.cardBorder}`,
-            background: "rgba(255,255,255,0.03)",
+            background: PHOTO.cardBg,
           }}
         >
           <div
@@ -1631,7 +1631,7 @@ export function LaunchLayoutC({
             style={{
               borderRadius: 10,
               objectFit: content.partnerLogoSolidBg ? "contain" : "cover",
-              background: content.partnerLogoSolidBg ? "#fff" : "transparent",
+              background: content.partnerLogoSolidBg ? PHOTO.white : "transparent",
             }}
           />
         </div>
@@ -1888,7 +1888,7 @@ function TerminalWindow({
     flexDirection: "column",
     borderRadius: 16,
     border: `1px solid ${PHOTO.cardBorder}`,
-    background: "rgba(0,0,0,0.55)",
+    background: PHOTO.black,
     overflow: "hidden",
   };
   if (typeof flex === "number") {
@@ -1905,8 +1905,8 @@ function TerminalWindow({
           alignItems: "center",
           gap: 8,
           padding: "12px 16px",
-          borderBottom: `1px solid ${PHOTO.cardBorder}`,
-          background: "rgba(255,255,255,0.04)",
+          borderBottom: `1px solid rgba(255,255,255,0.12)`,
+          background: "rgba(255,255,255,0.06)",
         }}
       >
         <div style={{ width: 10, height: 10, borderRadius: 999, background: "#ff5f56" }} />
@@ -1917,7 +1917,7 @@ function TerminalWindow({
             marginLeft: 12,
             fontFamily: PHOTO_TYPE.mono,
             fontSize: 12,
-            color: PHOTO.faint,
+            color: "rgba(255,255,255,0.45)",
             letterSpacing: "0.08em",
           }}
         >
@@ -1940,8 +1940,8 @@ function TerminalWindow({
               fontSize: 16,
               color:
                 line.startsWith("$") || line.startsWith(">")
-                  ? PHOTO.accent
-                  : PHOTO.fg,
+                  ? PHOTO.white
+                  : "rgba(255,255,255,0.85)",
               lineHeight: 1.45,
             }}
           >
@@ -2002,7 +2002,7 @@ export function TerminalLayoutC({ content }: { content: PostPhotoContent }) {
           padding: "24px 28px",
           borderRadius: 12,
           border: `1px solid ${PHOTO.cardBorder}`,
-          background: "rgba(0,0,0,0.65)",
+          background: PHOTO.black,
         }}
       >
         {lines.map((line) => (
@@ -2013,8 +2013,8 @@ export function TerminalLayoutC({ content }: { content: PostPhotoContent }) {
               fontSize: 18,
               color:
                 line.startsWith("$") || line.startsWith(">")
-                  ? PHOTO.accent
-                  : PHOTO.fg,
+                  ? PHOTO.white
+                  : "rgba(255,255,255,0.85)",
               lineHeight: 1.5,
             }}
           >
@@ -2131,7 +2131,7 @@ export function CtaLayoutC({ content }: { content: PostPhotoContent }) {
               padding: "10px 16px",
               borderRadius: 999,
               border: `1px solid ${PHOTO.accentLine}`,
-              background: "rgba(0,0,0,0.35)",
+              background: PHOTO.accentSoft,
             }}
           >
             <div

@@ -41,7 +41,7 @@ export function VideoChrome() {
             width: 18,
             height: 18,
             borderRadius: 5,
-            border: "1px solid #333333",
+            border: "1px solid rgba(0,0,0,0.12)",
             objectFit: "cover",
             display: "block",
           }}
@@ -52,7 +52,7 @@ export function VideoChrome() {
             fontSize: 12,
             fontWeight: 600,
             letterSpacing: "0.06em",
-            color: "#F2F2F2",
+            color: "rgba(0,0,0,0.78)",
           }}
         >
           Syra

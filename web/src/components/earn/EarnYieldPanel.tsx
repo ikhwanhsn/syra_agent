@@ -1,11 +1,9 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { ExternalLink, Lock, Play } from "lucide-react";
+import { Lock, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { EarnPanelHeader } from "@/components/earn/EarnPanelHeader";
 import { EarnYieldPanelSkeleton } from "@/components/earn/EarnSkeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { Button } from "@/components/ui/button";
 import {
   fetchEarnYieldBoard,
   fetchEarnYieldStatus,
@@ -30,24 +28,6 @@ type EarnYieldPanelProps = {
   onSignIn: () => void;
   onRequestAuth: () => Promise<boolean>;
 };
-
-const HOW_IT_WORKS_STEPS = [
-  {
-    step: 1,
-    title: "Choose a strategy",
-    body: "Pick one that matches how much risk you are comfortable with.",
-  },
-  {
-    step: 2,
-    title: "Deposit into your wallet",
-    body: "You fund your own agent wallet. Syra never holds your keys.",
-  },
-  {
-    step: 3,
-    title: "Syra invests for you",
-    body: "The strategy runs automatically. You can pause or stop anytime.",
-  },
-] as const;
 
 export function EarnYieldPanel({
   anonymousId,
@@ -92,27 +72,8 @@ export function EarnYieldPanel({
 
   return (
     <div className="space-y-6">
-      <EarnPanelHeader
-        title="Earn on your crypto"
-        action={
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/wallet?wallet=earn">
-              Your wallets
-              <ExternalLink className="ml-1.5 h-3.5 w-3.5 opacity-70" />
-            </Link>
-          </Button>
-        }
-      />
-
-      <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        Pick a strategy, deposit into your own wallet, and Syra runs it for you. You stay in
-        control and can stop anytime. Past results are not a guarantee.
-      </p>
-
-      <HowItWorksStrip />
-
       {boardQ.isLoading ? (
-        <EarnYieldPanelSkeleton includeHeader={false} />
+        <EarnYieldPanelSkeleton />
       ) : boardQ.isError ? (
         <div className={cn(overviewCardShell, "space-y-2 p-4")}>
           <p className="text-sm font-medium text-destructive">Couldn&apos;t load yield strategies.</p>
@@ -128,13 +89,7 @@ export function EarnYieldPanel({
       ) : (
         <>
           {openProducts.length > 0 ? (
-            <section className="space-y-3" aria-labelledby="earn-yield-available">
-              <h2
-                id="earn-yield-available"
-                className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
-              >
-                Available now
-              </h2>
+            <section className="space-y-3" aria-label="Available strategies">
               <div className="grid gap-3 sm:grid-cols-2">
                 {openProducts.map((product) => (
                   <StrategyBrowseCard
@@ -341,30 +296,6 @@ function ComingSoonCard({ product }: { product: EarnYieldProduct }) {
           </p>
         </div>
       </div>
-    </div>
-  );
-}
-
-function HowItWorksStrip() {
-  return (
-    <div
-      className={cn(
-        overviewCardShell,
-        "grid gap-4 p-4 sm:grid-cols-3 sm:gap-3 sm:p-5",
-      )}
-      aria-label="How earning works"
-    >
-      {HOW_IT_WORKS_STEPS.map((item) => (
-        <div key={item.step} className="flex gap-3 sm:flex-col sm:gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/50 text-[11px] font-semibold tabular-nums text-foreground">
-            {item.step}
-          </span>
-          <div className="min-w-0 space-y-0.5">
-            <p className="text-sm font-medium text-foreground">{item.title}</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">{item.body}</p>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

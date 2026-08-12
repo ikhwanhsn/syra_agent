@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { SYRA_VIDEO_THEME } from "@/video/style/theme";
 
 describe("SYRA_VIDEO_THEME", () => {
-  it("keeps the Syra black / white / gold palette", () => {
-    expect(SYRA_VIDEO_THEME.bg).toBe("#050505");
+  it("keeps the Syra white canvas / gold accent palette", () => {
+    expect(SYRA_VIDEO_THEME.bg).toBe("#FFFFFF");
     expect(SYRA_VIDEO_THEME.accent).toBe("#F3BA2F");
-    expect(SYRA_VIDEO_THEME.fg).toContain("255,255,255");
-    expect(SYRA_VIDEO_THEME.muted).toContain("255,255,255");
+    expect(SYRA_VIDEO_THEME.fg).toContain("0,0,0");
+    expect(SYRA_VIDEO_THEME.muted).toContain("0,0,0");
   });
 
   it("uses smooth professional springs with no bounce", () => {

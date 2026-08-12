@@ -62,8 +62,8 @@ function TokenCard({
       className={cn(
         "post-token-card post-slide-card h-full",
         card.accent === "gold"
-          ? "border-white/20 bg-gradient-to-br from-white/12 via-white/[0.04] to-transparent"
-          : "border-white/[0.08] bg-white/[0.03]",
+          ? "border-neutral-300 bg-gradient-to-br from-neutral-100 via-neutral-50 to-transparent"
+          : "border-neutral-200 bg-neutral-50",
         className,
       )}
     >
@@ -87,7 +87,7 @@ export function renderCoverExtended(
             <img
               src="/images/logo.jpg"
               alt=""
-              className="post-cover-logo mx-auto h-16 w-16 rounded-2xl border border-white/10 object-cover sm:h-[4.5rem] sm:w-[4.5rem]"
+              className="post-cover-logo mx-auto h-16 w-16 rounded-2xl border border-neutral-200 object-cover sm:h-[4.5rem] sm:w-[4.5rem]"
             />
           </PostReveal>
           <PostReveal isActive={isActive} delayMs={80}>
@@ -280,7 +280,7 @@ export function renderHeroExtended(
             {slide.highlights.map((item, i) => (
               <PostReveal key={item} isActive={isActive} delayMs={200 + i * 80}>
                 <div className="post-slide-card text-center">
-                  <p className="font-mono text-lg text-white/80">
+                  <p className="font-mono text-lg text-neutral-700">
                     {String(i + 1).padStart(2, "0")}
                   </p>
                   <p className="post-slide-card-copy mt-2">{item}</p>
@@ -592,7 +592,7 @@ export function renderSurfacesExtended(
               >
                 <div className="post-compact-tile text-center">
                   <item.icon
-                    className="mx-auto h-4 w-4 text-white/70"
+                    className="mx-auto h-4 w-4 text-neutral-600"
                     strokeWidth={1.5}
                   />
                   <p className="post-slide-card-title mt-2">{item.title}</p>
@@ -621,7 +621,7 @@ export function renderSurfacesExtended(
             <PostReveal isActive={isActive} delayMs={180}>
               <div className="post-surface-featured post-slide-card">
                 <FeaturedIcon
-                  className="h-5 w-5 text-white/75"
+                  className="h-5 w-5 text-neutral-700"
                   strokeWidth={1.5}
                 />
                 <h3 className="post-slide-card-title-lg mt-3">
@@ -642,7 +642,7 @@ export function renderSurfacesExtended(
               >
                 <div className="post-slide-card text-center">
                   <item.icon
-                    className="mx-auto h-4 w-4 text-white/50"
+                    className="mx-auto h-4 w-4 text-neutral-500"
                     strokeWidth={1.5}
                   />
                   <p className="post-slide-card-title mt-2">{item.title}</p>
@@ -676,7 +676,7 @@ export function renderSurfacesExtended(
               >
                 <div className="post-orbit-node">
                   <item.icon
-                    className="h-4 w-4 text-white/55"
+                    className="h-4 w-4 text-neutral-500"
                     strokeWidth={1.5}
                   />
                   <p className="post-slide-card-title mt-1.5">{item.title}</p>
@@ -854,7 +854,7 @@ export function renderClosingExtended(
                   className="post-slide-card group flex items-center justify-between gap-2"
                 >
                   <span className="post-slide-card-title">{link.label}</span>
-                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-white/40 group-hover:text-white/80" />
+                  <ArrowUpRight className="post-video-lucide-icon h-3.5 w-3.5 text-neutral-400 group-hover:text-neutral-800" />
                   <PostVideoLinkArrow />
                 </a>
               </PostReveal>

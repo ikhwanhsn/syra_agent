@@ -19,6 +19,7 @@ import {
   lookupOnChainAgent,
   registerAndVerifyAgentCard,
   registerOffChain,
+  saidDirectoryNeedsMetadataHeal,
 } from './saidClient.js';
 import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
 
@@ -999,52 +1000,32 @@ export async function verifyEarnTokenOnSaid(input) {
     };
   }
 
-  if (launch.saidVerified === true) {
-    const wallet =
-      (typeof launch.saidAgentWallet === 'string' && launch.saidAgentWallet.trim()) ||
-      earnAgentAddress;
-    const directory = await ensureSaidDirectoryProfile(wallet);
-    // Keep sibling launches in sync when this mint was already marked verified.
-    await persistSaidForEarnWallet({
-      saidAgentWallet: wallet,
-      saidAgentPDA: launch.saidAgentPDA || null,
-      saidMetadataUri: launch.saidMetadataUri || null,
-      saidVerified: true,
-      ...(launch.saidVerifiedAt ? { saidVerifiedAt: launch.saidVerifiedAt } : {}),
-    });
-    return {
-      success: true,
-      alreadyVerified: true,
-      saidVerified: true,
-      saidAgentWallet: wallet,
-      saidAgentPDA: launch.saidAgentPDA || null,
-      saidMetadataUri: launch.saidMetadataUri || null,
-      saidProfileUrl: directory.profileUrl,
-      directoryListed: directory.directoryListed,
-      ...(directory.directoryError ? { directoryError: directory.directoryError } : {}),
-    };
-  }
-
-  // Stale DB row: wallet already verified on-chain / SAID API. Sync without re-charging.
+  const walletCandidate =
+    (typeof launch.saidAgentWallet === 'string' && launch.saidAgentWallet.trim()) ||
+    earnAgentAddress;
   const onChainExisting = await lookupOnChainAgent(earnAgentAddress).catch(() => null);
   const alreadyOnChain = onChainExisting?.isVerified === true;
-  const alreadyViaApi = !alreadyOnChain ? await checkVerified(earnAgentAddress).catch(() => false) : true;
-  if (alreadyOnChain || alreadyViaApi) {
-    const verifiedAt = new Date(
-      onChainExisting?.verifiedAt && Number.isFinite(onChainExisting.verifiedAt)
-        ? onChainExisting.verifiedAt * 1000
-        : Date.now(),
-    );
-    const wallet = earnAgentAddress;
-    const saidAgentPDA = onChainExisting?.pubkey || null;
-    const saidMetadataUri = onChainExisting?.metadataUri || null;
+  const alreadyViaApi = !alreadyOnChain
+    ? await checkVerified(earnAgentAddress).catch(() => false)
+    : true;
+  const alreadyVerified =
+    launch.saidVerified === true || alreadyOnChain || alreadyViaApi === true;
+  const needsMetadataHeal = await saidDirectoryNeedsMetadataHeal(walletCandidate).catch(
+    () => true,
+  );
+
+  // Fast path only when profile already has a real name in SAID directory.
+  if (alreadyVerified && !needsMetadataHeal) {
+    const wallet = walletCandidate;
     const directory = await ensureSaidDirectoryProfile(wallet);
     await persistSaidForEarnWallet({
       saidAgentWallet: wallet,
-      saidAgentPDA,
-      saidMetadataUri,
+      saidAgentPDA: launch.saidAgentPDA || onChainExisting?.pubkey || null,
+      saidMetadataUri: launch.saidMetadataUri || onChainExisting?.metadataUri || null,
       saidVerified: true,
-      saidVerifiedAt: verifiedAt,
+      ...(launch.saidVerifiedAt
+        ? { saidVerifiedAt: launch.saidVerifiedAt }
+        : { saidVerifiedAt: new Date() }),
     });
     return {
       success: true,
@@ -1052,8 +1033,8 @@ export async function verifyEarnTokenOnSaid(input) {
       alreadyRegistered: true,
       saidVerified: true,
       saidAgentWallet: wallet,
-      saidAgentPDA,
-      saidMetadataUri,
+      saidAgentPDA: launch.saidAgentPDA || onChainExisting?.pubkey || null,
+      saidMetadataUri: launch.saidMetadataUri || onChainExisting?.metadataUri || null,
       saidProfileUrl: directory.profileUrl,
       directoryListed: directory.directoryListed,
       ...(directory.directoryError ? { directoryError: directory.directoryError } : {}),
@@ -1094,20 +1075,26 @@ export async function verifyEarnTokenOnSaid(input) {
         toolId: SAID_VERIFY_TOOL_ID,
         estimatedUsd: SAID_VERIFY_ESTIMATED_USD,
         lastValidBlockHeight,
-        summary: 'Register and verify Earn token wallet on SAID Protocol',
+        summary: needsMetadataHeal
+          ? 'Refresh Earn token AgentCard metadata on SAID Protocol'
+          : 'Register and verify Earn token wallet on SAID Protocol',
       });
       return out.signature;
     };
   }
 
+  // Full verify needs ~0.012 SOL; metadata heal is update_agent only (tx fees).
+  const requiredSol = alreadyVerified && needsMetadataHeal ? 0.002 : MIN_SOL_FOR_SAID_VERIFY;
   const solBalance = await getWalletSolBalance(signerAddress);
-  if (solBalance < MIN_SOL_FOR_SAID_VERIFY) {
+  if (solBalance < requiredSol) {
     return {
       success: false,
       insufficientBalance: true,
-      requiredSol: MIN_SOL_FOR_SAID_VERIFY,
+      requiredSol,
       solBalance,
-      error: `Earn wallet needs at least ${MIN_SOL_FOR_SAID_VERIFY} SOL for SAID verification (current: ${solBalance.toFixed(4)} SOL).`,
+      error: `Earn wallet needs at least ${requiredSol} SOL for SAID ${
+        alreadyVerified && needsMetadataHeal ? 'profile refresh' : 'verification'
+      } (current: ${solBalance.toFixed(4)} SOL).`,
     };
   }
 
@@ -1127,6 +1114,7 @@ export async function verifyEarnTokenOnSaid(input) {
         ? { signerKeypair: keypair }
         : { wallet: signerAddress, signAndSendTransaction }),
       card,
+      forceMetadataRefresh: needsMetadataHeal || alreadyVerified,
       offChainCard: {
         name: card.name,
         description: card.description || `${launch.name} by Syra`,
@@ -1150,10 +1138,10 @@ export async function verifyEarnTokenOnSaid(input) {
   let directoryListed = saidResult.directoryListed === true;
 
   // registerAndVerifyAgentCard may skip/fail directory sync; force pending registration.
-  if (!directoryListed) {
+  if (!directoryListed || needsMetadataHeal) {
     const directory = await ensureSaidDirectoryProfile(wallet);
     profileUrl = directory.profileUrl;
-    directoryListed = directory.directoryListed;
+    directoryListed = directory.directoryListed || directoryListed;
   }
 
   await persistSaidForEarnWallet({
@@ -1178,5 +1166,6 @@ export async function verifyEarnTokenOnSaid(input) {
     saidVerifySignature: saidResult.verifySignature || null,
     saidProfileUrl: profileUrl,
     directoryListed,
+    metadataRefreshed: Boolean(saidResult.updateSignature) || needsMetadataHeal,
   };
 }

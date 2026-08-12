@@ -41,7 +41,7 @@ export function PostRecordStage({ children, showGuides }: PostRecordStageProps) 
       <p
         className={cn(
           "post-record-hint font-mono text-[10px] uppercase tracking-[0.22em]",
-          showGuides ? "text-white/40" : "invisible",
+          showGuides ? "text-neutral-400" : "invisible",
         )}
         aria-hidden={!showGuides}
       >
@@ -69,7 +69,7 @@ export function PostRecordStage({ children, showGuides }: PostRecordStageProps) 
               <span className="post-record-corner post-record-corner-tr" />
               <span className="post-record-corner post-record-corner-bl" />
               <span className="post-record-corner post-record-corner-br" />
-              <span className="post-record-tag font-mono text-[9px] uppercase tracking-[0.2em] text-white/55">
+              <span className="post-record-tag font-mono text-[9px] uppercase tracking-[0.2em] text-neutral-500">
                 16:9
               </span>
             </div>

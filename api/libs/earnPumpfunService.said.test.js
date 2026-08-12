@@ -40,6 +40,17 @@ test("saidClient registerOffChain uses pending directory endpoint", () => {
   assert.match(saidSrc, /SAID_PLATFORM_KEY/);
   assert.match(saidSrc, /X-Platform-Key/);
   assert.match(saidSrc, /getAgentDetails/);
+  assert.match(saidSrc, /toSaidMetadataUri/);
+  assert.match(saidSrc, /forceMetadataRefresh/);
+  assert.match(saidSrc, /saidDirectoryNeedsMetadataHeal/);
+  assert.match(saidSrc, /https:\/\/ipfs\.io\/ipfs/);
+});
+
+test("verifyEarnTokenOnSaid heals Unnamed SAID directory profiles", () => {
+  assert.match(serviceSrc, /saidDirectoryNeedsMetadataHeal/);
+  assert.match(serviceSrc, /forceMetadataRefresh/);
+  assert.match(serviceSrc, /needsMetadataHeal/);
+  assert.match(serviceSrc, /profile refresh/);
 });
 
 test("verifyEarnTokenOnSaid uses Privy/WalletBroker when legacy keypair is unavailable", () => {

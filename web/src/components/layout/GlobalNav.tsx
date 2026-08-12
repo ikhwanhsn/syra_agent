@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { Link, useLocation } from "@/lib/navigation";
 import { isMarketplaceNavItemActive } from "@/lib/playgroundRoute";
 import { useTheme } from "next-themes";
@@ -38,32 +38,52 @@ import {
   getGlobalNavMaxWidthClass,
 } from "@/lib/layoutConstants";
 
-/** Visual panel only — keep this off NavigationMenuContent so `pt-2` can bridge the trigger gap. */
+/** Visual panel only. Keep this off NavigationMenuContent so `pt-2` can bridge the trigger gap. */
 const navDropdownPanelClass = cn(
   "overflow-hidden rounded-2xl border border-border/50 bg-popover/95 text-popover-foreground",
   "shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] backdrop-blur-xl backdrop-saturate-150",
   "dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.55)]",
+  "origin-top will-change-[opacity,transform]",
+  "transition-[box-shadow,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
 );
 
 /**
  * Positioning shell for dropdowns. Uses padding (not margin) under the trigger so the
  * pointer never leaves the menu while moving into the panel (avoids hover blink).
+ * Motion: soft fade + slide-down + slight scale on open/close.
  */
 const navDropdownContentClass = cn(
-  "absolute left-0 top-full z-50 origin-top-left border-0 bg-transparent p-0 pt-2 shadow-none md:w-auto",
+  "absolute left-0 top-full z-50 origin-top border-0 bg-transparent p-0 pt-2 shadow-none md:w-auto",
   "data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out",
   "data-[motion^=from-]:fade-in-0 data-[motion^=to-]:fade-out-0",
-  "data-[motion^=from-]:duration-150 data-[motion^=to-]:duration-100",
-  "data-[motion=from-end]:slide-in-from-right-2 data-[motion=from-start]:slide-in-from-left-2",
-  "data-[motion=to-end]:slide-out-to-right-2 data-[motion=to-start]:slide-out-to-left-2",
+  "data-[motion^=from-]:zoom-in-[0.98] data-[motion^=to-]:zoom-out-[0.98]",
+  "data-[motion^=from-]:slide-in-from-top-2 data-[motion^=to-]:slide-out-to-top-1",
+  "data-[motion^=from-]:duration-200 data-[motion^=to-]:duration-150",
+  "data-[motion^=from-]:ease-[cubic-bezier(0.16,1,0.3,1)] data-[motion^=to-]:ease-in",
+  "data-[motion^=from-]:fill-mode-both data-[motion^=to-]:fill-mode-both",
+  "motion-reduce:data-[motion^=from-]:!animate-none motion-reduce:data-[motion^=to-]:!animate-none",
+  "motion-reduce:data-[motion^=from-]:!opacity-100 motion-reduce:data-[motion^=to-]:!opacity-0",
 );
 
 const navTriggerClass = cn(
-  "group inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium outline-none transition-[color,background-color,box-shadow] duration-200",
+  "group inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium outline-none",
+  "transition-[color,background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
   "text-muted-foreground hover:bg-accent/55 hover:text-foreground",
   "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   "data-[state=open]:bg-accent/80 data-[state=open]:text-foreground",
 );
+
+/**
+ * Desktop nav opens on hover. Block mouse click latch so panels do not stick open;
+ * touch / keyboard still activate normally.
+ */
+function hoverOnlyTriggerProps() {
+  return {
+    onPointerDown: (event: ReactPointerEvent) => {
+      if (event.pointerType === "mouse") event.preventDefault();
+    },
+  };
+}
 
 function isItemActive(pathname: string, search: string, href: string) {
   if (href.startsWith("/marketplace") || href.startsWith("/playground")) {
@@ -116,7 +136,8 @@ function NavMenuLink({
   );
 
   const linkClass = cn(
-    "group flex w-full select-none items-center gap-3 rounded-xl p-2.5 no-underline outline-none transition-colors duration-200",
+    "group flex w-full select-none items-center gap-3 rounded-xl p-2.5 no-underline outline-none",
+    "transition-[background-color,color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
     "hover:bg-accent/70 focus:bg-accent/70",
     active && "bg-accent/90",
   );
@@ -216,6 +237,7 @@ function NavMenuGroup({
   return (
     <NavigationMenuItem value={group.id}>
       <NavigationMenuTrigger
+        {...hoverOnlyTriggerProps()}
         className={cn(
           navTriggerClass,
           "bg-transparent data-[active]:bg-accent/80 data-[active]:text-foreground",
@@ -232,6 +254,7 @@ function NavMenuGroup({
               "grid gap-1 p-2",
               navDropdownPanelClass,
               "w-[min(100vw-2rem,42rem)] grid-cols-1 sm:grid-cols-2",
+              "nav-mega-panel",
             )}
           >
             {topItems.length > 0 ? (
@@ -341,8 +364,8 @@ export function GlobalNav() {
         </Link>
 
         <NavigationMenu
-          delayDuration={80}
-          skipDelayDuration={300}
+          delayDuration={100}
+          skipDelayDuration={180}
           viewport={false}
           className="relative z-10 hidden shrink-0 lg:flex"
         >
@@ -359,6 +382,7 @@ export function GlobalNav() {
 
             <NavigationMenuItem value="more">
               <NavigationMenuTrigger
+                {...hoverOnlyTriggerProps()}
                 className={cn(navTriggerClass, "bg-transparent")}
               >
                 More

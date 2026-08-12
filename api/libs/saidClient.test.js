@@ -151,8 +151,21 @@ test("buildTokenAgentCard has no em dash and points at earn token page", () => {
   assert.equal(card.wallet, wallet);
   assert.equal(card.name, "MoonCat");
   assert.ok(!card.description.includes("\u2014"));
-  assert.ok(card.description.includes("community token"));
+  assert.ok(card.description.includes("Syra"));
   assert.equal(card.website, `https://syraa.fun/earn/token/${encodeURIComponent(mint)}`);
+  assert.deepEqual(card.serviceTypes, ["MCP", "A2A"]);
+  assert.ok(card.skills.includes("x402"));
+  assert.ok(card.capabilities.includes("mcp"));
+  assert.equal(card.mcpEndpoint, "https://api.syraa.fun");
+});
+
+test("toSaidMetadataUri prefers HTTPS gateway under 200 chars", async () => {
+  const { toSaidMetadataUri } = await import("./saidClient.js");
+  const cid = "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG";
+  const uri = toSaidMetadataUri(cid);
+  assert.ok(uri.startsWith("https://"));
+  assert.ok(uri.includes(cid));
+  assert.ok(uri.length <= 200);
 });
 
 test("registerAndVerifyAgentCard requires keypair or wallet+signAndSendTransaction", async () => {

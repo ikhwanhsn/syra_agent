@@ -16,6 +16,8 @@ type PillarLayoutProps = {
   className?: string;
   /** When true, renders inside dashboard shell (no full-page backdrop). */
   embedded?: boolean;
+  /** Skip the page title/tagline/actions header (content starts immediately). */
+  hideHeader?: boolean;
 };
 
 export function PillarLayout({
@@ -26,6 +28,7 @@ export function PillarLayout({
   actions,
   className,
   embedded = false,
+  hideHeader = false,
 }: PillarLayoutProps) {
   return (
     <div className={cn(embedded ? "relative flex flex-col min-h-0" : "relative min-h-screen", className)}>
@@ -39,33 +42,37 @@ export function PillarLayout({
           embedded ? "pb-8" : "pb-16",
         )}
       >
-        <header className="mb-5 sm:mb-7 lg:mb-8">
-          {tagline ? (
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-primary/80 sm:text-sm">
-              {tagline}
-            </p>
-          ) : null}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <h1
-                className={cn(
-                  "font-semibold tracking-tight text-foreground",
-                  embedded ? "text-2xl sm:text-3xl lg:text-4xl" : "text-3xl sm:text-4xl",
-                )}
-              >
-                {title}
-              </h1>
-              {description ? (
-                <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
-                  {description}
-                </p>
+        {hideHeader ? (
+          <h1 className="sr-only">{title}</h1>
+        ) : (
+          <header className="mb-5 sm:mb-7 lg:mb-8">
+            {tagline ? (
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-primary/80 sm:text-sm">
+                {tagline}
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <h1
+                  className={cn(
+                    "font-semibold tracking-tight text-foreground",
+                    embedded ? "text-2xl sm:text-3xl lg:text-4xl" : "text-3xl sm:text-4xl",
+                  )}
+                >
+                  {title}
+                </h1>
+                {description ? (
+                  <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
+                    {description}
+                  </p>
+                ) : null}
+              </div>
+              {actions ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
               ) : null}
             </div>
-            {actions ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
-            ) : null}
-          </div>
-        </header>
+          </header>
+        )}
         {children}
       </div>
     </div>

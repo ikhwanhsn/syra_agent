@@ -976,7 +976,7 @@ function ComparisonLayout({ content }: { content: PostPhotoContent }) {
             padding: "22px 20px",
             borderRadius: 16,
             border: `1px solid ${PHOTO.cardBorder}`,
-            background: "rgba(255,255,255,0.03)",
+            background: PHOTO.cardBg,
           }}
         >
           <div
@@ -1054,7 +1054,7 @@ function LaunchBrandTile({
           height: 80,
           borderRadius: 20,
           border: `1px solid ${PHOTO.accentLine}`,
-          background: "rgba(255,255,255,0.06)",
+          background: PHOTO.accentSoft,
         }}
       >
         {/* Inner plate with clear inset from the border */}
@@ -1067,7 +1067,7 @@ function LaunchBrandTile({
             height: 60,
             borderRadius: 14,
             border: `1px solid ${PHOTO.cardBorder}`,
-            background: solidBg ? "#ffffff" : "rgba(0,0,0,0.55)",
+            background: solidBg ? PHOTO.white : "rgba(0,0,0,0.55)",
           }}
         >
           <img
@@ -1144,11 +1144,11 @@ function LaunchLayout({
               height: 28,
               borderRadius: 999,
               border: `1px solid ${PHOTO.accentLine}`,
-              background: "rgba(0,0,0,0.4)",
+              background: PHOTO.black,
               fontFamily: PHOTO_TYPE.mono,
               fontSize: 13,
               fontWeight: 600,
-              color: PHOTO.accent,
+              color: PHOTO.white,
               marginBottom: 22,
             }}
           >
@@ -1178,7 +1178,7 @@ function LaunchLayout({
               height: 80,
               borderRadius: 20,
               border: `1px solid ${PHOTO.accentLine}`,
-              background: "rgba(255,255,255,0.06)",
+              background: PHOTO.accentSoft,
             }}
           >
             <div
@@ -1363,7 +1363,7 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
           flexDirection: "column",
           borderRadius: 16,
           border: `1px solid ${PHOTO.cardBorder}`,
-          background: "rgba(0,0,0,0.55)",
+          background: PHOTO.black,
           overflow: "hidden",
         }}
       >
@@ -1373,8 +1373,8 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
             alignItems: "center",
             gap: 8,
             padding: "12px 16px",
-            borderBottom: `1px solid ${PHOTO.cardBorder}`,
-            background: "rgba(255,255,255,0.04)",
+            borderBottom: `1px solid rgba(255,255,255,0.12)`,
+            background: "rgba(255,255,255,0.06)",
           }}
         >
           <div style={{ width: 10, height: 10, borderRadius: 999, background: "#ff5f56" }} />
@@ -1385,7 +1385,7 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
               marginLeft: 12,
               fontFamily: PHOTO_TYPE.mono,
               fontSize: 12,
-              color: PHOTO.faint,
+              color: "rgba(255,255,255,0.45)",
               letterSpacing: "0.08em",
             }}
           >
@@ -1406,7 +1406,10 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
               style={{
                 fontFamily: PHOTO_TYPE.mono,
                 fontSize: 16,
-                color: line.startsWith("$") || line.startsWith(">") ? PHOTO.accent : PHOTO.fg,
+                color:
+                  line.startsWith("$") || line.startsWith(">")
+                    ? PHOTO.white
+                    : "rgba(255,255,255,0.85)",
                 lineHeight: 1.45,
               }}
             >
@@ -1567,7 +1570,7 @@ function PartnershipExtras({
           style={{
             borderRadius: 14,
             objectFit: content.partnerLogoSolidBg ? "contain" : "cover",
-            background: content.partnerLogoSolidBg ? "#ffffff" : "rgba(255,255,255,0.06)",
+            background: content.partnerLogoSolidBg ? PHOTO.white : PHOTO.accentSoft,
           }}
         />
         <div
