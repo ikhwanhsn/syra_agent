@@ -26,8 +26,9 @@ import {
 } from "@/components/post/photo/postPhotoExport";
 import { cn } from "@/lib/utils";
 import { SYRA_DOCUMENT_TITLE } from "@/lib/syraBranding";
-import { Check, Copy, Download, ImageIcon, Video } from "lucide-react";
+import { Check, Copy, Download, ImageIcon, LayoutList, Video } from "lucide-react";
 import { toast } from "sonner";
+import { Drawer } from "@/components/interior/drawer";
 
 function CardButton({
   label,
@@ -105,6 +106,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   const { meta, cards } = post;
 
   const [cardIndex, setCardIndex] = useState(0);
+  const [cardsOpen, setCardsOpen] = useState(false);
   const [variantByCard, setVariantByCard] = useState<
     Record<number, PhotoLayoutVariant>
   >({});
@@ -191,6 +193,15 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            onClick={() => setCardsOpen(true)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:bg-white/15 lg:hidden sm:h-10 sm:gap-2 sm:px-4"
+          >
+            <LayoutList className="h-4 w-4" aria-hidden />
+            Cards
+          </button>
+
           <PostUpdateNav updateNumber={meta.updateNumber} format="photo" />
           <PostXStatusControl
             updateNumber={meta.updateNumber}
@@ -246,8 +257,60 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
         </div>
       </header>
 
+      <Drawer
+        open={cardsOpen}
+        onOpenChange={setCardsOpen}
+        side="left"
+        width={288}
+        title="Ship log cards"
+        closeLabel="Close cards"
+        bare
+        className="border-white/10 bg-[#030303] text-white"
+        bodyClassName="flex flex-col"
+      >
+        <div className="px-3 py-3 sm:px-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
+            {POST_PHOTO_CARD_COUNT} cards · {POST_PHOTO_CARD_COUNT} X posts
+          </p>
+          <p className="mt-1 text-xs text-white/50">{meta.tagline}</p>
+        </div>
+        <div className="post-photo-template-list flex-1 overflow-y-auto px-2 pb-2">
+          <p className="px-2.5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-white/30">
+            Ship log deck
+          </p>
+          {cards.map((card, index) => {
+            const slot = POST_PHOTO_CARD_SLOT_BY_ROLE.get(card.role);
+            return (
+              <CardButton
+                key={card.role}
+                label={slot?.label ?? card.role}
+                sublabel={POST_PHOTO_LAYOUT_LABELS[card.layout] ?? card.role}
+                active={cardIndex === index}
+                onSelect={() => {
+                  setCardIndex(index);
+                  setCardsOpen(false);
+                }}
+              />
+            );
+          })}
+        </div>
+        <div className="border-t border-white/[0.06] px-3 py-3 sm:px-4">
+          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/70">
+            X post for this card
+          </p>
+          <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">
+            {cardShareText}
+          </p>
+          <p className="mt-2 font-mono text-[10px] text-white/25">
+            {shareCopyHasLink(cardShareText)
+              ? "Each card uses its own copy + link"
+              : "Unique footer link on copy"}
+          </p>
+        </div>
+      </Drawer>
+
       <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col lg:flex-row">
-        <aside className="post-photo-sidebar shrink-0 border-b border-white/[0.06] lg:w-72 lg:border-b-0 lg:border-r">
+        <aside className="post-photo-sidebar hidden shrink-0 border-white/[0.06] lg:flex lg:w-72 lg:flex-col lg:border-r">
           <div className="px-3 py-3 sm:px-4">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               {POST_PHOTO_CARD_COUNT} cards · {POST_PHOTO_CARD_COUNT} X posts

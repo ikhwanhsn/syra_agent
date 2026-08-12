@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import type { LucideProps } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipGroup } from "@/components/interior/tooltip-group";
 import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
 import { cn } from "@/lib/utils";
@@ -117,29 +117,24 @@ export function SidebarIconNavLink({
   const isActive = matchActive ? matchActive(pathname, search) : routerActive;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <NavLink
-          to={to}
-          end={end}
-          className="flex outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar rounded-xl"
-        >
-          <span className={navItemClasses(isActive, true)}>
-            {isActive ? <ActiveIndicator compact /> : null}
-            <span className={navIconClasses(isActive, true)}>
-              <Icon className="h-[17px] w-[17px]" strokeWidth={isActive ? 2.25 : 2} aria-hidden />
-            </span>
-            <span className="sr-only">{label}</span>
-          </span>
-        </NavLink>
-      </TooltipTrigger>
-      <TooltipContent
-        side="right"
-        sideOffset={12}
-        className="border-border/60 bg-popover/95 px-2.5 py-1.5 text-xs font-medium shadow-lg backdrop-blur-md"
+    <Tooltip
+      label={label}
+      side="bottom"
+      contentClassName="border-border/60 bg-popover/95 px-2.5 py-1.5 text-xs font-medium shadow-lg backdrop-blur-md"
+    >
+      <NavLink
+        to={to}
+        end={end}
+        className="flex outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar rounded-xl"
       >
-        {label}
-      </TooltipContent>
+        <span className={navItemClasses(isActive, true)}>
+          {isActive ? <ActiveIndicator compact /> : null}
+          <span className={navIconClasses(isActive, true)}>
+            <Icon className="h-[17px] w-[17px]" strokeWidth={isActive ? 2.25 : 2} aria-hidden />
+          </span>
+          <span className="sr-only">{label}</span>
+        </span>
+      </NavLink>
     </Tooltip>
   );
 }
@@ -158,7 +153,7 @@ export function SidebarIconRail({
   const teamActive = DASHBOARD_TEAM_NAV.some((item) => item.isActive(pathname));
 
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipGroup openDelay={300} skipDelay={400}>
       <div className={cn(SIDEBAR_SHELL, "items-center supports-[backdrop-filter]:bg-sidebar/98")}>
         <SidebarAmbientGlow />
 
@@ -256,7 +251,7 @@ export function SidebarIconRail({
           ) : null}
         </nav>
       </div>
-    </TooltipProvider>
+    </TooltipGroup>
   );
 }
 
@@ -578,7 +573,7 @@ type SidebarNavHeaderProps = {
   onDismiss: () => void;
   /** Mobile drawer uses close; desktop expanded uses panel collapse */
   dismissVariant: "close" | "collapse";
-  /** Current page label — updates as the user navigates. */
+  /** Current page label. Updates as the user navigates. */
   pageTitle: string;
 };
 

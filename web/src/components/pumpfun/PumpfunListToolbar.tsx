@@ -1,12 +1,6 @@
 import { Search } from "lucide-react";
+import { Dropdown } from "@/components/interior/dropdown";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export type PumpfunListFilterOption = {
@@ -42,6 +36,9 @@ export function PumpfunListToolbar({
     typeof totalCount === "number" &&
     (search.trim().length > 0 || filter !== filterOptions[0]?.value);
 
+  const selectedLabel =
+    filterOptions.find((opt) => opt.value === filter)?.label ?? "Filter";
+
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -59,18 +56,14 @@ export function PumpfunListToolbar({
             autoComplete="off"
           />
         </div>
-        <Select value={filter} onValueChange={onFilterChange}>
-          <SelectTrigger className="h-10 w-full shrink-0 border-border/50 bg-background/50 sm:w-[160px]">
-            <SelectValue placeholder="Filter" />
-          </SelectTrigger>
-          <SelectContent>
-            {filterOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Dropdown
+          items={filterOptions.map((opt) => ({ value: opt.value, label: opt.label }))}
+          value={filter}
+          onChange={onFilterChange}
+          label={selectedLabel}
+          placeholder="Filter"
+          className="w-full shrink-0 sm:w-[160px] [&_button]:h-10 [&_button]:w-full [&_button]:border-border/50 [&_button]:bg-background/50"
+        />
       </div>
       {showCount ? (
         <p className="text-[11px] text-muted-foreground">

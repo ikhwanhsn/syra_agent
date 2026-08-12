@@ -1,12 +1,6 @@
 import { Wallet, Zap, Mail, ChevronRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Modal } from "@/components/interior/modal";
 import { cn } from "@/lib/utils";
 
 export type ConnectOption = "solana" | "email";
@@ -33,125 +27,121 @@ export function ConnectChainModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        className={cn(
-          "gap-0 overflow-hidden border-border/50 bg-background/95 p-0 shadow-2xl shadow-black/40 backdrop-blur-xl w-full max-w-xl",
-          "rounded-2xl",
-        )}
-      >
-        <div
-          className="pointer-events-none absolute inset-0 opacity-90"
-          aria-hidden
-        >
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      maxWidth={576}
+      className={cn(
+        "overflow-hidden border-border/50 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl",
+        "rounded-2xl",
+      )}
+      title={
+        <span className="flex flex-col gap-3 text-2xl font-semibold tracking-tight sm:text-[1.65rem] sm:leading-tight">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Secure access
+          </span>
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60 shadow-inner ring-1 ring-border/60">
+            <Wallet className="h-5 w-5 text-foreground" strokeWidth={1.75} />
+          </span>
+          <span className="text-balance">
+            {booting ? "Starting wallet..." : "Connect your wallet"}
+          </span>
+        </span>
+      }
+      description={
+        booting
+          ? "Loading secure wallet session. This only takes a moment."
+          : "Pick a path to continue. Email uses Privy; Solana opens Phantom, Solflare, and other Solana wallets."
+      }
+    >
+      <div className="relative space-y-4">
+        <div className="pointer-events-none absolute inset-0 -mx-4 -mt-2 opacity-90" aria-hidden>
           <div className="absolute -left-24 -top-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
           <div className="absolute -bottom-20 -right-16 h-56 w-56 rounded-full bg-violet-500/10 blur-3xl" />
         </div>
 
-        <div className="relative space-y-6 px-6 pb-6 pt-7 sm:px-7 sm:pb-7 sm:pt-8">
-          <DialogHeader className="space-y-3 text-left">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Secure access
-            </p>
-            <DialogTitle className="flex flex-col gap-3 text-2xl font-semibold tracking-tight sm:text-[1.65rem] sm:leading-tight">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted/60 ring-1 ring-border/60 shadow-inner">
-                <Wallet className="h-5 w-5 text-foreground" strokeWidth={1.75} />
-              </span>
-              <span className="text-balance">
-                {booting ? "Starting wallet..." : "Connect your wallet"}
-              </span>
-            </DialogTitle>
-            <DialogDescription className="space-y-3 text-pretty text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
-              {booting ? (
-                <span className="block" role="status" aria-live="polite">
-                  Loading secure wallet session. This only takes a moment.
-                </span>
-              ) : (
-                <>
-                  <span className="block">
-                    Pick a path to continue. Email uses Privy; Solana opens Phantom,
-                    Solflare, and other Solana wallets.
-                  </span>
-                  <span className="flex flex-wrap items-center gap-x-1 rounded-lg border border-border/40 bg-muted/25 px-3 py-2.5 text-[12px] leading-snug sm:text-[13px]">
-                    <span className="text-muted-foreground">Solana x402:</span>
-                    <span className="font-medium text-foreground">Phantom</span>
-                    <span className="text-muted-foreground">
-                      is recommended. Enable it in your Privy dashboard if needed.
-                    </span>
-                  </span>
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
+        {!booting ? (
+          <p className="relative flex flex-wrap items-center gap-x-1 rounded-lg border border-border/40 bg-muted/25 px-3 py-2.5 text-[12px] leading-snug sm:text-[13px]">
+            <span className="text-muted-foreground">Solana x402:</span>
+            <span className="font-medium text-foreground">Phantom</span>
+            <span className="text-muted-foreground">
+              is recommended. Enable it in your Privy dashboard if needed.
+            </span>
+          </p>
+        ) : null}
 
-          <div className={cn("grid gap-2.5 min-w-0", booting && "pointer-events-none opacity-50")}>
-            <button
-              type="button"
-              disabled={booting}
-              className={cn(
-                buttonVariants({ variant: "ghost" }),
-                optionRowClass,
-                "hover:border-primary/25",
-              )}
-              onClick={() => handlePick("email")}
-            >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-muted to-muted/40 ring-1 ring-border/50">
-                <Mail className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
-              </span>
-              <span className="min-w-0 flex-1 space-y-1">
-                <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
-                  Email
-                  <span className="rounded-md bg-muted/80 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Privy
-                  </span>
+        <div
+          className={cn(
+            "relative grid min-w-0 gap-2.5",
+            booting && "pointer-events-none opacity-50",
+          )}
+        >
+          <button
+            type="button"
+            disabled={booting}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              optionRowClass,
+              "hover:border-primary/25",
+            )}
+            onClick={() => handlePick("email")}
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-muted to-muted/40 ring-1 ring-border/50">
+              <Mail className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+            </span>
+            <span className="min-w-0 flex-1 space-y-1">
+              <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
+                Email
+                <span className="rounded-md bg-muted/80 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Privy
                 </span>
-                <span className="block text-[13px] leading-snug text-muted-foreground">
-                  Sign in with email, passwordless, then connect a Solana wallet.
-                </span>
               </span>
-              <ChevronRight
-                className="h-5 w-5 shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground/70"
-                aria-hidden
-              />
-            </button>
+              <span className="block text-[13px] leading-snug text-muted-foreground">
+                Sign in with email, passwordless, then connect a Solana wallet.
+              </span>
+            </span>
+            <ChevronRight
+              className="h-5 w-5 shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground/70"
+              aria-hidden
+            />
+          </button>
 
-            <button
-              type="button"
-              disabled={booting}
-              className={cn(
-                buttonVariants({ variant: "ghost" }),
-                optionRowClass,
-                "hover:border-[#9945FF]/35 hover:shadow-[0_12px_40px_-16px_rgba(153,69,255,0.35)]",
-              )}
-              onClick={() => handlePick("solana")}
-            >
-              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#9945FF]/25 to-[#9945FF]/5 ring-1 ring-[#9945FF]/25">
-                <Zap
-                  className="h-5 w-5 text-[#9945FF]"
-                  fill="currentColor"
-                  fillOpacity={0.15}
-                  strokeWidth={1.75}
-                />
-              </span>
-              <span className="min-w-0 flex-1 space-y-1">
-                <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
-                  Solana
-                  <span className="rounded-full bg-[#9945FF]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#c4a3ff]">
-                    Recommended
-                  </span>
-                </span>
-                <span className="block text-[13px] leading-snug text-muted-foreground">
-                  Phantom first, then Solflare and other Solana wallets.
-                </span>
-              </span>
-              <ChevronRight
-                className="h-5 w-5 shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#9945FF]/80"
-                aria-hidden
+          <button
+            type="button"
+            disabled={booting}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              optionRowClass,
+              "hover:border-[#9945FF]/35 hover:shadow-[0_12px_40px_-16px_rgba(153,69,255,0.35)]",
+            )}
+            onClick={() => handlePick("solana")}
+          >
+            <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#9945FF]/25 to-[#9945FF]/5 ring-1 ring-[#9945FF]/25">
+              <Zap
+                className="h-5 w-5 text-[#9945FF]"
+                fill="currentColor"
+                fillOpacity={0.15}
+                strokeWidth={1.75}
               />
-            </button>
-          </div>
+            </span>
+            <span className="min-w-0 flex-1 space-y-1">
+              <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
+                Solana
+                <span className="rounded-full bg-[#9945FF]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#c4a3ff]">
+                  Recommended
+                </span>
+              </span>
+              <span className="block text-[13px] leading-snug text-muted-foreground">
+                Phantom first, then Solflare and other Solana wallets.
+              </span>
+            </span>
+            <ChevronRight
+              className="h-5 w-5 shrink-0 text-muted-foreground/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[#9945FF]/80"
+              aria-hidden
+            />
+          </button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Modal>
   );
 }

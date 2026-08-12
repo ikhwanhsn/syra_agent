@@ -1,16 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@/lib/navigation";
-import { Building2, Coins, Search } from "lucide-react";
 import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandShortcut,
-} from "@/components/ui/command";
+  CommandPalette,
+  type CommandItem,
+} from "@/components/interior/command-palette";
 import { assetLookupPath } from "@/lib/assetsSearchApi";
 import { assetDetailPath, type AssetTableRow } from "@/lib/assetsHub";
 
@@ -22,7 +15,6 @@ interface AssetsCommandPaletteProps {
 export function AssetsCommandPalette({ rows, onOpenChange }: AssetsCommandPaletteProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -35,91 +27,77 @@ export function AssetsCommandPalette({ rows, onOpenChange }: AssetsCommandPalett
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (!next) setQuery("");
-    onOpenChange?.(next);
-  };
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      setOpen(next);
+      onOpenChange?.(next);
+    },
+    [onOpenChange],
+  );
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (row) =>
-        row.symbol.toLowerCase().includes(q) ||
-        row.name.toLowerCase().includes(q) ||
-        row.ref.toLowerCase().includes(q),
-    );
-  }, [rows, query]);
+  const items = useMemo<CommandItem[]>(() => {
+    const board: CommandItem[] = rows.map((row) => ({
+      id: row.key,
+      label: `${row.symbol} · ${row.name}`,
+      hint: row.assetClass === "equity" ? "Stock" : "Crypto",
+      keywords: `${row.ref} ${row.name} ${row.symbol}`,
+    }));
 
-  const runLookup = (raw: string) => {
-    handleOpenChange(false);
-    navigate(assetLookupPath(raw));
-  };
+    return [
+      ...board,
+      {
+        id: "action-btc",
+        label: "Open Bitcoin dossier",
+        hint: "Lookup",
+        keywords: "btc bitcoin crypto",
+      },
+      {
+        id: "action-tsla",
+        label: "Open Tesla dossier",
+        hint: "Lookup",
+        keywords: "tsla tesla equity stock",
+      },
+    ];
+  }, [rows]);
+
+  const runLookup = useCallback(
+    (raw: string) => {
+      handleOpenChange(false);
+      navigate(assetLookupPath(raw));
+    },
+    [handleOpenChange, navigate],
+  );
+
+  const onSelect = useCallback(
+    (item: CommandItem) => {
+      if (item.id === "action-btc") {
+        runLookup("btc");
+        return;
+      }
+      if (item.id === "action-tsla") {
+        runLookup("tsla");
+        return;
+      }
+      const row = rows.find((r) => r.key === item.id);
+      if (!row) return;
+      handleOpenChange(false);
+      navigate(assetDetailPath(row));
+    },
+    [rows, handleOpenChange, navigate, runLookup],
+  );
 
   return (
-    <CommandDialog open={open} onOpenChange={handleOpenChange}>
-      <Command shouldFilter={false}>
-        <CommandInput
-          placeholder="Jump to asset or search symbol, mint, URL…"
-          value={query}
-          onValueChange={setQuery}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && query.trim()) {
-              e.preventDefault();
-              runLookup(query.trim());
-            }
-          }}
-        />
-        <CommandList>
-          <CommandEmpty>No matching assets on board.</CommandEmpty>
-          {query.trim() ? (
-            <CommandGroup heading="Lookup">
-              <CommandItem value={`lookup-${query}`} onSelect={() => runLookup(query.trim())}>
-                <Search className="mr-2 h-4 w-4" aria-hidden />
-                Open dossier for &quot;{query.trim()}&quot;
-                <CommandShortcut>↵</CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
-          ) : null}
-          <CommandGroup heading="Board">
-            {filtered.map((row) => (
-            <CommandItem
-              key={row.key}
-              value={`${row.symbol} ${row.name} ${row.ref}`}
-              onSelect={() => {
-                handleOpenChange(false);
-                navigate(assetDetailPath(row));
-              }}
-            >
-              {row.assetClass === "equity" ? (
-                <Building2 className="mr-2 h-4 w-4 shrink-0 opacity-70" aria-hidden />
-              ) : (
-                <Coins className="mr-2 h-4 w-4 shrink-0 opacity-70" aria-hidden />
-              )}
-              <span className="font-medium">{row.symbol}</span>
-              <span className="ml-2 truncate text-muted-foreground">{row.name}</span>
-            </CommandItem>
-            ))}
-          </CommandGroup>
-          <CommandGroup heading="Actions">
-          <CommandItem onSelect={() => runLookup("btc")}>
-            <Search className="mr-2 h-4 w-4" aria-hidden />
-            Open Bitcoin dossier
-          </CommandItem>
-          <CommandItem onSelect={() => runLookup("tsla")}>
-            <Search className="mr-2 h-4 w-4" aria-hidden />
-            Open Tesla dossier
-          </CommandItem>
-          </CommandGroup>
-        </CommandList>
-      </Command>
-      <div className="border-t border-border/60 px-3 py-2 text-[11px] text-muted-foreground">
-        <span className="inline-flex items-center gap-2">
-          Type any symbol and press Enter to open lookup
-          <CommandShortcut>↵</CommandShortcut>
-        </span>
-      </div>
-    </CommandDialog>
+    <CommandPalette
+      open={open}
+      onDismiss={() => handleOpenChange(false)}
+      autoFocus
+      placeholder="Jump to asset or search symbol, mint, URL..."
+      emptyLabel="No matching assets on board."
+      label="Asset search"
+      items={items}
+      onSelect={onSelect}
+      onQueryEnter={runLookup}
+      queryEnterLabel={(q) => `Open dossier for "${q}"`}
+    />
   );
 }

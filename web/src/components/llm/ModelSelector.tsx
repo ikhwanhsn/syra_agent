@@ -1,11 +1,5 @@
-import { useEffect } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useEffect, useMemo } from "react";
+import { Dropdown } from "@/components/interior/dropdown";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +31,16 @@ export function ModelSelector({ modality, value, onChange, disabled }: ModelSele
     ? formatLlmPrice(modality, selected.pricing)
     : null;
 
+  const items = useMemo(
+    () =>
+      (data?.models ?? []).map((m) => ({
+        value: m.id,
+        label: m.cheapest ? `${m.name} (cheapest)` : m.name,
+        hint: formatLlmPrice(modality, m.pricing),
+      })),
+    [data?.models, modality],
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -60,7 +64,7 @@ export function ModelSelector({ modality, value, onChange, disabled }: ModelSele
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={`llm-model-${modality}`}>Model</Label>
+        <Label>Model</Label>
         {priceLabel && priceLabel !== "-" && (
           <Badge variant="secondary" className="font-mono text-xs">
             {priceLabel}
@@ -68,28 +72,15 @@ export function ModelSelector({ modality, value, onChange, disabled }: ModelSele
           </Badge>
         )}
       </div>
-      <Select value={value || undefined} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger id={`llm-model-${modality}`} className="w-full">
-          <SelectValue placeholder="Select a model" />
-        </SelectTrigger>
-        <SelectContent className="max-h-72">
-          {(data?.models ?? []).map((m) => (
-            <SelectItem key={m.id} value={m.id}>
-              <span className="flex items-center gap-2">
-                <span>{m.name}</span>
-                <span className="font-mono text-xs text-muted-foreground">
-                  {formatLlmPrice(modality, m.pricing)}
-                </span>
-                {m.cheapest && (
-                  <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                    Cheapest
-                  </Badge>
-                )}
-              </span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Dropdown
+        items={items}
+        value={value || undefined}
+        onChange={onChange}
+        label={selected?.name ?? "Model"}
+        placeholder="Select a model"
+        disabled={disabled}
+        className="w-full [&_button]:h-10 [&_button]:w-full"
+      />
       {selected && (
         <p className="truncate font-mono text-xs text-muted-foreground">{selected.id}</p>
       )}

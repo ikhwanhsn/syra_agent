@@ -1,13 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Dropdown } from "@/components/interior/dropdown";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { buildPageTokens } from "@/lib/pagination";
 
@@ -41,6 +35,10 @@ export function PremiumTablePagination({
   const rangeStart = totalItems === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const rangeEnd = Math.min(safePage * pageSize, totalItems);
   const pageTokens = useMemo(() => buildPageTokens(safePage, totalPages), [safePage, totalPages]);
+  const pageSizeItems = useMemo(
+    () => pageSizeOptions.map((n) => ({ value: String(n), label: String(n) })),
+    [pageSizeOptions],
+  );
 
   useEffect(() => {
     if (page !== safePage) onPageChange(safePage);
@@ -77,25 +75,17 @@ export function PremiumTablePagination({
             <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
               Per page
             </span>
-            <Select
+            <Dropdown
+              items={pageSizeItems}
               value={String(pageSize)}
-              onValueChange={(v) => {
+              onChange={(v) => {
                 const next = Number(v);
                 if (Number.isFinite(next) && next > 0) onPageSizeChange(next);
               }}
+              label={String(pageSize)}
               disabled={loading}
-            >
-              <SelectTrigger className="h-9 w-[4.5rem] rounded-xl border-border/60 bg-background/60 text-sm font-semibold tabular-nums shadow-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-border/60">
-                {pageSizeOptions.map((n) => (
-                  <SelectItem key={n} value={String(n)} className="rounded-lg font-medium tabular-nums">
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              className="[&_button]:h-9 [&_button]:w-[4.5rem] [&_button]:rounded-xl [&_button]:border-border/60 [&_button]:bg-background/60 [&_button]:text-sm [&_button]:font-semibold [&_button]:tabular-nums [&_button]:shadow-sm"
+            />
           </div>
         ) : null}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Link, useLocation } from "@/lib/navigation";
 import { isMarketplaceNavItemActive } from "@/lib/playgroundRoute";
 import { useTheme } from "next-themes";
@@ -19,6 +19,7 @@ import {
 import { WalletNav } from "@/components/chat/WalletNav";
 import { Button } from "@/components/ui/button";
 import { GlobalNavAssetSearch } from "@/components/layout/GlobalNavAssetSearch";
+import { SiteCommandPalette } from "@/components/layout/SiteCommandPalette";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -372,6 +373,7 @@ export function GlobalNav() {
   const { connected, address } = useWalletContext();
   const isAdmin = isAdminWallet(connected, address ?? undefined);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -384,7 +386,7 @@ export function GlobalNav() {
       )
         return;
       e.preventDefault();
-      searchRef.current?.focus();
+      setCommandOpen(true);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -395,6 +397,11 @@ export function GlobalNav() {
       className="sticky top-0 z-[200] overflow-visible border-b border-border/40 bg-background/80 shadow-[0_1px_0_0_hsl(var(--border)/0.35)] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/70"
       style={{ height: "var(--syra-global-nav-height, 3.5rem)" }}
     >
+      <SiteCommandPalette
+        isAdmin={isAdmin}
+        open={commandOpen}
+        onOpenChange={setCommandOpen}
+      />
       <div
         className={cn(
           "mx-auto flex h-full w-full items-center gap-2 sm:gap-3",
@@ -408,6 +415,7 @@ export function GlobalNav() {
           search={search}
           isAdmin={isAdmin}
           searchRef={searchRef}
+          onOpenCommandPalette={() => setCommandOpen(true)}
         />
 
         <Link
@@ -507,6 +515,7 @@ export function GlobalNav() {
           <GlobalNavAssetSearch
             inputRef={searchRef}
             isAdmin={isAdmin}
+            onOpenCommandPalette={() => setCommandOpen(true)}
             className="hidden w-44 min-w-0 sm:w-52 md:flex lg:w-64"
           />
 

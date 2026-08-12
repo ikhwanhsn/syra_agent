@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Lock, Trash2 } from "lucide-react";
+import { Film, Image, Loader2, Lock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -13,8 +13,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ContextMenu } from "@/components/interior/context-menu";
 import { PostXStatusLabel } from "@/components/post/PostXStatusControl";
 import type { PostUpdateBundle } from "@/content/posts";
+import { useNavigate } from "@/lib/navigation";
 import { useDeletePosts } from "@/lib/postDeleted";
 import { isLockedShipLogUpdate } from "@/lib/postLocked";
 import {
@@ -38,6 +40,7 @@ function formatDeleteList(numbers: number[], updates: PostUpdateBundle[]): strin
 }
 
 export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
+  const navigate = useNavigate();
   const refreshTick = usePostRegistryRefresh();
   const deleteM = useDeletePosts();
   const latestVisible = useMemo(() => getLatestVisiblePostUpdateNumber(), [refreshTick, updates]);
@@ -171,87 +174,113 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
 
             return (
               <li key={meta.updateNumber}>
-                <div
-                  className={cn(
-                    "flex flex-col gap-3 rounded-lg border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3",
-                    isLocked
-                      ? "border-white/25 bg-white/[0.05]"
-                      : isSelected
-                        ? "border-red-500/25 bg-red-500/[0.04]"
-                        : "border-white/8 bg-white/[0.02]",
-                  )}
+                <ContextMenu
+                  label={`Actions for update #${meta.updateNumber}`}
+                  items={[
+                    {
+                      id: "video",
+                      label: "Open video",
+                      icon: <Film className="h-3.5 w-3.5" />,
+                      onSelect: () => navigate(`/post/video/${meta.updateNumber}`),
+                    },
+                    {
+                      id: "photo",
+                      label: "Open photo",
+                      icon: <Image className="h-3.5 w-3.5" />,
+                      onSelect: () => navigate(`/post/photo/${meta.updateNumber}`),
+                    },
+                    { id: "sep", type: "separator" },
+                    {
+                      id: "delete",
+                      label: "Delete",
+                      icon: <Trash2 className="h-3.5 w-3.5" />,
+                      disabled: isLocked,
+                      onSelect: () => setSingleDeleteTarget(bundle),
+                    },
+                  ]}
                 >
-                  <div className="flex min-w-0 items-start gap-2.5 sm:items-center">
-                    {isLocked ? (
-                      <span
-                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/80 sm:mt-0 sm:h-4 sm:w-4"
-                        title="Locked format template"
-                        aria-label="Locked format template"
-                      >
-                        <Lock className="h-3.5 w-3.5" />
-                      </span>
-                    ) : (
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
-                        className="mt-0.5 border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80 sm:mt-0"
-                        aria-label={`Select update #${meta.updateNumber} for bulk delete`}
-                      />
+                  <div
+                    className={cn(
+                      "flex flex-col gap-3 rounded-lg border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3",
+                      isLocked
+                        ? "border-white/25 bg-white/[0.05]"
+                        : isSelected
+                          ? "border-red-500/25 bg-red-500/[0.04]"
+                          : "border-white/8 bg-white/[0.02]",
                     )}
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm leading-snug text-white/85 break-words">
-                        #{meta.updateNumber} · {meta.title}
-                        {isLocked ? (
-                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
-                            Template
-                          </span>
-                        ) : null}
-                        {isLatest ? (
-                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
-                            Latest
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 font-mono text-[10px] text-white/35">{meta.published}</p>
+                  >
+                    <div className="flex min-w-0 items-start gap-2.5 sm:items-center">
+                      {isLocked ? (
+                        <span
+                          className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/80 sm:mt-0 sm:h-4 sm:w-4"
+                          title="Locked format template"
+                          aria-label="Locked format template"
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                        </span>
+                      ) : (
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
+                          className="mt-0.5 border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80 sm:mt-0"
+                          aria-label={`Select update #${meta.updateNumber} for bulk delete`}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm leading-snug text-white/85 break-words">
+                          #{meta.updateNumber} · {meta.title}
+                          {isLocked ? (
+                            <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
+                              Template
+                            </span>
+                          ) : null}
+                          {isLatest ? (
+                            <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
+                              Latest
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="mt-0.5 font-mono text-[10px] text-white/35">{meta.published}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pl-7 sm:shrink-0 sm:pl-0">
+                      {!isLocked ? (
+                        <PostXStatusLabel updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
+                      ) : null}
+                      <Link
+                        to={`/post/video/${meta.updateNumber}`}
+                        className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
+                      >
+                        Video
+                      </Link>
+                      <Link
+                        to={`/post/photo/${meta.updateNumber}`}
+                        className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
+                      >
+                        Photo
+                      </Link>
+                      {isLocked ? (
+                        <span
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/20 sm:h-7 sm:w-7"
+                          title="Cannot delete format template"
+                          aria-hidden
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setSingleDeleteTarget(bundle)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90 sm:h-7 sm:w-7"
+                          aria-label={`Delete update #${meta.updateNumber}`}
+                          title="Delete from studio"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 pl-7 sm:shrink-0 sm:pl-0">
-                    {!isLocked ? (
-                      <PostXStatusLabel updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
-                    ) : null}
-                    <Link
-                      to={`/post/video/${meta.updateNumber}`}
-                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
-                    >
-                      Video
-                    </Link>
-                    <Link
-                      to={`/post/photo/${meta.updateNumber}`}
-                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
-                    >
-                      Photo
-                    </Link>
-                    {isLocked ? (
-                      <span
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/20 sm:h-7 sm:w-7"
-                        title="Cannot delete format template"
-                        aria-hidden
-                      >
-                        <Lock className="h-3.5 w-3.5" />
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setSingleDeleteTarget(bundle)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90 sm:h-7 sm:w-7"
-                        aria-label={`Delete update #${meta.updateNumber}`}
-                        title="Delete from studio"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
+                </ContextMenu>
               </li>
             );
           })}

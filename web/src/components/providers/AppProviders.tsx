@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "next-themes";
+import { TooltipGroup } from "@/components/interior/tooltip-group";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,12 +26,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <WalletContextProvider>
           <SyraAuthProvider>
             <ConnectModalProvider>
-              <TooltipProvider>
-                {children}
-                <Toaster />
-                <Sonner />
-                <Analytics />
-              </TooltipProvider>
+              <TooltipGroup>
+                <TooltipProvider>
+                  {children}
+                  <Toaster />
+                  <Sonner />
+                  <Analytics />
+                </TooltipProvider>
+              </TooltipGroup>
             </ConnectModalProvider>
           </SyraAuthProvider>
         </WalletContextProvider>

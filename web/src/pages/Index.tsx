@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useLocation, useSearchParams } from "@/lib/navigation";
 import { Sidebar } from "@/components/chat/Sidebar";
+import { Drawer } from "@/components/interior/drawer";
 import { ChatArea } from "@/components/chat/ChatArea";
 import type { ChatInputHandle } from "@/components/chat/ChatInput";
 import { Agent, defaultAgents } from "@/components/chat/AgentSelector";
@@ -1312,45 +1313,37 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
       <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
         {!isNonChatRoute ? (
-          <>
-            {/* Mobile: dimmed backdrop (fades in/out with sidebar) */}
-            <div
-              aria-hidden={!sidebarOpen}
-              className={cn(
-                "fixed inset-x-0 bottom-0 top-[var(--syra-global-nav-height,3.5rem)] z-30 lg:hidden",
-                "bg-black/45 backdrop-blur-[1px] transition-opacity",
-                CHAT_SIDEBAR_TRANSITION,
-                sidebarOpen
-                  ? "pointer-events-auto opacity-100"
-                  : "pointer-events-none opacity-0",
-              )}
-              onClick={() => setSidebarOpen(false)}
+          <Drawer
+            open={sidebarOpen}
+            onOpenChange={setSidebarOpen}
+            side="left"
+            width={300}
+            title="Chats"
+            closeLabel="Close"
+            bare
+            className="border-border/60 bg-background/95 backdrop-blur-xl"
+          >
+            <Sidebar
+              variant="resizable"
+              chats={chats}
+              activeChat={activeChat}
+              onSelectChat={handleSelectChat}
+              onNewChat={handleNewChat}
+              onDeleteChat={handleDeleteChat}
+              onDeleteChats={handleDeleteChats}
+              onRenameChat={handleRenameChat}
+              isOpen={true}
+              onToggle={() => setSidebarOpen(false)}
+              chatsLoading={chatsLoading}
+              sessionReady={sessionReady}
+              walletConnected={walletConnected}
+              onToggleShareVisibility={(chatId, isPublic) =>
+                !isLocalChat(chatId) &&
+                handleToggleShareVisibility(chatId, isPublic)
+              }
+              onLogoClick={handleLogoClick}
             />
-
-            {/* Mobile: fixed sidebar (overlay) */}
-            <div className="lg:hidden">
-              <Sidebar
-                variant="overlay"
-                chats={chats}
-                activeChat={activeChat}
-                onSelectChat={handleSelectChat}
-                onNewChat={handleNewChat}
-                onDeleteChat={handleDeleteChat}
-                onDeleteChats={handleDeleteChats}
-                onRenameChat={handleRenameChat}
-                isOpen={sidebarOpen}
-                onToggle={() => setSidebarOpen(!sidebarOpen)}
-                chatsLoading={chatsLoading}
-                sessionReady={sessionReady}
-                walletConnected={walletConnected}
-                onToggleShareVisibility={(chatId, isPublic) =>
-                  !isLocalChat(chatId) &&
-                  handleToggleShareVisibility(chatId, isPublic)
-                }
-                onLogoClick={handleLogoClick}
-              />
-            </div>
-          </>
+          </Drawer>
         ) : null}
 
         {/* Desktop: animated sidebar + main */}

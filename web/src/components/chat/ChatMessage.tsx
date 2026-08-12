@@ -17,6 +17,7 @@ import { Copy, Check, RefreshCw, Pencil, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ContextMenu, type ContextMenuItem } from "@/components/interior/context-menu";
 import { PumpfunPriceChart } from "@/components/chat/PumpfunPriceChart";
 import { PumpfunCreateCoinInlineForm } from "@/components/chat/PumpfunCreateCoinInlineForm";
 import { PumpfunCreateCoinResultBar } from "@/components/chat/PumpfunCreateCoinResultBar";
@@ -582,7 +583,50 @@ export function ChatMessage({
     [message.content],
   );
 
+  const contextMenuItems = useMemo((): ContextMenuItem[] => {
+    const items: ContextMenuItem[] = [
+      {
+        id: "copy",
+        label: "Copy",
+        icon: <Copy className="h-3.5 w-3.5" />,
+        onSelect: () => {
+          void copyToClipboard();
+        },
+      },
+    ];
+    if (isUser && onUpdateUserMessage) {
+      items.push({
+        id: "edit",
+        label: "Edit",
+        icon: <Pencil className="h-3.5 w-3.5" />,
+        onSelect: () => startEditing(),
+      });
+    }
+    if (!isUser && onRegenerate) {
+      items.push({
+        id: "regenerate",
+        label: "Regenerate",
+        icon: <RefreshCw className="h-3.5 w-3.5" />,
+        disabled: isRegenerateDisabled,
+        onSelect: () => onRegenerate(message.id),
+      });
+    }
+    return items;
+  }, [
+    isUser,
+    onUpdateUserMessage,
+    onRegenerate,
+    isRegenerateDisabled,
+    message.id,
+    message.content,
+  ]);
+
   return (
+    <ContextMenu
+      asChild
+      label={isUser ? "Message actions" : `Actions for ${agentName}`}
+      items={contextMenuItems}
+    >
     <div
       className={cn(
         "group flex min-w-0 max-w-full animate-fade-in",
@@ -878,6 +922,7 @@ export function ChatMessage({
         </div>
       )}
     </div>
+    </ContextMenu>
   );
 }
 

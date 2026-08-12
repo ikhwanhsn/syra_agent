@@ -2,13 +2,7 @@ import { useCallback, useState } from "react";
 import { POST_PHOTO_CARD_SLOT_BY_ROLE } from "@/content/posts/photo/photoCardSlots";
 import type { PostPhotoUpdate } from "@/content/posts/photo/types";
 import type { PostUpdateMeta } from "@/content/posts/types";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Modal } from "@/components/interior/modal";
 import {
   buildPostOnXUrl,
   copyPostShareText,
@@ -88,18 +82,19 @@ export function PostShareCopyPanel({
         <span className="hidden sm:inline">{labels.button}</span>
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="post-share-modal border-white/10 bg-[#0a0a0a] text-white sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-base font-medium tracking-tight text-white/95">
-              {photoTitle}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-white/45">{labels.hint}</DialogDescription>
-          </DialogHeader>
-
-          <pre className="post-share-modal-body">{copyText}</pre>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={
+          <span className="font-display text-base font-medium tracking-tight text-white/95">
+            {photoTitle}
+          </span>
+        }
+        description={<span className="text-xs text-white/45">{labels.hint}</span>}
+        maxWidth={512}
+        className="post-share-modal border-white/10 bg-[#0a0a0a] text-white"
+        footer={
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
             <a
               href={buildPostOnXUrl(meta, format, photoOptions)}
               target="_blank"
@@ -118,8 +113,10 @@ export function PostShareCopyPanel({
               {copied ? "Copied" : "Copy post text"}
             </button>
           </div>
-        </DialogContent>
-      </Dialog>
+        }
+      >
+        <pre className="post-share-modal-body">{copyText}</pre>
+      </Modal>
     </>
   );
 }

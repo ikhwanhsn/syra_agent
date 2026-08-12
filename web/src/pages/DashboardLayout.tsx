@@ -3,6 +3,7 @@ import { useLocation } from "@/lib/navigation";
 import type { ReactNode } from "react";
 import { LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Drawer } from "@/components/interior/drawer";
 import { SidebarPanelToggle } from "@/components/layout/SidebarPanelToggle";
 import {
   DASHBOARD_SIDEBAR_COLLAPSED_WIDTH,
@@ -16,7 +17,6 @@ import {
   SidebarIconRail,
   SidebarMachineMoneyNav,
   SidebarMarketIntelNav,
-  SidebarMobileDrawerHeader,
   SidebarNavLink,
   SidebarNavShell,
   SidebarTeamNav,
@@ -35,14 +35,12 @@ interface DashboardSidebarContentProps {
   pageTitle: string;
   onNavigate?: () => void;
   onCollapse?: () => void;
-  onCloseDrawer?: () => void;
 }
 
 function DashboardSidebarContent({
   pageTitle,
   onNavigate,
   onCollapse,
-  onCloseDrawer,
 }: DashboardSidebarContentProps) {
   const { address, connected } = useWalletContext();
   const showAdminDashboard = isAdminWallet(connected, address);
@@ -50,9 +48,7 @@ function DashboardSidebarContent({
 
   return (
     <SidebarNavShell>
-      {onCloseDrawer ? (
-        <SidebarMobileDrawerHeader onClose={onCloseDrawer} pageTitle={pageTitle} />
-      ) : onCollapse ? (
+      {onCollapse ? (
         <SidebarCollapseHeader onCollapse={onCollapse} pageTitle={pageTitle} />
       ) : null}
       <nav
@@ -122,15 +118,6 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
     }
   }, [isDarkMode]);
 
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [sidebarOpen]);
-
   const pageTitle = dashboardPageTitle(location.pathname, location.search);
 
   const scrollableContent = (
@@ -146,38 +133,21 @@ export default function DashboardLayout({ children }: { children?: ReactNode }) 
     <MachineMoneyPreviewProvider>
       <div className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-background min-h-0 overscroll-none">
         <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-          {/* Mobile: dimmed backdrop */}
-          <div
-            aria-hidden={!sidebarOpen}
-            className={cn(
-              "fixed inset-x-0 bottom-0 top-[var(--syra-global-nav-height,3.5rem)] z-30 lg:hidden",
-              "bg-black/45 backdrop-blur-[1px] transition-opacity",
-              DASHBOARD_SIDEBAR_TRANSITION,
-              sidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-            )}
-            onClick={() => setSidebarOpen(false)}
-          />
-
-          {/* Mobile: slide-in drawer */}
-          <aside
-            aria-hidden={!sidebarOpen}
-            className={cn(
-              "fixed left-0 z-40 flex flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground backdrop-blur-xl supports-[backdrop-filter]:bg-sidebar/92 lg:hidden",
-              "top-[var(--syra-global-nav-height,3.5rem)] h-[calc(100dvh-var(--syra-global-nav-height,3.5rem))]",
-              "w-[min(280px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))] max-w-[min(320px,calc(100vw-env(safe-area-inset-left)-env(safe-area-inset-right)-1rem))]",
-              "transition-[transform,box-shadow,visibility]",
-              DASHBOARD_SIDEBAR_TRANSITION,
-              sidebarOpen
-                ? "visible translate-x-0 shadow-[4px_0_28px_-6px_rgba(0,0,0,0.22)] dark:shadow-[4px_0_36px_-8px_rgba(0,0,0,0.55)]"
-                : "invisible -translate-x-full shadow-none",
-            )}
+          <Drawer
+            open={sidebarOpen}
+            onOpenChange={setSidebarOpen}
+            side="left"
+            width={280}
+            title={pageTitle || "Menu"}
+            closeLabel="Close sidebar"
+            className="border-sidebar-border bg-sidebar text-sidebar-foreground backdrop-blur-xl supports-[backdrop-filter]:bg-sidebar/92"
+            bare
           >
             <DashboardSidebarContent
               pageTitle={pageTitle}
               onNavigate={() => setSidebarOpen(false)}
-              onCloseDrawer={() => setSidebarOpen(false)}
             />
-          </aside>
+          </Drawer>
 
           {/* Desktop: animated width + crossfade (matches agent chat sidebar) */}
           <div className="hidden h-full min-h-0 min-w-0 flex-1 lg:flex">

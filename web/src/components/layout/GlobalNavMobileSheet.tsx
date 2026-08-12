@@ -16,8 +16,7 @@ import {
   type NavLinkItem,
 } from "@/lib/siteNav";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DrawerDismissButton } from "@/components/ui/drawer-dismiss-button";
+import { Drawer } from "@/components/interior/drawer";
 import { GlobalNavAssetSearch } from "@/components/layout/GlobalNavAssetSearch";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 
@@ -251,11 +250,13 @@ export function GlobalNavMobileSheet({
   search,
   isAdmin,
   searchRef,
+  onOpenCommandPalette,
 }: {
   pathname: string;
   search: string;
   isAdmin: boolean;
   searchRef?: RefObject<HTMLInputElement | null>;
+  onOpenCommandPalette?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const mounted = useMounted();
@@ -264,25 +265,57 @@ export function GlobalNavMobileSheet({
   const close = () => setOpen(false);
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground lg:hidden"
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" strokeWidth={2} />
-        </Button>
-      </SheetTrigger>
-      <SheetContent
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground lg:hidden"
+        aria-label="Open menu"
+        onClick={() => setOpen(true)}
+      >
+        <Menu className="h-5 w-5" strokeWidth={2} />
+      </Button>
+      <Drawer
+        open={open}
+        onOpenChange={setOpen}
         side="left"
+        width={304}
+        title="Menu"
+        closeLabel="Close menu"
         className={cn(
-          "flex w-[min(304px,88vw)] max-w-none flex-col gap-0 border-sidebar-border/80 bg-sidebar p-0 text-sidebar-foreground",
+          "border-sidebar-border/80 bg-sidebar text-sidebar-foreground",
           "shadow-[24px_0_64px_-24px_rgba(0,0,0,0.45)] supports-[backdrop-filter]:bg-sidebar/98",
-          "[&>button]:hidden",
         )}
+        bare
+        bodyClassName="relative flex flex-col overflow-x-hidden scrollbar-thin"
+        footer={
+          <div className="space-y-2 bg-gradient-to-t from-muted/25 to-transparent">
+            <SyraBuyButton variant="nav" fullWidth className="h-10" />
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-10 w-full justify-start gap-3 rounded-xl px-2.5 text-muted-foreground hover:bg-muted/45 hover:text-foreground"
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
+              suppressHydrationWarning
+            >
+              <span className={mobileNavIconClasses(false)}>
+                {!mounted || resolvedTheme !== "light" ? (
+                  <Sun className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Moon className="h-4 w-4" aria-hidden />
+                )}
+              </span>
+              <span className="text-[13px] font-medium">
+                {!mounted || resolvedTheme !== "light"
+                  ? "Light mode"
+                  : "Dark mode"}
+              </span>
+            </Button>
+          </div>
+        }
       >
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_0%_-20%,hsl(var(--primary)/0.08),transparent_55%)]"
@@ -293,23 +326,20 @@ export function GlobalNavMobileSheet({
           aria-hidden
         />
 
-        <header className="relative z-10 flex shrink-0 items-center justify-between gap-3 border-b border-sidebar-border/60 px-4 py-3.5">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-foreground">
-            Menu
-          </p>
-          <DrawerDismissButton label="Close menu" onClick={close} />
-        </header>
-
         <div className="relative z-10 shrink-0 border-b border-sidebar-border/60 px-3 py-3">
           <GlobalNavAssetSearch
             inputRef={searchRef}
             isAdmin={isAdmin}
+            onOpenCommandPalette={() => {
+              close();
+              onOpenCommandPalette?.();
+            }}
             className="w-full"
           />
         </div>
 
         <nav
-          className="relative z-10 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4 scrollbar-thin"
+          className="relative z-10 px-2 pb-4"
           aria-label="Mobile"
         >
           {SITE_NAV_GROUPS.map((group) => (
@@ -356,33 +386,7 @@ export function GlobalNavMobileSheet({
             ) : null}
           </section>
         </nav>
-
-        <footer className="relative z-10 shrink-0 space-y-2 border-t border-sidebar-border/60 bg-gradient-to-t from-muted/25 to-transparent px-4 py-4">
-          <SyraBuyButton variant="nav" fullWidth className="h-10" />
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-10 w-full justify-start gap-3 rounded-xl px-2.5 text-muted-foreground hover:bg-muted/45 hover:text-foreground"
-            onClick={() =>
-              setTheme(resolvedTheme === "dark" ? "light" : "dark")
-            }
-            suppressHydrationWarning
-          >
-            <span className={mobileNavIconClasses(false)}>
-              {!mounted || resolvedTheme !== "light" ? (
-                <Sun className="h-4 w-4" aria-hidden />
-              ) : (
-                <Moon className="h-4 w-4" aria-hidden />
-              )}
-            </span>
-            <span className="text-[13px] font-medium">
-              {!mounted || resolvedTheme !== "light"
-                ? "Light mode"
-                : "Dark mode"}
-            </span>
-          </Button>
-        </footer>
-      </SheetContent>
-    </Sheet>
+      </Drawer>
+    </>
   );
 }

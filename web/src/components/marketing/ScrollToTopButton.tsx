@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronUp } from "lucide-react";
+import { Tooltip } from "@/components/interior/tooltip-group";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const SCROLL_THRESHOLD_PX = 400;
@@ -36,22 +32,17 @@ export function ScrollToTopButton() {
           : "pointer-events-none translate-y-3 opacity-0",
       )}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="default"
-            size="icon"
-            className="h-12 w-12 rounded-full border border-primary/25 bg-primary/90 shadow-lg backdrop-blur-sm hover:bg-primary"
-            onClick={scrollToTop}
-            aria-label="Scroll to top"
-          >
-            <ChevronUp className="h-5 w-5" aria-hidden />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="left">
-          <p>Back to top</p>
-        </TooltipContent>
+      <Tooltip label="Back to top" side="top">
+        <Button
+          type="button"
+          variant="default"
+          size="icon"
+          className="h-12 w-12 rounded-full border border-primary/25 bg-primary/90 shadow-lg backdrop-blur-sm hover:bg-primary"
+          onClick={scrollToTop}
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="h-5 w-5" aria-hidden />
+        </Button>
       </Tooltip>
     </div>
   );

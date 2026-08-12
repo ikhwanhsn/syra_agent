@@ -134,6 +134,11 @@ function scorePage(page: SiteSearchPage, q: string): number {
   return 0;
 }
 
+/** Full site page catalog for command palettes (unfiltered). */
+export function listSitePages(isAdmin: boolean): SiteSearchPage[] {
+  return buildSearchablePages(isAdmin);
+}
+
 export function searchSitePages(
   query: string,
   isAdmin: boolean,

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "@/lib/navigation";
-import { ExternalLink, RefreshCw, Search } from "lucide-react";
+import { ExternalLink, Link2, RefreshCw, Search } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ContextMenu } from "@/components/interior/context-menu";
 import { cn } from "@/lib/utils";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -293,58 +295,83 @@ export default function AssetsPage({ embedded }: { embedded?: boolean }) {
                     <TableBody>
                       {pageRows.map((row, index) => {
                         const isFocused = index === focusedRowIndex;
+                        const detailPath = assetDetailPath(row);
                         return (
-                          <TableRow
+                          <ContextMenu
                             key={row.key}
-                            data-row-index={index}
-                            className={cn(
-                              "cursor-pointer border-border/40 transition-colors",
-                              isFocused ? "bg-muted/50" : "hover:bg-muted/30",
-                            )}
-                            onClick={() => navigate(assetDetailPath(row))}
-                            onMouseEnter={() => setFocusedRowIndex(index)}
+                            asChild
+                            label={`Actions for ${row.name}`}
+                            items={[
+                              {
+                                id: "open",
+                                label: "Open",
+                                icon: <ExternalLink className="h-3.5 w-3.5" />,
+                                onSelect: () => navigate(detailPath),
+                              },
+                              {
+                                id: "copy",
+                                label: "Copy link",
+                                icon: <Link2 className="h-3.5 w-3.5" />,
+                                onSelect: () => {
+                                  void navigator.clipboard
+                                    .writeText(`${window.location.origin}${detailPath}`)
+                                    .then(() => toast.success("Link copied"))
+                                    .catch(() => toast.error("Could not copy link"));
+                                },
+                              },
+                            ]}
                           >
-                            <TableCell className="py-2.5 pl-4">
-                              <div className="flex items-center gap-2.5">
-                                <Avatar className="h-8 w-8 shrink-0 rounded-md border border-border/40">
-                                  {row.imageUrl ? (
-                                    <AvatarImage src={row.imageUrl} alt="" className="object-cover" />
-                                  ) : null}
-                                  <AvatarFallback className="rounded-md bg-muted/50 text-[10px] font-medium">
-                                    {row.symbol.slice(0, 2)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="min-w-0">
-                                  <span className="block truncate text-sm font-medium">{row.name}</span>
-                                  <span className="text-xs text-muted-foreground">{row.symbol}</span>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
-                              {row.assetClass === "equity" ? "Stock" : "Crypto"}
-                            </TableCell>
-                            <TableCell className="text-right text-sm tabular-nums">
-                              <AnimatedMetric value={row.price} format={priceLabel} />
-                            </TableCell>
-                            <TableCell
+                            <TableRow
+                              data-row-index={index}
                               className={cn(
-                                "text-right text-sm tabular-nums",
-                                row.change24h != null && row.change24h >= 0
-                                  ? "text-emerald-600 dark:text-emerald-400"
-                                  : row.change24h != null
-                                    ? "text-red-600 dark:text-red-400"
-                                    : "text-muted-foreground",
+                                "cursor-pointer border-border/40 transition-colors",
+                                isFocused ? "bg-muted/50" : "hover:bg-muted/30",
                               )}
+                              onClick={() => navigate(detailPath)}
+                              onMouseEnter={() => setFocusedRowIndex(index)}
                             >
-                              <AnimatedMetric value={row.change24h} format={formatPct} deltaMode />
-                            </TableCell>
-                            <TableCell className="hidden text-right text-sm tabular-nums md:table-cell">
-                              <AnimatedMetric value={row.marketCap} format={formatCompactUsd} />
-                            </TableCell>
-                            <TableCell className="hidden text-right text-sm tabular-nums lg:table-cell pr-4">
-                              <AnimatedMetric value={row.volume24h} format={formatCompactUsd} />
-                            </TableCell>
-                          </TableRow>
+                              <TableCell className="py-2.5 pl-4">
+                                <div className="flex items-center gap-2.5">
+                                  <Avatar className="h-8 w-8 shrink-0 rounded-md border border-border/40">
+                                    {row.imageUrl ? (
+                                      <AvatarImage src={row.imageUrl} alt="" className="object-cover" />
+                                    ) : null}
+                                    <AvatarFallback className="rounded-md bg-muted/50 text-[10px] font-medium">
+                                      {row.symbol.slice(0, 2)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="min-w-0">
+                                    <span className="block truncate text-sm font-medium">{row.name}</span>
+                                    <span className="text-xs text-muted-foreground">{row.symbol}</span>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
+                                {row.assetClass === "equity" ? "Stock" : "Crypto"}
+                              </TableCell>
+                              <TableCell className="text-right text-sm tabular-nums">
+                                <AnimatedMetric value={row.price} format={priceLabel} />
+                              </TableCell>
+                              <TableCell
+                                className={cn(
+                                  "text-right text-sm tabular-nums",
+                                  row.change24h != null && row.change24h >= 0
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : row.change24h != null
+                                      ? "text-red-600 dark:text-red-400"
+                                      : "text-muted-foreground",
+                                )}
+                              >
+                                <AnimatedMetric value={row.change24h} format={formatPct} deltaMode />
+                              </TableCell>
+                              <TableCell className="hidden text-right text-sm tabular-nums md:table-cell">
+                                <AnimatedMetric value={row.marketCap} format={formatCompactUsd} />
+                              </TableCell>
+                              <TableCell className="hidden text-right text-sm tabular-nums lg:table-cell pr-4">
+                                <AnimatedMetric value={row.volume24h} format={formatCompactUsd} />
+                              </TableCell>
+                            </TableRow>
+                          </ContextMenu>
                         );
                       })}
                     </TableBody>

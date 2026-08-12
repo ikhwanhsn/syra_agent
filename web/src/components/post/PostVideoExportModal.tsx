@@ -5,13 +5,7 @@ import {
   type PostVideoExportFormat,
 } from "@/video/render/renderPostVideoOnWeb";
 import { PostVideoPlayer } from "@/video/preview/PostVideoPlayer";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Modal } from "@/components/interior/modal";
 import { cn } from "@/lib/utils";
 import { Download } from "lucide-react";
 
@@ -87,18 +81,36 @@ export function PostVideoExportModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="post-share-modal max-h-[92dvh] overflow-y-auto border-white/10 bg-[#0a0a0a] text-white sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="font-display text-base font-medium tracking-tight text-white/95">
-            Download video
-          </DialogTitle>
-          <DialogDescription className="text-xs text-white/45">
-            Preview the Syra cinematic look, then download Full HD · 30fps. What you see is what you
-            get.
-          </DialogDescription>
-        </DialogHeader>
-
+    <Modal
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={
+        <span className="font-display text-base font-medium tracking-tight text-white/95">
+          Download video
+        </span>
+      }
+      description={
+        <span className="text-xs text-white/45">
+          Preview the Syra cinematic look, then download Full HD · 30fps. What you see is what you
+          get.
+        </span>
+      }
+      maxWidth={768}
+      maxHeight="min(92dvh, 900px)"
+      className="post-share-modal border-white/10 bg-[#0a0a0a] text-white"
+      footer={
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={!supported[selected] || checking}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/15 px-5 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/25 disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" />
+          Download {selected.toUpperCase()}
+        </button>
+      }
+    >
+      <div className="space-y-3">
         <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
           {open ? (
             <PostVideoPlayer slides={slides} autoPlay loop controls initiallyMuted />
@@ -141,19 +153,7 @@ export function PostVideoExportModal({
             );
           })}
         </div>
-
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={!supported[selected] || checking}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/15 px-5 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/25 disabled:opacity-50"
-          >
-            <Download className="h-4 w-4" />
-            Download {selected.toUpperCase()}
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Modal>
   );
 }
