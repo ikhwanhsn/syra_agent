@@ -1,10 +1,8 @@
 "use client";
 
 import { ArrowUpRight, Quote } from "lucide-react";
-import { motion } from "framer-motion";
 import { SYRA_TESTIMONIALS } from "@/content/syraAbout";
 import { cn } from "@/lib/utils";
-import { useGrowthReveal } from "@/components/growth/growthMotion";
 import {
   growthEyebrowClass,
   growthInnerLiftClass,
@@ -18,15 +16,6 @@ import {
  * Social proof strip for growth home: three public reviews with source links.
  */
 export function GrowthTestimonials({ className }: { className?: string }) {
-  const {
-    viewport,
-    item,
-    container,
-    initial,
-    whileInView,
-    failSafeAnimate,
-  } = useGrowthReveal();
-
   return (
     <section
       className={cn("relative", className)}
@@ -44,17 +33,12 @@ export function GrowthTestimonials({ className }: { className?: string }) {
         </p>
       </div>
 
-      <motion.ul
+      <ul
         className="grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 md:grid-cols-3"
         role="list"
-        variants={container(0.08, 0.06)}
-        initial={initial}
-        whileInView={whileInView}
-        animate={failSafeAnimate}
-        viewport={viewport}
       >
         {SYRA_TESTIMONIALS.map((testimonial) => (
-          <motion.li key={testimonial.id} className="min-h-0" variants={item}>
+          <li key={testimonial.id} className="min-h-0">
             <a
               href={testimonial.href}
               target="_blank"
@@ -122,9 +106,9 @@ export function GrowthTestimonials({ className }: { className?: string }) {
               </div>
               </div>
             </a>
-          </motion.li>
+          </li>
         ))}
-      </motion.ul>
+      </ul>
     </section>
   );
 }

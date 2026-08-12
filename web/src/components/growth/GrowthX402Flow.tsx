@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { GROWTH_EASE, GrowthCountUp } from "@/components/growth/growthMotion";
 import {
   growthKickerClass,
   growthMonoChipClass,
@@ -11,6 +10,8 @@ import {
   growthTerminalFrameClass,
   growthTerminalTitlebarClass,
 } from "@/components/growth/growthHomeStyles";
+
+const HANDSHAKE_EASE = [0.16, 1, 0.3, 1] as const;
 
 function LivePulse() {
   return (
@@ -74,10 +75,9 @@ export type GrowthX402FlowProps = {
 };
 
 function formatNum(n: number): string {
-  const v = Math.round(n);
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
-  return v.toLocaleString();
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString();
 }
 
 function formatUsd(n: number): string {
@@ -89,6 +89,7 @@ function formatUsd(n: number): string {
 /**
  * Agentic terminal motif: animated x402 payment handshake + live traction strip.
  * Respects prefers-reduced-motion (static full log, no loop).
+ * Scoped to this component only — no page scroll/reveal motion.
  */
 export function GrowthX402Flow({
   avgUsdPerCall = null,
@@ -188,7 +189,7 @@ export function GrowthX402Flow({
                   initial={reduceMotion ? false : { opacity: 0, y: 6, x: 4 }}
                   animate={{ opacity: 1, y: 0, x: 0 }}
                   exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
-                  transition={{ duration: 0.35, ease: GROWTH_EASE }}
+                  transition={{ duration: 0.35, ease: HANDSHAKE_EASE }}
                 >
                   <span className="shrink-0 text-muted-foreground/50">{line.prefix}</span>
                   <span
@@ -251,19 +252,19 @@ export function GrowthX402Flow({
             <div className="min-w-0">
               <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Calls · 7d</p>
               <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                {paid7d != null ? <GrowthCountUp value={paid7d} format={formatNum} /> : "-"}
+                {paid7d != null ? formatNum(paid7d) : "-"}
               </p>
             </div>
             <div className="min-w-0">
               <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Wallets</p>
               <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                {payers7d != null ? <GrowthCountUp value={payers7d} format={formatNum} /> : "-"}
+                {payers7d != null ? formatNum(payers7d) : "-"}
               </p>
             </div>
             <div className="min-w-0">
               <p className={cn(growthKickerClass, "tracking-[0.16em]")}>Settled</p>
               <p className={cn(growthStatValueClass, "mt-2 text-xl sm:text-2xl")}>
-                {settledUsd != null ? <GrowthCountUp value={settledUsd} format={formatUsd} /> : "-"}
+                {settledUsd != null ? formatUsd(settledUsd) : "-"}
               </p>
             </div>
           </div>

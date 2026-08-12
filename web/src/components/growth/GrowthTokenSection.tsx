@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { motion } from "framer-motion";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
@@ -9,7 +8,6 @@ import { SYRA_TOKEN_MINT, truncateBase58 } from "@/data/marketing/agentIdentity"
 import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
 import { cn } from "@/lib/utils";
 import { GrowthBuybackProofPanel } from "@/components/growth/GrowthBuybackProofPanel";
-import { useGrowthReveal } from "@/components/growth/growthMotion";
 import {
   growthCtaPrimaryClass,
   growthCtaSecondaryClass,
@@ -29,7 +27,6 @@ const PUMPFUN_URL = `https://pump.fun/coin/${SYRA_TOKEN_MINT}`;
  */
 export function GrowthTokenSection() {
   const [copied, setCopied] = useState(false);
-  const { viewport, reveal, initial, whileInView, failSafeAnimate } = useGrowthReveal();
 
   const copyMint = useCallback(async () => {
     try {
@@ -43,14 +40,7 @@ export function GrowthTokenSection() {
 
   return (
     <section id="token" className="scroll-mt-24" aria-labelledby="token-heading">
-      <motion.div
-        className="mb-10 max-w-2xl sm:mb-12"
-        variants={reveal}
-        initial={initial}
-        whileInView={whileInView}
-        animate={failSafeAnimate}
-        viewport={viewport}
-      >
+      <div className="mb-10 max-w-2xl sm:mb-12">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <p className={growthEyebrowClass}>$SYRA</p>
           <span className={growthMonoChipClass}>machine money</span>
@@ -62,16 +52,9 @@ export function GrowthTokenSection() {
           Utility for the layer agents settle on. Product growth is paid calls; treasury-settled revenue
           (~80%) queues into $SYRA buybacks. Verify it below.
         </p>
-      </motion.div>
+      </div>
 
-      <motion.div
-        className={cn(growthPanelClass, "p-6 sm:p-8 lg:p-10")}
-        variants={reveal}
-        initial={initial}
-        whileInView={whileInView}
-        animate={failSafeAnimate}
-        viewport={viewport}
-      >
+      <div className={cn(growthPanelClass, "p-6 sm:p-8 lg:p-10")}>
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -172,7 +155,7 @@ export function GrowthTokenSection() {
             <ExternalLink className="h-3 w-3 opacity-50" aria-hidden />
           </a>
         </div>
-      </motion.div>
+      </div>
 
       <div className="mt-6">
         <GrowthBuybackProofPanel />

@@ -1,11 +1,9 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import { motion } from "framer-motion";
 import { Link } from "@/lib/navigation";
 import { usePublicMetrics } from "@/lib/publicMetricsApi";
 import { cn } from "@/lib/utils";
-import { GrowthCountUp, useGrowthReveal } from "@/components/growth/growthMotion";
 import {
   growthKickerClass,
   growthPanelClass,
@@ -26,10 +24,6 @@ function formatSyra(n: number | null | undefined) {
   return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-function formatEarnerCount(n: number) {
-  return Math.round(n).toLocaleString();
-}
-
 function shortSig(sig: string) {
   if (sig.length <= 12) return sig;
   return `${sig.slice(0, 6)}…${sig.slice(-4)}`;
@@ -40,20 +34,11 @@ function shortSig(sig: string) {
  */
 export function GrowthBuybackProofPanel({ className }: { className?: string }) {
   const { data, isPending, isError } = usePublicMetrics();
-  const { viewport, reveal, item, container, initial, whileInView, failSafeAnimate } = useGrowthReveal();
   const buyback = data?.buyback;
   const rewards = data?.rewards;
 
   return (
-    <motion.div
-      className={cn(growthPanelClass, "p-6 sm:p-8", className)}
-      aria-labelledby="buyback-proof-heading"
-      variants={reveal}
-      initial={initial}
-      whileInView={whileInView}
-      animate={failSafeAnimate}
-      viewport={viewport}
-    >
+    <div className={cn(growthPanelClass, "p-6 sm:p-8", className)} aria-labelledby="buyback-proof-heading">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className={growthKickerClass}>On-chain proof</p>
@@ -87,46 +72,32 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
 
       {buyback && (
         <>
-          <motion.div
-            className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4"
-            variants={container(0.08, 0.04)}
-            initial={initial}
-            whileInView={whileInView}
-            animate={failSafeAnimate}
-            viewport={viewport}
-          >
-            <motion.div variants={item}>
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
               <p className={growthKickerClass}>Buyback spent</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
-                <GrowthCountUp value={buyback.totalBuybackUsdSpent} format={(n) => formatUsd(n)} />
+                {formatUsd(buyback.totalBuybackUsdSpent)}
               </p>
-            </motion.div>
-            <motion.div variants={item}>
+            </div>
+            <div>
               <p className={growthKickerClass}>Queue flushed</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
-                <GrowthCountUp value={buyback.totalFlushedUsd} format={(n) => formatUsd(n)} />
+                {formatUsd(buyback.totalFlushedUsd)}
               </p>
-            </motion.div>
-            <motion.div variants={item}>
+            </div>
+            <div>
               <p className={growthKickerClass}>$SYRA in treasury</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
-                <GrowthCountUp
-                  value={buyback.totalSyraAcquired ?? buyback.treasurySyraBalance ?? 0}
-                  format={(n) => formatSyra(n)}
-                />
+                {formatSyra(buyback.totalSyraAcquired ?? buyback.treasurySyraBalance)}
               </p>
-            </motion.div>
-            <motion.div variants={item}>
+            </div>
+            <div>
               <p className={growthKickerClass}>Reward earners</p>
               <p className={cn(growthStatValueClass, "mt-1 text-2xl")}>
-                {rewards?.uniqueEarners != null ? (
-                  <GrowthCountUp value={rewards.uniqueEarners} format={formatEarnerCount} />
-                ) : (
-                  "-"
-                )}
+                {rewards?.uniqueEarners?.toLocaleString() ?? "-"}
               </p>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
           {buyback.treasuryWallet && (
             <p className="mt-4 text-xs text-muted-foreground/80">
@@ -201,6 +172,6 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
           )}
         </>
       )}
-    </motion.div>
+    </div>
   );
 }

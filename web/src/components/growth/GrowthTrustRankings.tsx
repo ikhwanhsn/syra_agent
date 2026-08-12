@@ -1,10 +1,8 @@
 "use client";
 
 import { ArrowUpRight } from "lucide-react";
-import { motion } from "framer-motion";
 import { SYRA_TRUST_RANKINGS } from "@/content/syraAbout";
 import { cn } from "@/lib/utils";
-import { GrowthCountUp, useGrowthReveal } from "@/components/growth/growthMotion";
 import {
   growthEyebrowClass,
   growthMonoChipClass,
@@ -15,15 +13,7 @@ import {
 /**
  * Ecosystem trust rankings strip for growth home, static, link-out proof near Buy $SYRA.
  */
-function parseRankNumber(rank: string): number | null {
-  const match = rank.match(/^#(\d+)$/);
-  if (!match) return null;
-  return Number(match[1]);
-}
-
 export function GrowthTrustRankings({ className }: { className?: string }) {
-  const { viewport, item, container, initial, whileInView, failSafeAnimate } = useGrowthReveal();
-
   return (
     <div className={cn("relative mx-auto w-full max-w-2xl", className)}>
       {/* Soft spotlight, pulls the strip forward in the hero */}
@@ -52,7 +42,7 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
         </p>
       </div>
 
-      <motion.div
+      <div
         className={cn(
           growthPanelClass,
           "relative divide-y divide-border/40",
@@ -61,11 +51,6 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
           "sm:grid sm:grid-cols-3 sm:divide-x sm:divide-y-0",
         )}
         role="list"
-        variants={container(0.08, 0.06)}
-        initial={initial}
-        whileInView={whileInView}
-        animate={failSafeAnimate}
-        viewport={viewport}
       >
         {/* Inner sheen, static depth, no looping animation */}
         <div
@@ -81,16 +66,14 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
 
         {SYRA_TRUST_RANKINGS.map((ranking, index) => {
           const isLead = index === 0;
-          const rankNumber = parseRankNumber(ranking.rank);
           return (
-            <motion.a
+            <a
               key={ranking.id}
               role="listitem"
               href={ranking.href}
               target="_blank"
               rel="noopener noreferrer"
               aria-label={ranking.ariaLabel}
-              variants={item}
               className={cn(
                 "group relative flex min-h-11 flex-col gap-1 overflow-hidden px-5 py-4 text-left",
                 "transition-[background-color,transform] duration-200 ease-out",
@@ -124,17 +107,7 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
                       "transition-transform duration-200 motion-safe:group-hover:translate-y-[-1px]",
                   )}
                 >
-                  {rankNumber != null ? (
-                    <>
-                      #
-                      <GrowthCountUp
-                        value={rankNumber}
-                        format={(n) => String(Math.round(n))}
-                      />
-                    </>
-                  ) : (
-                    ranking.rank
-                  )}
+                  {ranking.rank}
                 </span>
                 <ArrowUpRight
                   className={cn(
@@ -151,10 +124,10 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
               <span className="relative text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
                 {ranking.sub}
               </span>
-            </motion.a>
+            </a>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }
