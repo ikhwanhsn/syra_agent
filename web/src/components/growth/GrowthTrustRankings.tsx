@@ -22,7 +22,7 @@ function parseRankNumber(rank: string): number | null {
 }
 
 export function GrowthTrustRankings({ className }: { className?: string }) {
-  const { viewport, item, container, initial, whileInView } = useGrowthReveal();
+  const { viewport, item, container, initial, whileInView, failSafeAnimate } = useGrowthReveal();
 
   return (
     <div className={cn("relative mx-auto w-full max-w-2xl", className)}>
@@ -64,6 +64,7 @@ export function GrowthTrustRankings({ className }: { className?: string }) {
         variants={container(0.08, 0.06)}
         initial={initial}
         whileInView={whileInView}
+        animate={failSafeAnimate}
         viewport={viewport}
       >
         {/* Inner sheen, static depth, no looping animation */}

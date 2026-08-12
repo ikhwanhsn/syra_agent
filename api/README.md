@@ -149,7 +149,7 @@ Docs: [x402 Payment Flow](https://docs.syraa.fun/docs/api/x402-api-standard).
 - **`GET /x402/capabilities`** — live payment networks, B402/Algorand/OKX flags, facilitator failover (`dexter` → `goplausible` → `payai`).
 - **`GET /openapi.json`** — **OpenAPI 3.1** gateway catalog (10+ operations: `/api/signal`, `/info`, `/preview/*`, `/dashboard-summary`, `/binance-ticker`, `/prediction-game/health`, x402 **`/news`**, **`/sentiment`**, **`/event`**, **`/health`**, **`/brain`**, etc.). Standard schema only (no `info.guidance`). Same as repo-root `openapi.json` (`npm run openapi` in `api/`).
 - **`GET /mpp-openapi.json`** — full **OpenAPI 3.1** MPP discovery document: one entry per paid route (from **agent tools** + [`x402DiscoveryResourcePaths.js`](./config/x402DiscoveryResourcePaths.js)), with `info.guidance`, `x-payment-info` (`protocols: ["mpp"]`, `pricingMode: "fixed"`, `price`), **`402`**, optional **query parameters** (GET) and **JSON requestBody** (POST) to satisfy discovery validators.
-- **`GET` / `POST` [`/mpp/v1/health`](https://api.syraa.fun/mpp/v1/health)** — MPP-branded health check (same tier as `/health`). Legacy `/mpp/v1/check-status` → 308 to `/mpp/v1/health`.
+- **`GET` / `POST` [`/mpp/health`](https://api.syraa.fun/mpp/health)** — MPP-branded health check (same tier as `/health`). Legacy `/mpp/v1/health` and `/mpp/v1/check-status` rewrite in-app to `/mpp/health` (no HTTP redirect).
 
 To **register**, deploy then validate:
 

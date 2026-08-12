@@ -1381,7 +1381,8 @@ app.use((req, res, next) => {
   }
   next();
 });
-// Legacy MPP paths → canonical /mpp/health
+// Legacy MPP paths → canonical /mpp/health (in-app rewrite, no HTTP redirect).
+// zauth and similar monitors treat empty 308 bodies as failure.
 app.use((req, res, next) => {
   const p = req.path || "";
   if (
@@ -1397,7 +1398,7 @@ app.use((req, res, next) => {
           ? p.slice("/mpp/v1/check-status".length)
           : p.slice("/mpp/v1/health".length);
     const q = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
-    return res.redirect(308, `/mpp/health${rest}${q}`);
+    req.url = `/mpp/health${rest}${q}`;
   }
   next();
 });
@@ -1603,9 +1604,10 @@ app.get("/.well-known/agent.json", async (req, res) => {
 });
 
 // Serve discovery document at /.well-known/x402 (x402scan compatible)
+// Alias /.well-known/x402.json for monitors that expect a .json suffix.
 // Lists all x402 APIs (unversioned paths only).
 const X402_BASE = "https://api.syraa.fun";
-app.get("/.well-known/x402", async (req, res) => {
+async function serveWellKnownX402(req, res) {
   // Collect ownership proofs for both EVM and Solana addresses
   const ownershipProofs = [];
   if (process.env.X402_OWNERSHIP_PROOF_EVM) {
@@ -1749,7 +1751,9 @@ The free preview tier (\`/preview/*\`, \`/dashboard-summary\`, \`/binance-ticker
     req,
     res,
   );
-});
+}
+app.get("/.well-known/x402", serveWellKnownX402);
+app.get("/.well-known/x402.json", serveWellKnownX402);
 
 // Public x402 payment network status (no secrets) — verify Binance/B402 before playground testing.
 app.get("/x402/capabilities", (_req, res) => {

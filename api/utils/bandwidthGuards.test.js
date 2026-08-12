@@ -17,6 +17,7 @@ describe("bandwidthGuards", () => {
   it("detects discovery paths", () => {
     assert.equal(isDiscoveryBandwidthPath("/openapi.json"), true);
     assert.equal(isDiscoveryBandwidthPath("/.well-known/x402"), true);
+    assert.equal(isDiscoveryBandwidthPath("/.well-known/x402.json"), true);
     assert.equal(isDiscoveryBandwidthPath("/news"), false);
   });
 

@@ -17,7 +17,11 @@ import {
   getModelPricingPublic,
 } from '../libs/openrouterModelPricing.js';
 
-const { requirePayment, settlePaymentAndSetResponse } = await getV2Payment();
+const {
+  requirePayment,
+  settlePaymentAndSetResponse,
+  getPaymentSignatureHeaderFromReq,
+} = await getV2Payment();
 
 const outputSchema = {
   id: { type: 'string', description: 'Completion id' },
@@ -84,6 +88,11 @@ function validateChatRequest(req, res, next) {
   }
 
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
+    // Unpaid empty/probe POSTs (e.g. zauth health) → fall through to requirePayment → 402.
+    // Paid retries without messages still get 400 (no charge for a completion).
+    if (!getPaymentSignatureHeaderFromReq(req)) {
+      return next();
+    }
     return res.status(400).json({
       error: {
         message: 'messages is required and must be a non-empty array',

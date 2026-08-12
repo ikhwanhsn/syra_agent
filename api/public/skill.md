@@ -102,6 +102,6 @@ MCP free helpers: `syra_agentscore_discover`, `syra_agentscore_check`.
 ## Discovery
 
 - x402: `GET /.well-known/x402`, `GET /x402/capabilities`, `GET /openapi.json`, `GET /mpp-openapi.json`
-- MPP: `GET /mpp/health` (legacy `/mpp/v1/health` → 308 redirect)
+- MPP: `GET /mpp/health` (legacy `/mpp/v1/health` rewrites in-app to `/mpp/health`)
 - This file: `GET /skill.md`
 - Skills list: https://syraa.fun/skills.md

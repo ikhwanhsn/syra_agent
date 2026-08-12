@@ -40,7 +40,7 @@ function shortSig(sig: string) {
  */
 export function GrowthBuybackProofPanel({ className }: { className?: string }) {
   const { data, isPending, isError } = usePublicMetrics();
-  const { viewport, reveal, item, container, initial, whileInView } = useGrowthReveal();
+  const { viewport, reveal, item, container, initial, whileInView, failSafeAnimate } = useGrowthReveal();
   const buyback = data?.buyback;
   const rewards = data?.rewards;
 
@@ -51,6 +51,7 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
       variants={reveal}
       initial={initial}
       whileInView={whileInView}
+      animate={failSafeAnimate}
       viewport={viewport}
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -91,6 +92,7 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
             variants={container(0.08, 0.04)}
             initial={initial}
             whileInView={whileInView}
+            animate={failSafeAnimate}
             viewport={viewport}
           >
             <motion.div variants={item}>

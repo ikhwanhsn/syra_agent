@@ -35,6 +35,7 @@ export function isDiscoveryBandwidthPath(path) {
     path === "/openapi.json" ||
     path === "/mpp-openapi.json" ||
     path === "/.well-known/x402" ||
+    path === "/.well-known/x402.json" ||
     path === "/.well-known/x402-verification.json" ||
     path === "/.well-known/shadowfeed-feeds.json" ||
     path === "/.well-known/agent.json"

@@ -29,7 +29,7 @@ const PUMPFUN_URL = `https://pump.fun/coin/${SYRA_TOKEN_MINT}`;
  */
 export function GrowthTokenSection() {
   const [copied, setCopied] = useState(false);
-  const { viewport, reveal, initial, whileInView } = useGrowthReveal();
+  const { viewport, reveal, initial, whileInView, failSafeAnimate } = useGrowthReveal();
 
   const copyMint = useCallback(async () => {
     try {
@@ -48,6 +48,7 @@ export function GrowthTokenSection() {
         variants={reveal}
         initial={initial}
         whileInView={whileInView}
+        animate={failSafeAnimate}
         viewport={viewport}
       >
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -68,6 +69,7 @@ export function GrowthTokenSection() {
         variants={reveal}
         initial={initial}
         whileInView={whileInView}
+        animate={failSafeAnimate}
         viewport={viewport}
       >
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between lg:gap-10">

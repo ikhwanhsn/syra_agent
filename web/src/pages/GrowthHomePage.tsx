@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "@/lib/navigation";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import {
@@ -41,7 +41,9 @@ import {
 } from "@/components/growth/growthHomeStyles";
 import {
   GrowthCountUp,
+  GrowthMotionRootProvider,
   useGrowthReveal,
+  useScrollContainer,
 } from "@/components/growth/growthMotion";
 
 function formatNum(n: number): string {
@@ -494,6 +496,8 @@ function MetricsBody({
 export default function GrowthHomePage() {
   const { data, isLoading, isError, error } = usePublicMetrics();
   const reduceMotion = useReducedMotion();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const { scrollContainerRef, scrollBound } = useScrollContainer(rootRef);
   const {
     viewport,
     reveal,
@@ -502,30 +506,17 @@ export default function GrowthHomePage() {
     initial,
     whileInView,
     animate,
-  } = useGrowthReveal();
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
-  const [scrollBound, setScrollBound] = useState(false);
+    failSafeAnimate,
+  } = useGrowthReveal({ root: scrollContainerRef });
 
-  useEffect(() => {
-    const node = rootRef.current;
-    if (!node) return;
-    let el: HTMLElement | null = node.parentElement;
-    while (el) {
-      const overflowY = getComputedStyle(el).overflowY;
-      if (overflowY === "auto" || overflowY === "scroll") {
-        scrollContainerRef.current = el;
-        setScrollBound(true);
-        return;
-      }
-      el = el.parentElement;
-    }
-  }, []);
-
+  // Always pass the AppShell scroller ref. useScrollContainer fills
+  // scrollContainerRef.current in an earlier useLayoutEffect this commit,
+  // so useScroll never binds to window then rebinds.
   const { scrollY } = useScroll({
-    container: scrollBound ? scrollContainerRef : undefined,
+    container: scrollContainerRef,
   });
-  const atmosphereY = useTransform(scrollY, [0, 720], [0, 40]);
+  // Soft parallax; gated until the scroller is confirmed to avoid a first-frame jump.
+  const atmosphereY = useTransform(scrollY, [0, 720], [0, 24]);
 
   useEffect(() => {
     document.title = "Syra · Machine Money for Agents";
@@ -539,11 +530,14 @@ export default function GrowthHomePage() {
     data?.northStar?.uniquePayingWalletsLast7d ?? data?.last7d.uniquePayingWallets ?? 0;
 
   return (
-    <div ref={rootRef} className={growthRootClass}>
+    <GrowthMotionRootProvider root={scrollContainerRef}>
+      <div ref={rootRef} className={growthRootClass}>
       {/* Atmosphere: full-bleed plane framing the hero */}
       <motion.div
         className="pointer-events-none absolute inset-x-0 top-0 h-[min(96vh,880px)]"
-        style={reduceMotion ? undefined : { y: atmosphereY }}
+        style={
+          reduceMotion || !scrollBound ? undefined : { y: atmosphereY }
+        }
         aria-hidden
       >
         <div
@@ -704,6 +698,7 @@ export default function GrowthHomePage() {
           variants={reveal}
           initial={initial}
           whileInView={whileInView}
+          animate={failSafeAnimate}
           viewport={viewport}
         >
           <div className="mb-10 flex flex-col gap-4 sm:mb-12 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
@@ -723,6 +718,7 @@ export default function GrowthHomePage() {
             variants={container(0.1, 0.08)}
             initial={initial}
             whileInView={whileInView}
+            animate={failSafeAnimate}
             viewport={viewport}
           >
             {/* Hairline connectors between steps (desktop) */}
@@ -802,6 +798,7 @@ export default function GrowthHomePage() {
           variants={reveal}
           initial={initial}
           whileInView={whileInView}
+          animate={failSafeAnimate}
           viewport={viewport}
         >
           <GrowthTestimonials />
@@ -815,6 +812,7 @@ export default function GrowthHomePage() {
           variants={reveal}
           initial={initial}
           whileInView={whileInView}
+          animate={failSafeAnimate}
           viewport={viewport}
         >
           <div className="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-12">
@@ -860,6 +858,7 @@ export default function GrowthHomePage() {
           variants={reveal}
           initial={initial}
           whileInView={whileInView}
+          animate={failSafeAnimate}
           viewport={viewport}
         >
           <GrowthTokenSection />
@@ -872,6 +871,7 @@ export default function GrowthHomePage() {
           variants={reveal}
           initial={initial}
           whileInView={whileInView}
+          animate={failSafeAnimate}
           viewport={viewport}
         >
           <div
@@ -948,6 +948,7 @@ export default function GrowthHomePage() {
       </div>
 
       <GrowthFooter />
-    </div>
+      </div>
+    </GrowthMotionRootProvider>
   );
 }

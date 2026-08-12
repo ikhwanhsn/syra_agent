@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowUpRight, Quote } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { SYRA_TESTIMONIALS } from "@/content/syraAbout";
 import { cn } from "@/lib/utils";
+import { useGrowthReveal } from "@/components/growth/growthMotion";
 import {
   growthEyebrowClass,
   growthInnerLiftClass,
@@ -17,28 +18,14 @@ import {
  * Social proof strip for growth home: three public reviews with source links.
  */
 export function GrowthTestimonials({ className }: { className?: string }) {
-  const reduceMotion = useReducedMotion();
-
-  const container = reduceMotion
-    ? undefined
-    : {
-        hidden: { opacity: 0 },
-        show: {
-          opacity: 1,
-          transition: { staggerChildren: 0.08, delayChildren: 0.06 },
-        },
-      };
-
-  const item = reduceMotion
-    ? undefined
-    : {
-        hidden: { opacity: 0, y: 12 },
-        show: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] as const },
-        },
-      };
+  const {
+    viewport,
+    item,
+    container,
+    initial,
+    whileInView,
+    failSafeAnimate,
+  } = useGrowthReveal();
 
   return (
     <section
@@ -60,10 +47,11 @@ export function GrowthTestimonials({ className }: { className?: string }) {
       <motion.ul
         className="grid gap-px overflow-hidden rounded-2xl border border-border/40 bg-border/25 md:grid-cols-3"
         role="list"
-        variants={container}
-        initial={reduceMotion ? undefined : "hidden"}
-        whileInView={reduceMotion ? undefined : "show"}
-        viewport={reduceMotion ? undefined : { once: true, margin: "-80px" }}
+        variants={container(0.08, 0.06)}
+        initial={initial}
+        whileInView={whileInView}
+        animate={failSafeAnimate}
+        viewport={viewport}
       >
         {SYRA_TESTIMONIALS.map((testimonial) => (
           <motion.li key={testimonial.id} className="min-h-0" variants={item}>
