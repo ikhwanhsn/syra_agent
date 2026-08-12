@@ -77,45 +77,63 @@ export function GenericPageSkeleton() {
 }
 
 export function EarnTokenDetailSkeleton() {
+  const surface = "rounded-[1.35rem] border border-border/40 bg-card/40";
   return (
     <div
-      className="space-y-10 animate-in fade-in duration-300"
+      className="space-y-6 animate-in fade-in duration-300 sm:space-y-8"
       aria-busy="true"
       aria-label="Loading token"
       role="status"
     >
-      <header className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between sm:gap-10">
-        <div className="flex min-w-0 items-start gap-5 sm:gap-6">
-          <Skeleton className="h-20 w-20 shrink-0 rounded-[1.25rem] sm:h-24 sm:w-24" />
-          <div className="min-w-0 space-y-2 pt-0.5">
-            <Skeleton className="h-9 w-48 max-w-full" />
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-full max-w-xl" />
+      <header className={cn(surface, "p-5 sm:p-7")}>
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+            <Skeleton className="h-16 w-16 shrink-0 rounded-2xl sm:h-20 sm:w-20" />
+            <div className="min-w-0 flex-1 space-y-2.5 pt-0.5">
+              <Skeleton className="h-8 w-48 max-w-full sm:h-9" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-full max-w-xl" />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 lg:flex-col lg:items-stretch">
+            <Skeleton className="h-11 w-40 rounded-full lg:w-full" />
+            <Skeleton className="h-11 w-28 rounded-full lg:w-full" />
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 sm:justify-end">
-          <Skeleton className="h-11 w-24 rounded-full" />
-          <Skeleton className="h-11 w-28 rounded-full" />
-        </div>
       </header>
-      <section className="space-y-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <Skeleton className="h-12 w-40 sm:h-14 sm:w-48" />
-          <Skeleton className="h-7 w-20 sm:h-8" />
-        </div>
-        <div className="grid grid-cols-3 gap-4 border-t border-border/30 pt-6 sm:gap-8">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-3 w-12" />
-              <Skeleton className="h-5 w-20" />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-8">
+        <section className={cn(surface, "order-2 p-3 sm:p-4 lg:order-1")}>
+          <div className="mb-3 flex items-center justify-between px-1 sm:mb-4 sm:px-2">
+            <Skeleton className="h-5 w-14" />
+            <Skeleton className="h-3 w-10" />
+          </div>
+          <Skeleton className="h-[280px] w-full rounded-[1.1rem] sm:h-[360px]" />
+        </section>
+        <aside className="order-1 flex flex-col gap-4 lg:order-2 lg:gap-5">
+          <section className={cn(surface, "p-5 sm:p-6")}>
+            <Skeleton className="h-10 w-36 sm:h-11" />
+            <Skeleton className="mt-2 h-4 w-24" />
+            <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border/30 pt-5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3 w-10" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
-      <section className="space-y-3 border-t border-border/30 pt-6">
-        <Skeleton className="h-3 w-12" />
-        <Skeleton className="h-[280px] w-full rounded-[1.25rem] sm:h-[340px]" />
-      </section>
+          </section>
+          <section className={cn(surface, "space-y-4 p-5 sm:p-6")}>
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-5 w-28" />
+            </div>
+            <div className="space-y-2 border-t border-border/30 pt-4">
+              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -241,28 +259,28 @@ export function PostStudioSkeleton() {
       aria-label="Loading ship log"
       role="status"
     >
-      <Skeleton className="h-24 w-full rounded-xl bg-white/10" />
+      <Skeleton className="h-24 w-full rounded-xl bg-neutral-100" />
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-        <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
-        <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
+        <Skeleton className="h-32 w-full rounded-xl bg-neutral-100" />
+        <Skeleton className="h-32 w-full rounded-xl bg-neutral-100" />
       </div>
       <ul className="space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
           <li
             key={i}
-            className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-3.5 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex min-w-0 items-start gap-2.5">
-              <Skeleton className="mt-0.5 h-5 w-5 shrink-0 rounded-sm bg-white/10" />
+              <Skeleton className="mt-0.5 h-5 w-5 shrink-0 rounded-sm bg-neutral-100" />
               <div className="min-w-0 flex-1 space-y-1.5">
-                <Skeleton className="h-4 w-56 max-w-full bg-white/10" />
-                <Skeleton className="h-3 w-24 bg-white/10" />
+                <Skeleton className="h-4 w-56 max-w-full bg-neutral-100" />
+                <Skeleton className="h-3 w-24 bg-neutral-100" />
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 pl-7 sm:pl-0">
-              <Skeleton className="h-4 w-12 bg-white/10" />
-              <Skeleton className="h-4 w-12 bg-white/10" />
-              <Skeleton className="h-7 w-7 rounded-md bg-white/10" />
+              <Skeleton className="h-4 w-12 bg-neutral-100" />
+              <Skeleton className="h-4 w-12 bg-neutral-100" />
+              <Skeleton className="h-7 w-7 rounded-md bg-neutral-100" />
             </div>
           </li>
         ))}

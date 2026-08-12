@@ -22,6 +22,8 @@ Registry: `api/config/earnProducts.js`. Adapters: `api/libs/earnAdapters/*`.
 
 Cron intervals, evolution, and `realEnabled` are **code constants** in [`api/config/onchainEarnExperiments.js`](../api/config/onchainEarnExperiments.js). Flip `*.realEnabled = true` there when graduating — no per-experiment env vars.
 
+As of 2026-08-12: **LST Loop `realEnabled: true`** (capped real lab; Earn public listing still requires adapter readiness). Momentum and Sniper remain `false` until paper gates pass. cbBTC/BTC3 use `activate-earn-lab-agents.js` + `BTC_QUANT_REAL_CRON_ENABLED` / `BTC3_REAL_CRON_ENABLED` (cbBTC also requires paper-edge pass).
+
 Optional: `EARN_EXPERIMENT_CRON_SECRET` (header `x-earn-experiment-secret`) for remote cron POSTs. Empty = open.
 
 Each lab: multi-strategy cohort + evolution + computed PnL. No capital risk.

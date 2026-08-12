@@ -25,14 +25,22 @@ import type { AgentInlineUiPayload } from "@/lib/chatApi";
 import { linkifyBareHttpUrlsInMarkdown } from "@/lib/markdownLinkifyHttp";
 import { injectSolscanLinksInMarkdown } from "@/lib/solanaExplorerMarkdown";
 import { resolveUserAvatarUrl } from "@/lib/agentAvatar";
-import { AgentThinkingIndicator, ThinkingDots } from "@/components/chat/AgentThinkingIndicator";
-import { AgentThinkingTrace } from "@/components/chat/AgentThinkingTrace";
+import { ThinkingDots } from "@/components/chat/AgentThinkingIndicator";
+import { AgentLoadingState } from "@/components/chat/AgentLoadingState";
+import { AgentThinkingTrace, HeuristicLoadingTasks } from "@/components/chat/AgentThinkingTrace";
 import { ToolCallChips } from "@/components/chat/ToolCallChips";
 import { MessageSources } from "@/components/chat/MessageSources";
 import { FollowUpSuggestions } from "@/components/chat/FollowUpSuggestions";
 import { RecommendationCard } from "@/components/chat/RecommendationCard";
+import { ContextCards } from "@/components/chat/ContextCards";
+import { AgentCodeBlock } from "@/components/chat/AgentCodeBlock";
 import { ApprovalCard } from "@/components/chat/ApprovalCard";
-import type { ChatRecommendation, ChatSource, ReasoningStep } from "@/lib/chatStructuredUi";
+import type {
+  ChatContextChunk,
+  ChatRecommendation,
+  ChatSource,
+  ReasoningStep,
+} from "@/lib/chatStructuredUi";
 
 /** Match signed percentages in prose (e.g. -0.68%, +1.2%). Skipped inside code / links via tree walk. */
 const SIGNED_PERCENT_RE = /([+-]?\d+(?:\.\d+)?%)/g;
@@ -99,7 +107,7 @@ function createSignedPctAccentWalker(options: { skipDeepEnterTags?: readonly str
 const accentSignedPercentagesFull = createSignedPctAccentWalker();
 const accentSignedPercentagesSkipBlockP = createSignedPctAccentWalker({ skipDeepEnterTags: ["p"] });
 
-/** Context-specific step sequences, each tells a short "story" relevant to the user's question. */
+/** Context-specific step sequences for Beautiful UI task-row loading. */
 const STEP_SEQUENCES: Record<string, string[]> = {
   news: [
     "Understanding your question...",
@@ -151,7 +159,6 @@ const STEP_SEQUENCES: Record<string, string[]> = {
   ],
 };
 
-/** Pick a step sequence that matches the user's message. */
 function getStepsForMessage(userMessage: string | undefined): string[] {
   if (!userMessage || typeof userMessage !== "string")
     return STEP_SEQUENCES.default;
@@ -197,6 +204,7 @@ export interface ChatMessageModel {
   reasoningSteps?: ReasoningStep[];
   followUps?: string[];
   recommendation?: ChatRecommendation;
+  contextChunks?: ChatContextChunk[];
 }
 
 interface ChatMessageProps {
@@ -359,13 +367,19 @@ export function ChatMessage({
         const lang = className?.replace("language-", "") ?? "plaintext";
         const isLongSingleLine = !code.includes("\n") && code.length > 40;
         if (isBlock) {
+          if (!isUser) {
+            return (
+              <AgentCodeBlock
+                code={code}
+                language={lang}
+                isStreaming={!!message.isStreaming}
+              />
+            );
+          }
           return (
             <div className={prose.codeWrap}>
               <div className={prose.codeBar}>
                 <span className="inline-flex items-center gap-2 min-w-0">
-                  {!isUser && (
-                    <span className="hidden h-2 w-2 shrink-0 rounded-full bg-foreground/15 shadow-[0_0_0_3px_hsl(var(--foreground)/0.04)] sm:inline sm:h-1.5 sm:w-1.5" aria-hidden />
-                  )}
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate min-w-0">
                     {lang}
                   </span>
@@ -512,7 +526,7 @@ export function ChatMessage({
         <hr className="my-9 h-px border-0 bg-gradient-to-r from-transparent via-border to-transparent opacity-80 sm:my-10" />
       ),
     };
-  }, [isUser]);
+  }, [isUser, message.isStreaming]);
 
   const toolItems = useMemo((): ToolUsageItem[] => {
     if (isUser) return [];
@@ -712,6 +726,10 @@ export function ChatMessage({
                 <AgentThinkingTrace steps={message.reasoningSteps} />
               ) : null}
 
+              {!message.isStreaming && message.contextChunks?.length ? (
+                <ContextCards chunks={message.contextChunks} />
+              ) : null}
+
               {!message.isStreaming && toolItems.length > 0 ? (
                 <ToolCallChips tools={toolItems} />
               ) : null}
@@ -726,21 +744,21 @@ export function ChatMessage({
               )}
 
               <div className="w-full min-w-0 max-w-none break-words text-foreground text-pretty">
-                {(message.content?.trim() || message.isStreaming) && (
+                {message.content?.trim() ? (
                   <div className="min-w-0 w-full max-w-full overflow-x-auto overflow-y-visible break-words rounded-xl border border-border/30 bg-background/[0.14] px-3 py-4 shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)] sm:px-5 sm:py-5 [&>*:first-child]:mt-0">
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                       {contentWithSolscanLinks}
                     </ReactMarkdown>
                   </div>
-                )}
-                {message.isStreaming && (
+                ) : null}
+                {message.isStreaming && message.content?.trim() ? (
                   <span className="ml-0 mt-3 inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/25 px-3 py-1.5 align-middle shadow-[inset_0_1px_0_0_hsl(var(--foreground)/0.04)]">
                     <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       Writing
                     </span>
                     <ThinkingDots />
                   </span>
-                )}
+                ) : null}
                 {!message.isStreaming &&
                   message.inlineUi?.type === "pumpfun-create-coin" &&
                   !message.inlineUiDismissed &&
@@ -885,11 +903,32 @@ export function SkeletonMessage() {
   );
 }
 
-/** Animated loading message while the agent prepares a reply (no streamed tokens yet). */
+/** Beautiful UI loading + task rows while the agent prepares a reply. */
 export function LoadingStepMessage({
   lastUserMessage,
   agentName = "Syra Agent",
 }: { lastUserMessage?: string; agentName?: string } = {}) {
   const steps = getStepsForMessage(lastUserMessage);
-  return <AgentThinkingIndicator agentName={agentName} steps={steps} avatarSrc="/logo.jpg" />;
+  return (
+    <div className="group flex min-w-0 animate-fade-in items-start gap-3 py-1.5 sm:gap-4 sm:py-2">
+      <div className="flex-shrink-0 pt-1 sm:pt-1.5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card shadow-md ring-1 ring-border/60 ring-offset-2 ring-offset-background sm:h-9 sm:w-9">
+          <img src="/logo.jpg" alt={agentName} className="h-full w-full object-cover" draggable={false} />
+        </div>
+      </div>
+      <div className="min-w-0 flex-1 pr-1 sm:pr-2">
+        <div className="relative overflow-hidden rounded-2xl border border-border/55 bg-[hsl(var(--message-agent)/0.92)] px-4 py-4 shadow-[0_0_0_1px_hsl(var(--foreground)/0.04)_inset,0_28px_64px_-32px_rgba(0,0,0,0.78)] sm:px-6 sm:py-5 dark:bg-gradient-to-br dark:from-[hsl(var(--message-agent)/0.98)] dark:via-card/55 dark:to-card/20">
+          <div className="mb-3 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5 border-b border-border/35 pb-3">
+            <span className="text-[15px] font-semibold tracking-[-0.02em] text-foreground sm:text-base">
+              {agentName}
+            </span>
+          </div>
+          <div className="space-y-3">
+            <AgentLoadingState label="Working" variant="drive" />
+            <HeuristicLoadingTasks labels={steps} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

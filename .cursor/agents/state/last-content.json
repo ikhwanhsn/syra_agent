@@ -1,0 +1,49 @@
+{
+  "date": "2026-08-12",
+  "updatedAt": "2026-08-12T12:52:00.000Z",
+  "weekday": "Wed",
+  "mode": "helix-daily-evening",
+  "source": "helix-metrics-snapshot",
+  "angle": "revenue→$SYRA proof",
+  "oneAction": "Refresh #34 shareCopyVideo/Photo to evening live metrics + Solscan s3n9W9k…, then publish X from https://www.syraa.fun/post/video/34 and /post/photo/34 (CTA /marketplace + /token).",
+  "proofUsed": {
+    "paidCallsLast7d": 27519,
+    "uniquePayingWalletsLast7d": 110,
+    "usdSettled7d": 2480.9,
+    "totalBuybackUsdSpent": 23.82,
+    "treasurySyra": 172452.066761,
+    "solscanLast": "https://solscan.io/tx/s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG",
+    "settleFailRate24h": 0.0476,
+    "meetsLaunchGuardrail24h": true
+  },
+  "registryProposal": {
+    "action": "reuse",
+    "updateNumber": 34,
+    "id": "buyback-rewards-proof",
+    "title": "Revenue → $SYRA Proof",
+    "postVideo": "https://www.syraa.fun/post/video/34",
+    "postPhoto": "https://www.syraa.fun/post/photo/34",
+    "blocker": "shareCopy numbers stale vs evening metrics; refresh before X paste",
+    "nextFreeIfNew": 48
+  },
+  "numberRefreshRequired": true,
+  "staleVsEvening": {
+    "paidCalls": { "inPost": 24291, "evening": 27519 },
+    "usdSettled": { "inPost": 711.43, "evening": 2480.9 },
+    "wallets": { "inPost": 75, "evening": 110 },
+    "buybackUsd": { "inPost": 25.14, "evening": 23.82 },
+    "treasurySyra": { "inPost": 165644, "evening": 172452.066761 },
+    "solscan": { "inPost": "3jz7qTsz…ED33", "evening": "s3n9W9k…zykVG" }
+  },
+  "microTeam": {
+    "Log": "metrics-only proof; last registry 47; #34 live but stale numbers → need_number_refresh",
+    "Quill": "evening shareCopy ready; video→marketplace, photo→/token; skip /rewards (claimed=0)",
+    "Frame": "8 video + 15 photo complete; HTTP 200; reuse updateNumber 34"
+  },
+  "ceoOutcomes": {
+    "settleGuardrail": "green today (0.0476 < 0.05); hold for ≥5-day streak",
+    "mcpDemand": "mcpPaidCalls=1 only; not tonight’s post angle",
+    "proofPost": "UNLOCKED — publish #34 after number refresh"
+  },
+  "notes": "Chronicle Wed evening 2026-08-12. Assets ready_to_ship; do not paste stale registry copy. One action ≤2h: refresh shareCopy then X publish."
+}

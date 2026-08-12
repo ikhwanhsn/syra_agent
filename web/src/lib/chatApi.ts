@@ -5,6 +5,7 @@ import type { AgentWalletPurpose } from "@/lib/agentWalletCatalog";
 
 import { env, getApiBaseUrl as getApiBaseUrlFromEnv } from "@/lib/env";
 import type {
+  ChatContextChunk,
   ChatRecommendation,
   ChatSource,
   ReasoningStep,
@@ -90,6 +91,7 @@ export interface ApiMessage {
   reasoningSteps?: ReasoningStep[];
   followUps?: string[];
   recommendation?: ChatRecommendation;
+  contextChunks?: ChatContextChunk[];
   inlineUi?: AgentInlineUiPayload;
   inlineUiDismissed?: boolean;
   /** Jupiter/pump inline swap: actions hidden after user Swap or Cancel. */
@@ -307,6 +309,7 @@ export const chatApi = {
     reasoningSteps?: ReasoningStep[];
     followUps?: string[];
     recommendation?: ChatRecommendation;
+    contextChunks?: ChatContextChunk[];
   }> {
     const stepStart = Date.now();
     const headers: Record<string, string> = { "Content-Type": "application/json", ...getApiHeaders() };
@@ -380,6 +383,7 @@ export const chatApi = {
       reasoningSteps?: ReasoningStep[];
       followUps?: string[];
       recommendation?: ChatRecommendation;
+      contextChunks?: ChatContextChunk[];
     }>(res);
     if (data.success === false) {
       throw new Error(data.error || "Completion failed");

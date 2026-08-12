@@ -1,6 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import { Info, Settings } from "lucide-react";
-import { SITE_NAV_GROUPS, getSiteNavMoreItems } from "@/lib/siteNav";
+import {
+  SITE_NAV_GROUPS,
+  getNavGroupLinkItems,
+  getSiteNavMoreItems,
+} from "@/lib/siteNav";
 
 export type SiteSearchPage = {
   href: string;
@@ -60,18 +64,22 @@ function buildSearchablePages(isAdmin: boolean): SiteSearchPage[] {
         keywords: [group.id, group.label, ...pathTokens(group.href)],
       });
     }
-    for (const item of group.items ?? []) {
-      if (item.adminOnly && !isAdmin) continue;
+    for (const item of getNavGroupLinkItems(group, isAdmin)) {
+      const sectionLabel =
+        group.sections?.find((section) =>
+          section.items.some((sectionItem) => sectionItem.href === item.href),
+        )?.label ?? group.label;
       add({
         href: item.href,
         label: item.label,
         description: item.description,
         icon: item.icon,
         external: item.external,
-        group: group.label,
+        group: sectionLabel,
         keywords: [
           group.id,
           group.label,
+          sectionLabel,
           item.label,
           ...(item.description ? [item.description] : []),
           ...pathTokens(item.href),

@@ -686,6 +686,44 @@ async function fetchSimCandidatePools() {
     });
 }
 
+/**
+ * Vol/TVL cap scales with depth: busy SOL-USDC days routinely print vol/TVL > 2.5.
+ * A flat 2.5 cap rejected the deepest blue-chip pools and starved Earn opens (no_candidate).
+ */
+export function resolveRealMaxVolTvlRatio(tvlUsd, baseMax = getLpRealMaxVolTvlRatio()) {
+  const tvl = toNum(tvlUsd);
+  const base = toNum(baseMax, 2.5);
+  if (tvl >= 2_000_000) return Math.max(base, 12);
+  if (tvl >= 1_000_000) return Math.max(base, 8);
+  if (tvl >= 750_000) return Math.max(base, 5);
+  return base;
+}
+
+/**
+ * Deep liquid SOL pairs (high TVL, low/medium risk) are the Earn beta grind path.
+ * Fee:IL RR ≥ 1.6 is unreachable there with wide bins (SOL-USDC ~0.08) — do not require it.
+ */
+export function isDeepLiquidRealPool(pool, rr = null) {
+  const tvl = toNum(pool?.tvlUsd);
+  const feeTvl = toNum(pool?.feeTvlRatio);
+  const profile =
+    rr ||
+    computeLpRiskRewardProfile({
+      tvlUsd: tvl,
+      volume24hUsd: toNum(pool?.volume24hUsd),
+      feeTvlRatio: feeTvl,
+      binsBelow: REAL_MIN_BINS_PER_SIDE,
+      binsAbove: REAL_MIN_BINS_PER_SIDE,
+      holdHours: LP_REAL_EV_HOLD_HOURS,
+    });
+  return (
+    tvl >= 750_000 &&
+    feeTvl >= 0.0002 &&
+    feeTvl <= getLpRealMaxFeeTvlRatio() &&
+    (profile.tier === "low" || profile.tier === "medium")
+  );
+}
+
 /** Stricter pool filters for on-chain LP (reduces IL-heavy memecoin / thin pools). */
 export function passesRealPoolScreen(pool, { tokenSignals = null } = {}) {
   const feeTvl = toNum(pool.feeTvlRatio);
@@ -693,14 +731,16 @@ export function passesRealPoolScreen(pool, { tokenSignals = null } = {}) {
   const vol = toNum(pool.volume24hUsd);
   const minTvl = getLpRealMinTvlUsd();
   const minVol = getLpRealMinVol24hUsd();
-  const maxVolTvl = getLpRealMaxVolTvlRatio();
   const maxFeeTvl = getLpRealMaxFeeTvlRatio();
 
   if (tvl < minTvl || vol < minVol) return false;
   // 0.035% daily minimum (thresholds elsewhere use Meteora percent points; stored ratio is decimal).
-  if (feeTvl < 0.00035) return false;
+  // Deep liquid path allows a slightly lower floor (0.02%/day) so SOL-USDC still qualifies.
+  const minFeeTvl = tvl >= 750_000 ? 0.0002 : 0.00035;
+  if (feeTvl < minFeeTvl) return false;
   // Reject one-off fee spikes and hyper-churn meme pools.
   if (feeTvl > maxFeeTvl) return false;
+  const maxVolTvl = resolveRealMaxVolTvlRatio(tvl);
   const volTvl = tvl > 0 ? vol / tvl : vol > 0 ? maxVolTvl + 1 : 0;
   if (volTvl > maxVolTvl) return false;
 
@@ -715,9 +755,14 @@ export function passesRealPoolScreen(pool, { tokenSignals = null } = {}) {
     binsAbove: REAL_MIN_BINS_PER_SIDE,
     holdHours: LP_REAL_EV_HOLD_HOURS,
   });
-  // Conservative grind: only low/medium risk tiers qualify for on-chain capital.
-  if (rr.tier === "extreme" || rr.tier === "high") return false;
-  if (rr.ratio < LP_MIN_REAL_RISK_REWARD_RATIO) return false;
+  // Always reject extreme. High tier only on thinner pools — deep liquid can be medium.
+  if (rr.tier === "extreme") return false;
+  if (rr.tier === "high" && tvl < 1_000_000) return false;
+
+  // Blue-chip grind: skip unreachable RR≥1.6. Thin pools still need the full hurdle.
+  if (!isDeepLiquidRealPool(pool, rr) && rr.ratio < LP_MIN_REAL_RISK_REWARD_RATIO) {
+    return false;
+  }
 
   if (tokenSignals) {
     const safety = passesRealTokenSafety(tokenSignals);
@@ -735,14 +780,14 @@ export function isSolPairPool(pool) {
 export async function getLpCandidatePools({ realMode = false } = {}) {
   await ensureLpExperimentBootstrapped();
   const strategies = await resolveLpExperimentStrategies();
-  // Real mode: merge TVL + fee + volume sorts. Top-TVL-only scans miss fee-active mid
-  // pools and then fail open with no_candidate / fees_below_chain_costs on blue chips.
+  // Real mode: merge TVL + fee + volume sorts across multiple pages. Single-page scans
+  // (and the old `limit`-only Meteora query) starved the universe → no_candidate.
   const pools = realMode
     ? await (async () => {
         const pages = await Promise.all([
-          fetchMeteoraPools({ page: 1, limit: 80, sortKey: "tvl", order: "desc", hideLowTvl: true }),
-          fetchMeteoraPools({ page: 1, limit: 80, sortKey: "fee", order: "desc", hideLowTvl: true }),
-          fetchMeteoraPools({ page: 1, limit: 80, sortKey: "volume", order: "desc", hideLowTvl: true }),
+          fetchMeteoraPoolPages({ pages: 3, limit: 80, sortKey: "tvl", order: "desc", hideLowTvl: true }),
+          fetchMeteoraPoolPages({ pages: 3, limit: 80, sortKey: "fee", order: "desc", hideLowTvl: true }),
+          fetchMeteoraPoolPages({ pages: 3, limit: 80, sortKey: "volume", order: "desc", hideLowTvl: true }),
         ]);
         const byAddr = new Map();
         for (const batch of pages) {

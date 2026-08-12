@@ -88,6 +88,7 @@ import {
   FOLLOWUPS_SYNTHESIS_NOTE,
   kindForToolId,
   splitFollowUpsFromResponse,
+  contextChunksFromMemoryMatches,
 } from '../../libs/agentChatStructuredUi.js';
 
 const router = express.Router();
@@ -1477,6 +1478,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
 
     // Long-term semantic memory (NVIDIA Nemotron embeddings via OpenRouter).
     // Soft-fail: never block chat if retrieval fails.
+    /** @type {Array<Record<string, unknown>>} */
+    let memoryMatches = [];
     if (isMemoryEnabled() && anonymousId && lastUserMessage) {
       try {
         const excludeTexts = apiMessages
@@ -1490,6 +1493,9 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
         });
         if (memory.block) {
           systemParts.push(memory.block);
+        }
+        if (memory.status === 'complete' && Array.isArray(memory.matches)) {
+          memoryMatches = memory.matches;
         }
       } catch (memErr) {
         console.warn(
@@ -2496,6 +2502,8 @@ You MUST NEVER make up, guess, or use training data for: prices, market caps, vo
     if (collectedSources.length > 0) payload.sources = collectedSources;
     if (followUps.length > 0) payload.followUps = followUps;
     if (collectedRecommendation) payload.recommendation = collectedRecommendation;
+    const contextChunks = contextChunksFromMemoryMatches(memoryMatches);
+    if (contextChunks.length > 0) payload.contextChunks = contextChunks;
     if (offerPumpfunCreateUi) {
       payload.inlineUi = {
         type: 'pumpfun-create-coin',

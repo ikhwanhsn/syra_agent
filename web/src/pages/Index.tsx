@@ -16,6 +16,7 @@ import {
 } from "@/lib/chatApi";
 import {
   extraAssistantUiFromUnknown,
+  type ChatContextChunk,
   type ChatRecommendation,
   type ChatSource,
   type ReasoningStep,
@@ -67,6 +68,7 @@ interface Message {
   reasoningSteps?: ReasoningStep[];
   followUps?: string[];
   recommendation?: ChatRecommendation;
+  contextChunks?: ChatContextChunk[];
 }
 
 interface Chat {
@@ -116,6 +118,7 @@ function toMessage(m: {
   reasoningSteps?: unknown;
   followUps?: unknown;
   recommendation?: unknown;
+  contextChunks?: unknown;
 }): Message {
   return {
     id: m.id,
@@ -253,7 +256,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
 
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(defaultAgents[0]);
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [chatsLoading, setChatsLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState<Record<string, Message[]>>(
@@ -854,6 +856,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         reasoningSteps,
         followUps,
         recommendation,
+        contextChunks,
       } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: getAgentSystemPrompt(),
@@ -864,7 +867,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
-        model: selectedModelId,
       });
 
       if (amountChargedUsd != null && amountChargedUsd > 0) {
@@ -894,6 +896,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               ...(reasoningSteps?.length ? { reasoningSteps } : {}),
               ...(followUps?.length ? { followUps } : {}),
               ...(recommendation ? { recommendation } : {}),
+              ...(contextChunks?.length ? { contextChunks } : {}),
             },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId!]: finalMessages }));
@@ -1134,6 +1137,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         reasoningSteps,
         followUps,
         recommendation,
+        contextChunks,
       } = await chatApi.completion({
         messages: apiMessages,
         systemPrompt: getAgentSystemPrompt(),
@@ -1141,7 +1145,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
         anonymousId: anonymousId ?? undefined,
         walletConnected,
         agentWalletBalances: agentWalletBalances ?? undefined,
-        model: selectedModelId,
       });
 
       if (amountChargedUsd != null && amountChargedUsd > 0) {
@@ -1171,6 +1174,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
               ...(reasoningSteps?.length ? { reasoningSteps } : {}),
               ...(followUps?.length ? { followUps } : {}),
               ...(recommendation ? { recommendation } : {}),
+              ...(contextChunks?.length ? { contextChunks } : {}),
             },
           ];
           setChatMessages((prev) => ({ ...prev, [chatId]: finalMessages }));
@@ -1421,8 +1425,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 onUpdateUserMessage={handleUpdateUserMessage}
                 onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
                 onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
-                selectedModelId={selectedModelId}
-                onSelectModel={setSelectedModelId}
               />
             )}
           </main>
@@ -1459,8 +1461,6 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
                 onUpdateUserMessage={handleUpdateUserMessage}
                 onDismissPumpfunCreateForm={handleDismissPumpfunCreateForm}
                 onSubmitPumpfunCreateForm={handlePumpfunCreateFormSubmit}
-                selectedModelId={selectedModelId}
-                onSelectModel={setSelectedModelId}
               />
           )}
         </main>

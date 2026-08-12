@@ -23,7 +23,7 @@ export default function PostVideoPage() {
 
   if (isLoading) {
     return (
-      <div className="post-root relative flex min-h-[100dvh] w-full flex-col overflow-x-hidden bg-[#030303] text-white">
+      <div className="post-root relative flex min-h-[100dvh] w-full flex-col overflow-x-hidden bg-white text-neutral-900">
         <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
           <div className="mb-4">
             <PostBackLink />

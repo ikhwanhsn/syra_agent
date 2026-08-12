@@ -345,6 +345,7 @@ SAID_AGENT_WALLET=<printed-wallet-address>
 Optional env:
 
 - `SAID_API_BASE_URL` — default `https://api.saidprotocol.com`
+- `SAID_PLATFORM_KEY` — optional; used for POST `/api/cards` when SAID requires `X-Platform-Key` (directory listing uses public `/api/register/pending` by default)
 - `SYRA_SAID_NAME`, `SYRA_SAID_DESCRIPTION` — override agent metadata (defaults from `config/syraBranding.js`)
 - `SYRA_AGENT_IMAGE_URI`, `SYRA_COLLECTION_X_URL`, `SYRA_COLLECTION_EXTERNAL_URL` — branding
 

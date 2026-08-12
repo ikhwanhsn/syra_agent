@@ -18,6 +18,7 @@ import {
   getWalletSolBalance,
   lookupOnChainAgent,
   registerAndVerifyAgentCard,
+  registerOffChain,
 } from './saidClient.js';
 import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
 
@@ -967,10 +968,42 @@ export async function verifyEarnTokenOnSaid(input) {
     );
   }
 
+  /**
+   * Directory listing is required for saidprotocol.com/agents/{wallet} to resolve.
+   * On-chain verify alone is not enough (POST /api/cards now needs a platform key).
+   * @param {string} wallet
+   */
+  async function ensureSaidDirectoryProfile(wallet) {
+    const card = buildTokenAgentCard({
+      wallet,
+      name: launch.name,
+      symbol: launch.symbol,
+      description: launch.description,
+      image: launch.imageUri,
+      mint: mintTrim,
+    });
+    const off = await registerOffChain({
+      wallet,
+      name: card.name,
+      description: card.description || `${launch.name} by Syra`,
+      twitter: card.twitter,
+      website: card.website,
+      capabilities: card.capabilities,
+    });
+    return {
+      profileUrl:
+        (typeof off.profileUrl === 'string' && off.profileUrl.trim()) ||
+        `${SAID_PROFILE_BASE}/${wallet}`,
+      directoryListed: off.success === true || off.listed === true,
+      directoryError: off.success ? null : off.error || null,
+    };
+  }
+
   if (launch.saidVerified === true) {
     const wallet =
       (typeof launch.saidAgentWallet === 'string' && launch.saidAgentWallet.trim()) ||
       earnAgentAddress;
+    const directory = await ensureSaidDirectoryProfile(wallet);
     // Keep sibling launches in sync when this mint was already marked verified.
     await persistSaidForEarnWallet({
       saidAgentWallet: wallet,
@@ -986,7 +1019,9 @@ export async function verifyEarnTokenOnSaid(input) {
       saidAgentWallet: wallet,
       saidAgentPDA: launch.saidAgentPDA || null,
       saidMetadataUri: launch.saidMetadataUri || null,
-      saidProfileUrl: `${SAID_PROFILE_BASE}/${wallet}`,
+      saidProfileUrl: directory.profileUrl,
+      directoryListed: directory.directoryListed,
+      ...(directory.directoryError ? { directoryError: directory.directoryError } : {}),
     };
   }
 
@@ -1003,6 +1038,7 @@ export async function verifyEarnTokenOnSaid(input) {
     const wallet = earnAgentAddress;
     const saidAgentPDA = onChainExisting?.pubkey || null;
     const saidMetadataUri = onChainExisting?.metadataUri || null;
+    const directory = await ensureSaidDirectoryProfile(wallet);
     await persistSaidForEarnWallet({
       saidAgentWallet: wallet,
       saidAgentPDA,
@@ -1018,7 +1054,9 @@ export async function verifyEarnTokenOnSaid(input) {
       saidAgentWallet: wallet,
       saidAgentPDA,
       saidMetadataUri,
-      saidProfileUrl: `${SAID_PROFILE_BASE}/${wallet}`,
+      saidProfileUrl: directory.profileUrl,
+      directoryListed: directory.directoryListed,
+      ...(directory.directoryError ? { directoryError: directory.directoryError } : {}),
     };
   }
 
@@ -1106,6 +1144,18 @@ export async function verifyEarnTokenOnSaid(input) {
 
   const verifiedAt = saidResult.verified ? new Date() : null;
   const wallet = saidResult.wallet || signerAddress;
+  let profileUrl =
+    (typeof saidResult.profileUrl === 'string' && saidResult.profileUrl.trim()) ||
+    `${SAID_PROFILE_BASE}/${wallet}`;
+  let directoryListed = saidResult.directoryListed === true;
+
+  // registerAndVerifyAgentCard may skip/fail directory sync; force pending registration.
+  if (!directoryListed) {
+    const directory = await ensureSaidDirectoryProfile(wallet);
+    profileUrl = directory.profileUrl;
+    directoryListed = directory.directoryListed;
+  }
+
   await persistSaidForEarnWallet({
     saidAgentWallet: wallet,
     saidAgentPDA: saidResult.agentPDA || null,
@@ -1126,6 +1176,7 @@ export async function verifyEarnTokenOnSaid(input) {
     saidMetadataUri: saidResult.metadataUri || null,
     saidRegisterSignature: saidResult.registerSignature || null,
     saidVerifySignature: saidResult.verifySignature || null,
-    saidProfileUrl: `${SAID_PROFILE_BASE}/${wallet}`,
+    saidProfileUrl: profileUrl,
+    directoryListed,
   };
 }

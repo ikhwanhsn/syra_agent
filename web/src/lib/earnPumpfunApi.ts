@@ -36,6 +36,8 @@ export type VerifySaidResult = {
   saidRegisterSignature?: string | null;
   saidVerifySignature?: string | null;
   saidProfileUrl?: string | null;
+  directoryListed?: boolean;
+  directoryError?: string | null;
 };
 
 export type EarnPumpfunWalletInfo = {

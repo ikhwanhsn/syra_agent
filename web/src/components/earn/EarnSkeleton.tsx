@@ -238,7 +238,7 @@ export type EarnSkeletonTrack = "yield" | "token" | "prompts" | "skills";
 
 function EarnTrackPanelSkeleton({ track }: { track: EarnSkeletonTrack }) {
   if (track === "token") {
-    return <EarnCardGridSkeleton count={6} heightClass="h-[19.5rem]" />;
+    return <EarnCardGridSkeleton count={6} heightClass="h-[17rem]" />;
   }
   if (track === "prompts") {
     return <EarnCardGridSkeleton count={6} heightClass="h-[14rem]" />;

@@ -25,6 +25,7 @@ function toMessage(m: {
   reasoningSteps?: unknown;
   followUps?: unknown;
   recommendation?: unknown;
+  contextChunks?: unknown;
 }) {
   return {
     id: m.id,

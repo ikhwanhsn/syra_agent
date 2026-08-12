@@ -609,24 +609,104 @@ export async function isRegisteredOnChain(wallet) {
 }
 
 /**
- * Host / refresh Syra AgentCard on SAID (POST /api/cards).
+ * Optional platform key for POST /api/cards (SAID now requires X-Platform-Key).
+ * @returns {Record<string, string>}
+ */
+function getSaidPlatformHeaders() {
+  const key = process.env.SAID_PLATFORM_KEY?.trim();
+  return key ? { "X-Platform-Key": key } : {};
+}
+
+/**
+ * Ensure the wallet appears on saidprotocol.com/agents/{wallet}.
+ *
+ * Prefer POST /api/register/pending (public, idempotent, creates directory listing).
+ * Fall back to POST /api/cards when SAID_PLATFORM_KEY is configured.
+ *
  * SAID expects twitter as a handle (e.g. "@syra_agent"), not a full x.com URL.
  *
  * @param {{ wallet: string; name: string; description: string; twitter?: string; website?: string; capabilities?: string[] }} input
+ * @returns {Promise<{
+ *   success: boolean;
+ *   data?: unknown;
+ *   error?: string;
+ *   status?: number;
+ *   profileUrl?: string | null;
+ *   listed?: boolean;
+ * }>}
  */
 export async function registerOffChain(input) {
-  return saidApiFetch("/api/cards", {
+  const wallet = String(input.wallet || "").trim();
+  const body = {
+    wallet,
+    name: input.name,
+    description: input.description,
+    twitter: input.twitter ? normalizeSaidTwitterHandle(input.twitter) : undefined,
+    website: input.website,
+    capabilities: input.capabilities || ["x402", "mcp"],
+  };
+
+  // Public directory write path — required for saidprotocol.com profile pages.
+  const pending = await saidApiFetch("/api/register/pending", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      wallet: input.wallet,
-      name: input.name,
-      description: input.description,
-      twitter: input.twitter ? normalizeSaidTwitterHandle(input.twitter) : undefined,
-      website: input.website,
-      capabilities: input.capabilities || ["x402", "mcp"],
-    }),
+    body: JSON.stringify(body),
   });
+
+  let profileUrl = null;
+  if (pending.success && pending.data && typeof pending.data === "object") {
+    const raw = /** @type {{ profile?: unknown }} */ (pending.data).profile;
+    if (typeof raw === "string" && raw.trim()) profileUrl = raw.trim();
+  }
+  if (!profileUrl && wallet) {
+    profileUrl = `https://www.saidprotocol.com/agents/${wallet}`;
+  }
+
+  if (pending.success) {
+    const listed = await getAgentDetails(wallet)
+      .then((r) => r.success === true)
+      .catch(() => false);
+    return { ...pending, profileUrl, listed };
+  }
+
+  // Legacy / platform cards API (401 without SAID_PLATFORM_KEY).
+  const cards = await saidApiFetch("/api/cards", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getSaidPlatformHeaders(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (cards.success) {
+    const listed = await getAgentDetails(wallet)
+      .then((r) => r.success === true)
+      .catch(() => false);
+    return { ...cards, profileUrl, listed };
+  }
+
+  // Already listed via on-chain indexer even if write APIs failed.
+  const listed = await getAgentDetails(wallet)
+    .then((r) => r.success === true)
+    .catch(() => false);
+  if (listed) {
+    return {
+      success: true,
+      data: pending.data || cards.data,
+      profileUrl,
+      listed: true,
+      status: 200,
+    };
+  }
+
+  return {
+    success: false,
+    error: pending.error || cards.error || "said_directory_sync_failed",
+    status: pending.status || cards.status,
+    data: pending.data || cards.data,
+    profileUrl,
+    listed: false,
+  };
 }
 
 /**
@@ -681,6 +761,8 @@ export async function syncSyraSaidMetadata(wallet) {
  *   verified: boolean;
  *   alreadyRegistered: boolean;
  *   alreadyVerified: boolean;
+ *   directoryListed?: boolean;
+ *   profileUrl?: string;
  * }>}
  */
 export async function registerAndVerifyAgentCard(input) {
@@ -786,13 +868,18 @@ export async function registerAndVerifyAgentCard(input) {
       website: off.website,
       capabilities: off.capabilities,
     });
-    if (!offChain.success) {
-      console.warn("[saidClient] off-chain directory sync failed:", offChain.error);
+    if (!offChain.success || offChain.listed === false) {
+      console.warn(
+        "[saidClient] off-chain directory sync failed:",
+        offChain.error || "agent not listed on saidprotocol.com",
+      );
     }
   }
 
   const status = await resolveSaidVerifiedStatus(wallet);
   const onChainFinal = status.onChain;
+  const directory = await getAgentDetails(wallet).catch(() => ({ success: false }));
+  const profileUrl = `https://www.saidprotocol.com/agents/${wallet}`;
 
   return {
     wallet,
@@ -803,6 +890,8 @@ export async function registerAndVerifyAgentCard(input) {
     verified: status.verified === true || wasVerified,
     alreadyRegistered,
     alreadyVerified: wasVerified,
+    directoryListed: directory.success === true,
+    profileUrl,
   };
 }
 

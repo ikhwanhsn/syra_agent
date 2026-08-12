@@ -80,7 +80,7 @@ export function PostShareCopyPanel({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:bg-white/15 sm:h-10 sm:gap-2 sm:px-4",
+          "inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-700 transition-colors hover:bg-neutral-50 sm:h-10 sm:gap-2 sm:px-4",
           className,
         )}
       >
@@ -89,12 +89,12 @@ export function PostShareCopyPanel({
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="post-share-modal border-white/10 bg-[#0a0a0a] text-white sm:max-w-lg">
+        <DialogContent className="post-share-modal border-neutral-200 bg-white text-neutral-900 sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display text-base font-medium tracking-tight text-white/95">
+            <DialogTitle className="font-display text-base font-medium tracking-tight text-neutral-900">
               {photoTitle}
             </DialogTitle>
-            <DialogDescription className="text-xs text-white/45">{labels.hint}</DialogDescription>
+            <DialogDescription className="text-xs text-neutral-500">{labels.hint}</DialogDescription>
           </DialogHeader>
 
           <pre className="post-share-modal-body">{copyText}</pre>
@@ -104,7 +104,7 @@ export function PostShareCopyPanel({
               href={buildPostOnXUrl(meta, format, photoOptions)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-4 font-mono text-[10px] uppercase tracking-[0.12em] text-white/70 transition-colors hover:border-white/25 hover:text-white/90"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-4 font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
             >
               <ExternalLink className="h-4 w-4" />
               Open on X
@@ -112,7 +112,7 @@ export function PostShareCopyPanel({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/15 px-5 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/25"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-neutral-900 bg-neutral-900 px-5 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800"
             >
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? "Copied" : "Copy post text"}

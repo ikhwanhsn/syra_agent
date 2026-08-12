@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { getApiBaseUrl } from "@/lib/chatApi";
 
 export interface SettlementWindow {
@@ -139,11 +139,33 @@ export interface PublicMetricsSnapshot {
 
 const metricsBase = () => `${getApiBaseUrl().replace(/\/$/, "")}/api/metrics`;
 
+/** Client-side ceiling so the Public proof section cannot hang on a slow origin. */
+const CLIENT_FETCH_TIMEOUT_MS = 15_000;
+
 export function fetchPublicMetrics(signal?: AbortSignal): Promise<PublicMetricsSnapshot> {
-  return fetch(metricsBase(), { headers: { Accept: "application/json" }, signal }).then(async (res) => {
-    if (!res.ok) throw new Error(`Metrics API ${res.status}`);
-    return res.json() as Promise<PublicMetricsSnapshot>;
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CLIENT_FETCH_TIMEOUT_MS);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener("abort", onAbort);
+
+  return fetch(metricsBase(), {
+    headers: { Accept: "application/json" },
+    signal: controller.signal,
+  })
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`Metrics API ${res.status}`);
+      return res.json() as Promise<PublicMetricsSnapshot>;
+    })
+    .catch((err) => {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error("Metrics timed out. Retry in a moment.");
+      }
+      throw err;
+    })
+    .finally(() => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    });
 }
 
 export function usePublicMetrics() {
@@ -152,5 +174,7 @@ export function usePublicMetrics() {
     queryFn: ({ signal }) => fetchPublicMetrics(signal),
     refetchInterval: 60_000,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
 }

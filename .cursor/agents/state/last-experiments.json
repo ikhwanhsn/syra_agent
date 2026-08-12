@@ -1,0 +1,35 @@
+{
+  "date": "2026-08-12",
+  "updatedAt": "2026-08-12T13:20:00.000Z",
+  "source": "wager-keel-implement-earn-labs",
+  "oneAction": "LST real lab enabled (0.5 SOL cap, publicEarnListed=false). cbBTC blocked until paper≥50. Deploy realEnabled + GHA crons.",
+  "notes": "IMPLEMENT 2026-08-12: Flipped LST_LOOP_CRON.realEnabled=true; enabled founder invest LST lab at maxPositionSol=0.5 publicEarnListed=false. cbBTC paper edge FAIL (40/50 decided) — activate script now blocks without --force-lab; adapter adds btc_quant_paper_edge_not_proven. Added GHA: btc-quant-paper-cron, btc-quant-real-cron, lst-loop-real-cron. Deploy API for realEnabled + merge workflows. Fund invest wallet ≥0.5 SOL for LST ticks. Do not force public Earn.",
+  "keepKill": [
+    { "id": "lp_meteora_dlmm_earn", "verdict": "keep" },
+    { "id": "lst_loop", "verdict": "instrument", "status": "real_lab_enabled", "publicEarnListed": false, "maxPositionSol": 0.5 },
+    { "id": "cbbtc_onchain_signal", "verdict": "instrument", "status": "paper_edge_blocked", "paperDecided": 40, "need": 50 },
+    { "id": "btc3_macro", "verdict": "instrument", "status": "deferred_after_cbbtc" },
+    { "id": "momentum_rotator", "verdict": "instrument", "gap": "B_paper" },
+    { "id": "alpha_sniper", "verdict": "instrument", "gap": "B_paper" },
+    { "id": "scalper", "verdict": "kill" },
+    { "id": "mm", "verdict": "kill" },
+    { "id": "stocks", "verdict": "kill" }
+  ],
+  "implemented": {
+    "onchainEarnExperiments.lst.realEnabled": true,
+    "activate-earn-lab-agents": "paper-edge gate + --product=lst|cbbtc|btc3|all",
+    "btcQuantEarnAdapter.paperEdgeBlocker": true,
+    "workflows": [
+      "btc-quant-paper-cron.yml",
+      "btc-quant-real-cron.yml",
+      "lst-loop-real-cron.yml"
+    ],
+    "lstLab": {
+      "enabled": true,
+      "publicEarnListed": false,
+      "depositsPaused": false,
+      "maxPositionSol": 0.5
+    },
+    "cbbtcLab": "skipped_paper_edge_blocked"
+  }
+}

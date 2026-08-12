@@ -318,6 +318,8 @@ export function createEarnRouter() {
           saidRegisterSignature: result.saidRegisterSignature,
           saidVerifySignature: result.saidVerifySignature,
           saidProfileUrl: result.saidProfileUrl,
+          directoryListed: result.directoryListed,
+          ...(result.directoryError ? { directoryError: result.directoryError } : {}),
         },
       });
     } catch (e) {

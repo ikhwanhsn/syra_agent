@@ -220,5 +220,40 @@ export function extraAssistantUiFields(m) {
   if (m.recommendation && typeof m.recommendation === 'object') {
     out.recommendation = m.recommendation;
   }
+  if (Array.isArray(m.contextChunks) && m.contextChunks.length > 0) {
+    out.contextChunks = m.contextChunks;
+  }
+  return out;
+}
+
+/**
+ * Map real memory retrieve matches into Context Cards payload (no invented fields).
+ * @param {Array<Record<string, unknown>>} matches
+ * @returns {Array<{ id?: string|null; text: string; role: 'user'|'assistant'; score?: number|null; rerankScore?: number|null; chatId?: string|null; messageId?: string|null; modality?: string }>}
+ */
+export function contextChunksFromMemoryMatches(matches) {
+  if (!Array.isArray(matches) || matches.length === 0) return [];
+  /** @type {Array<{ id?: string|null; text: string; role: 'user'|'assistant'; score?: number|null; rerankScore?: number|null; chatId?: string|null; messageId?: string|null; modality?: string }>} */
+  const out = [];
+  for (const m of matches) {
+    if (!m || typeof m !== 'object') continue;
+    const payload = m.payload && typeof m.payload === 'object' ? m.payload : {};
+    const text = typeof payload.text === 'string' ? payload.text.trim() : '';
+    if (!text) continue;
+    out.push({
+      text: text.slice(0, 2000),
+      role: payload.role === 'assistant' ? 'assistant' : 'user',
+      ...(m.id != null ? { id: String(m.id) } : {}),
+      ...(typeof m.score === 'number' && Number.isFinite(m.score) ? { score: m.score } : {}),
+      ...(typeof m.rerankScore === 'number' && Number.isFinite(m.rerankScore)
+        ? { rerankScore: m.rerankScore }
+        : {}),
+      ...(payload.chatId != null ? { chatId: payload.chatId } : { chatId: null }),
+      ...(payload.messageId != null ? { messageId: payload.messageId } : { messageId: null }),
+      ...(typeof payload.modality === 'string' && payload.modality.trim()
+        ? { modality: payload.modality.trim() }
+        : { modality: 'text' }),
+    });
+  }
   return out;
 }

@@ -168,11 +168,69 @@ export async function getStats() {
   };
 }
 
+async function paperEdgeBlockerIfNeeded() {
+  try {
+    const { evaluateBtcQuantPaperEdge } = await import("../../config/btcQuantPaperEdge.js");
+    const { getBtcQuantLaneDef } = await import("../../config/btcQuantLanes.js");
+    const { EXPERIMENT_SUITE_BTC_ONCHAIN } = await import(
+      "../../config/tradingExperimentStrategies.js"
+    );
+    const TradingExperimentRun = (await import("../../models/TradingExperimentRun.js")).default;
+    const {
+      pickBestBtcQuantStrategy,
+      BTC_QUANT_MIN_DECIDED_FOR_LEADER,
+      BTC_QUANT_MIN_WIN_RATE,
+    } = await import("../btcQuantExperimentEvolution.js");
+    const mongoose = (await import("mongoose")).default;
+    const laneDef = getBtcQuantLaneDef(LANE);
+    const state = await mongoose.connection.db
+      .collection("btc_quant_experiment_state")
+      .findOne({ _id: laneDef.stateId });
+    const experimentId = state?.activeExperimentId ?? null;
+    if (!experimentId) return "btc_quant_paper_edge_no_experiment";
+
+    const match = {
+      suite: EXPERIMENT_SUITE_BTC_ONCHAIN,
+      "summary.experimentId": experimentId,
+      "summary.evolutionArchived": { $ne: true },
+      $or: [
+        { "summary.lane": "btc1" },
+        { "summary.lane": { $exists: false } },
+        { "summary.lane": null },
+      ],
+    };
+    const byStatus = await TradingExperimentRun.aggregate([
+      { $match: match },
+      { $group: { _id: "$status", n: { $sum: 1 } } },
+    ]);
+    const statusMap = Object.fromEntries(byStatus.map((r) => [r._id || "null", r]));
+    const decided =
+      (statusMap.win?.n || 0) + (statusMap.loss?.n || 0) + (statusMap.expired?.n || 0);
+    const best = await pickBestBtcQuantStrategy(experimentId);
+    const evaled = evaluateBtcQuantPaperEdge({
+      decided,
+      leaderNetPnlUsd: best?.sumDecidedPnlUsd ?? null,
+      leaderWinRate: best?.winRate ?? null,
+      leaderDecided: best?.decided ?? null,
+      hasQualifiedLeader: Boolean(
+        best &&
+          (best.decided || 0) >= BTC_QUANT_MIN_DECIDED_FOR_LEADER &&
+          (best.winRate || 0) >= BTC_QUANT_MIN_WIN_RATE &&
+          (best.sumDecidedPnlUsd || 0) > 0,
+      ),
+    });
+    return evaled.pass ? null : "btc_quant_paper_edge_not_proven";
+  } catch {
+    return null;
+  }
+}
+
 export async function getReadiness() {
   const product = PRODUCT();
-  const [stats, { settlement1h, settlement24h }] = await Promise.all([
+  const [stats, { settlement1h, settlement24h }, paperBlocker] = await Promise.all([
     getStats(),
     fetchSolanaSettlementWindows(),
+    paperEdgeBlockerIfNeeded(),
   ]);
 
   const sampleOk =
@@ -190,6 +248,7 @@ export async function getReadiness() {
       `insufficient_real_sample_${stats.decided ?? 0}_need_${product.minSample}`,
     );
   }
+  if (paperBlocker) extraBlockers.push(paperBlocker);
 
   return buildReadinessFromGuards(stats, product, {
     netPositive,

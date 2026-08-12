@@ -11,8 +11,10 @@ import {
   SITE_NAV_GROUPS,
   SITE_NAV_ADMIN_MORE,
   SITE_NAV_MORE,
+  getNavGroupLinkItems,
   type NavGroup,
   type NavLinkItem,
+  type NavSection,
 } from "@/lib/siteNav";
 import { WalletNav } from "@/components/chat/WalletNav";
 import { Button } from "@/components/ui/button";
@@ -147,6 +149,28 @@ function NavMenuLink({
   );
 }
 
+function NavSectionLabel({
+  section,
+}: {
+  section: Pick<NavSection, "label" | "icon">;
+}) {
+  const SectionIcon = section.icon;
+  return (
+    <li className="flex items-center gap-2 px-2.5 pb-1 pt-2 first:pt-0.5">
+      {SectionIcon ? (
+        <SectionIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
+      ) : null}
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55">
+        {section.label}
+      </span>
+      <span
+        className="h-px min-w-0 flex-1 bg-gradient-to-r from-border/50 to-transparent"
+        aria-hidden
+      />
+    </li>
+  );
+}
+
 function NavMenuGroup({
   group,
   pathname,
@@ -160,10 +184,17 @@ function NavMenuGroup({
 }) {
   const active = group.match(pathname);
   const Icon = group.icon;
-  const items = group.items?.filter((item) => !item.adminOnly || isAdmin) ?? [];
-  const isWide = items.length > 4;
+  const topItems = group.items?.filter((item) => !item.adminOnly || isAdmin) ?? [];
+  const sections =
+    group.sections?.filter((section) => !section.adminOnly || isAdmin).map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.adminOnly || isAdmin),
+    })) ?? [];
+  const flatItems = getNavGroupLinkItems(group, isAdmin);
+  const hasSections = sections.some((section) => section.items.length > 0);
+  const isWide = hasSections || flatItems.length > 4;
 
-  if (items.length === 0 && group.href) {
+  if (flatItems.length === 0 && group.href) {
     return (
       <NavigationMenuItem>
         <NavigationMenuLink asChild>
@@ -195,19 +226,57 @@ function NavMenuGroup({
         {group.label}
       </NavigationMenuTrigger>
       <NavigationMenuContent className={navDropdownContentClass}>
-        <ul
-          className={cn(
-            "p-2",
-            navDropdownPanelClass,
-            isWide
-              ? "grid w-[min(100vw-2rem,32rem)] grid-cols-1 gap-0.5 sm:grid-cols-2"
-              : "w-[min(100vw-2rem,17.5rem)]",
-          )}
-        >
-          {items.map((item) => (
-            <NavMenuLink key={item.href} item={item} pathname={pathname} search={search} />
-          ))}
-        </ul>
+        {hasSections ? (
+          <div
+            className={cn(
+              "grid gap-1 p-2",
+              navDropdownPanelClass,
+              "w-[min(100vw-2rem,42rem)] grid-cols-1 sm:grid-cols-2",
+            )}
+          >
+            {topItems.length > 0 ? (
+              <ul className="col-span-full flex flex-col gap-0.5 border-b border-border/40 pb-2">
+                {topItems.map((item) => (
+                  <NavMenuLink
+                    key={item.href}
+                    item={item}
+                    pathname={pathname}
+                    search={search}
+                  />
+                ))}
+              </ul>
+            ) : null}
+            {sections.map((section) =>
+              section.items.length === 0 ? null : (
+                <ul key={section.id} className="flex flex-col gap-0.5">
+                  <NavSectionLabel section={section} />
+                  {section.items.map((item) => (
+                    <NavMenuLink
+                      key={item.href}
+                      item={item}
+                      pathname={pathname}
+                      search={search}
+                    />
+                  ))}
+                </ul>
+              ),
+            )}
+          </div>
+        ) : (
+          <ul
+            className={cn(
+              "p-2",
+              navDropdownPanelClass,
+              isWide
+                ? "grid w-[min(100vw-2rem,32rem)] grid-cols-1 gap-0.5 sm:grid-cols-2"
+                : "w-[min(100vw-2rem,17.5rem)]",
+            )}
+          >
+            {topItems.map((item) => (
+              <NavMenuLink key={item.href} item={item} pathname={pathname} search={search} />
+            ))}
+          </ul>
+        )}
       </NavigationMenuContent>
     </NavigationMenuItem>
   );

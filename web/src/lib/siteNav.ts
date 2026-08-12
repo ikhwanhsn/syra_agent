@@ -2,9 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Bot,
   LayoutDashboard,
-  FileSearch,
   Droplets,
-  Rocket,
   Lock,
   Code2,
   BookOpen,
@@ -18,11 +16,14 @@ import {
   ArrowLeftRight,
   Layers,
   Wrench,
+  FileSearch,
   FlaskConical,
-  ClipboardList,
-  Sparkles,
+  UsersRound,
 } from "lucide-react";
-import { isDashboardPillarRoute } from "@/lib/dashboardPillarNav";
+import { isDashboardPillarRoute, DASHBOARD_PILLAR_NAV } from "@/lib/dashboardPillarNav";
+import { DASHBOARD_MARKET_INTEL_NAV, isDashboardMarketIntelRoute } from "@/lib/dashboardMarketIntelNav";
+import { DASHBOARD_EXPERIMENT_NAV, isDashboardExperimentRoute } from "@/lib/dashboardExperimentNav";
+import { DASHBOARD_TEAM_NAV, isDashboardTeamRoute } from "@/lib/dashboardTeamNav";
 import {
   MARKETPLACE_NAV_BROWSE,
   MARKETPLACE_NAV_BUILD,
@@ -38,14 +39,77 @@ export type NavLinkItem = {
   adminOnly?: boolean;
 };
 
+/** Nested cluster inside a top-nav group (e.g. Dashboard → Market Intel). */
+export type NavSection = {
+  id: string;
+  label: string;
+  icon?: LucideIcon;
+  adminOnly?: boolean;
+  items: NavLinkItem[];
+};
+
 export type NavGroup = {
   id: string;
   label: string;
   href?: string;
   icon?: LucideIcon;
+  /** Flat list for simple groups (Earn, APIs). */
   items?: NavLinkItem[];
+  /** Nested sections for multi-dropdown groups (Dashboard). */
+  sections?: NavSection[];
   match: (pathname: string) => boolean;
 };
+
+function pillarToNavItem(item: (typeof DASHBOARD_PILLAR_NAV)[number]): NavLinkItem {
+  return {
+    href: item.to,
+    label: item.label,
+    description: item.description,
+    icon: item.icon,
+  };
+}
+
+function marketIntelToNavItem(
+  item: (typeof DASHBOARD_MARKET_INTEL_NAV)[number],
+): NavLinkItem {
+  return {
+    href: item.to,
+    label: item.label,
+    description: item.badge ? `${item.badge.label} desk` : undefined,
+    icon: item.icon,
+  };
+}
+
+function experimentToNavItem(
+  item: (typeof DASHBOARD_EXPERIMENT_NAV)[number],
+): NavLinkItem {
+  return {
+    href: item.to,
+    label: item.label,
+    description: item.description,
+    icon: item.icon,
+    adminOnly: true,
+  };
+}
+
+function teamToNavItem(item: (typeof DASHBOARD_TEAM_NAV)[number]): NavLinkItem {
+  return {
+    href: item.to,
+    label: item.label,
+    description: item.description,
+    icon: item.icon,
+    adminOnly: true,
+  };
+}
+
+/** Flatten a group's links for search / mobile fallbacks. */
+export function getNavGroupLinkItems(group: NavGroup, isAdmin: boolean): NavLinkItem[] {
+  const fromItems = (group.items ?? []).filter((item) => !item.adminOnly || isAdmin);
+  const fromSections = (group.sections ?? [])
+    .filter((section) => !section.adminOnly || isAdmin)
+    .flatMap((section) => section.items.filter((item) => !item.adminOnly || isAdmin));
+  return [...fromItems, ...fromSections];
+}
 
 export const SITE_NAV_GROUPS: NavGroup[] = [
   {
@@ -60,11 +124,21 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
         p === "/wallet") &&
       !p.startsWith("/overview") &&
       !isDashboardPillarRoute(p) &&
+      !isDashboardMarketIntelRoute(p) &&
+      !isDashboardExperimentRoute(p) &&
+      !isDashboardTeamRoute(p) &&
       !p.startsWith("/agent-setup") &&
       !p.includes("-experiment") &&
       !p.startsWith("/assets") &&
       !p.startsWith("/analyzer") &&
-      !p.startsWith("/pumpfun"),
+      !p.startsWith("/pumpfun") &&
+      !p.startsWith("/btc") &&
+      !p.startsWith("/stocks") &&
+      !p.startsWith("/scalper") &&
+      !p.startsWith("/mm") &&
+      !p.startsWith("/labs") &&
+      !p.startsWith("/llm") &&
+      !p.startsWith("/organize"),
   },
   {
     id: "dashboard",
@@ -75,6 +149,9 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/overview") ||
       p.startsWith("/multiwallet/recover") ||
       isDashboardPillarRoute(p) ||
+      isDashboardMarketIntelRoute(p) ||
+      isDashboardExperimentRoute(p) ||
+      isDashboardTeamRoute(p) ||
       p.startsWith("/agent-setup") ||
       p.startsWith("/assets") ||
       p.startsWith("/analyzer") ||
@@ -83,44 +160,54 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/arbitrage") ||
       p.startsWith("/labs") ||
       p.startsWith("/llm") ||
-      p.startsWith("/organize"),
+      p.startsWith("/organize") ||
+      p === "/btc" ||
+      p.startsWith("/stocks") ||
+      p.startsWith("/scalper") ||
+      p.startsWith("/mm"),
     items: [
-      { href: "/overview", label: "Overview", icon: LayoutDashboard },
-      { href: "/assets", label: "Assets", icon: FileSearch },
-      { href: "/analyzer", label: "Token Analyzer", icon: Rocket },
       {
-        href: "/lp-experiment",
-        label: "LP agents",
-        icon: Droplets,
-        description: "Meteora DLMM liquidity agents",
-        adminOnly: true,
+        href: "/overview",
+        label: "Overview",
+        description: "Command center and pillar summary",
+        icon: LayoutDashboard,
+      },
+    ],
+    sections: [
+      {
+        id: "machine-money",
+        label: "Machine Money",
+        icon: Layers,
+        items: DASHBOARD_PILLAR_NAV.map(pillarToNavItem),
       },
       {
-        href: "/labs",
-        label: "Labs",
+        id: "market-intel",
+        label: "Market Intel",
+        icon: FileSearch,
+        items: DASHBOARD_MARKET_INTEL_NAV.map(marketIntelToNavItem),
+      },
+      {
+        id: "experiments",
+        label: "Experiments",
         icon: FlaskConical,
-        description: "x402 payment experiments",
         adminOnly: true,
+        items: DASHBOARD_EXPERIMENT_NAV.map(experimentToNavItem),
       },
       {
-        href: "/llm",
-        label: "LLM",
-        icon: Sparkles,
-        description: "OpenRouter multimodal playground",
+        id: "team",
+        label: "Team",
+        icon: UsersRound,
         adminOnly: true,
-      },
-      {
-        href: "/organize",
-        label: "Organize",
-        icon: ClipboardList,
-        description: "Track hackathons, funding & events",
-        adminOnly: true,
-      },
-      {
-        href: "/multiwallet/recover",
-        label: "Recover farm wallets",
-        icon: ArrowLeftRight,
-        adminOnly: true,
+        items: [
+          ...DASHBOARD_TEAM_NAV.map(teamToNavItem),
+          {
+            href: "/multiwallet/recover",
+            label: "Recover farm wallets",
+            description: "Consolidate multi-wallet farm balances",
+            icon: ArrowLeftRight,
+            adminOnly: true,
+          },
+        ],
       },
     ],
   },

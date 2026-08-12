@@ -11,6 +11,7 @@ import { LP_AGENT_REAL } from "../config/settlement.js";
 import { resolveLpStrategyById } from "./lpExperimentStrategyResolve.js";
 import {
   ensureLpExperimentBootstrapped,
+  isDeepLiquidRealPool,
   pickBestNetPnlStrategy,
   rankLpExperimentStrategiesByNetPnl,
   selectQualifiedStrategiesForReal,
@@ -1942,6 +1943,18 @@ async function attemptOpenLpRealPosition({
   const roundTripCostSol = txCostEstimate.openFeeSol + txCostEstimate.closeFeeSol;
   const expectedFeeSol = depositSol * (riskReward.expectedFeePct / 100);
 
+  // Earn beta / deep liquid: RR≥1.6 and fee≥2×gas are unreachable on SOL-USDC at 0.25–1 SOL
+  // (12h fees ≈ 0.0002 SOL vs ~0.009 round-trip). Keep strict gates for thin/meme pools.
+  const deepLiquid = isDeepLiquidRealPool({
+    tvlUsd: poolContext.tvlUsd,
+    volume24hUsd: poolContext.volume24hUsd,
+    feeTvlRatio: poolContext.feeTvlRatio,
+  }, riskReward);
+  const earnBeta = Boolean(config?.publicEarnListed);
+  const grindPath = deepLiquid || earnBeta;
+  const minRiskRewardRatio = grindPath ? 0 : LP_MIN_REAL_RISK_REWARD_RATIO;
+  const minFeeToCostRatio = grindPath ? 0 : LP_REAL_MIN_FEE_TO_COST_RATIO;
+
   const evDecision = {
     pool: poolCandidate.poolAddress,
     poolName: poolCandidate.poolName || poolDetail.poolName,
@@ -1954,11 +1967,14 @@ async function attemptOpenLpRealPosition({
     ilBudgetPct: riskReward.ilBudgetPct,
     expectedFeeSol,
     roundTripCostSol,
-    minFeeToCostRatio: LP_REAL_MIN_FEE_TO_COST_RATIO,
-    minRiskRewardRatio: LP_MIN_REAL_RISK_REWARD_RATIO,
+    minFeeToCostRatio,
+    minRiskRewardRatio,
+    deepLiquid,
+    earnBeta,
+    grindPath,
   };
 
-  if (riskReward.ratio < LP_MIN_REAL_RISK_REWARD_RATIO) {
+  if (!grindPath && riskReward.ratio < minRiskRewardRatio) {
     skipped.push({
       reason: "risk_reward_below_threshold",
       ...evDecision,
@@ -1979,7 +1995,7 @@ async function attemptOpenLpRealPosition({
     return { opened: false, stop: false, excludePool: poolCandidate.poolAddress };
   }
 
-  if (expectedFeeSol < roundTripCostSol * LP_REAL_MIN_FEE_TO_COST_RATIO) {
+  if (grindPath ? expectedFeeSol <= 0 : expectedFeeSol < roundTripCostSol * minFeeToCostRatio) {
     skipped.push({
       reason: "fees_below_chain_costs",
       ...evDecision,

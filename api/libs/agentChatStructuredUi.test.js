@@ -4,6 +4,7 @@ import {
   extractRecommendationFromToolData,
   extractSourcesFromToolData,
   splitFollowUpsFromResponse,
+  contextChunksFromMemoryMatches,
 } from './agentChatStructuredUi.js';
 
 describe('splitFollowUpsFromResponse', () => {
@@ -42,5 +43,31 @@ describe('extractRecommendationFromToolData', () => {
     });
     assert.ok(rec);
     assert.equal(rec.actions.length, 2);
+  });
+});
+
+describe('contextChunksFromMemoryMatches', () => {
+  it('maps real matches without inventing text', () => {
+    const chunks = contextChunksFromMemoryMatches([
+      {
+        id: 'm1',
+        score: 0.81,
+        rerankScore: 0.9,
+        payload: {
+          text: '  Past SOL research  ',
+          role: 'assistant',
+          chatId: 'c1',
+          messageId: 'msg1',
+          modality: 'text',
+        },
+      },
+      { id: 'empty', payload: { text: '   ' } },
+    ]);
+    assert.equal(chunks.length, 1);
+    assert.equal(chunks[0].text, 'Past SOL research');
+    assert.equal(chunks[0].role, 'assistant');
+    assert.equal(chunks[0].score, 0.81);
+    assert.equal(chunks[0].rerankScore, 0.9);
+    assert.equal(chunks[0].chatId, 'c1');
   });
 });

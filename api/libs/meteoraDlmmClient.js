@@ -178,9 +178,13 @@ export async function fetchMeteoraPools({
   const cached = getCached(key);
   if (cached) return cached;
 
+  // dlmm.datapi.meteora.ag paginates with `page_size` (default 10). `limit` alone is ignored
+  // and starves real LP opens (only ~10 pools → no_candidate). Keep `limit` for legacy routes.
+  const pageSize = Math.max(1, Math.min(100, Math.floor(Number(limit) || 100)));
   const q = new URLSearchParams({
     page: String(page),
-    limit: String(limit),
+    page_size: String(pageSize),
+    limit: String(pageSize),
     sort_key: sortKey,
     order_by: order,
     hide_low_tvl_pools: String(Boolean(hideLowTvl)),

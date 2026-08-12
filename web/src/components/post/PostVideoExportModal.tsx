@@ -88,24 +88,24 @@ export function PostVideoExportModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="post-share-modal max-h-[92dvh] overflow-y-auto border-white/10 bg-[#0a0a0a] text-white sm:max-w-3xl">
+      <DialogContent className="post-share-modal max-h-[92dvh] overflow-y-auto border-neutral-200 bg-white text-neutral-900 sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="font-display text-base font-medium tracking-tight text-white/95">
+          <DialogTitle className="font-display text-base font-medium tracking-tight text-neutral-900">
             Download video
           </DialogTitle>
-          <DialogDescription className="text-xs text-white/45">
+          <DialogDescription className="text-xs text-neutral-500">
             Preview the Syra cinematic look, then download Full HD · 30fps. What you see is what you
             get.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-black">
           {open ? (
             <PostVideoPlayer slides={slides} autoPlay loop controls initiallyMuted />
           ) : null}
         </div>
 
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-neutral-500">
           Cinematic depth stage, soft gold bloom, spring reveals, same style for every ship log.
         </p>
 
@@ -124,16 +124,16 @@ export function PostVideoExportModal({
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors",
                   active
-                    ? "border-white/35 bg-white/10"
-                    : "border-white/10 bg-white/[0.03] hover:border-white/20",
+                    ? "border-neutral-900 bg-neutral-50"
+                    : "border-neutral-200 bg-white hover:border-neutral-300",
                   (!enabled || checking) && "cursor-not-allowed opacity-45",
                 )}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block font-mono text-[11px] uppercase tracking-[0.14em] text-white/90">
+                  <span className="block font-mono text-[11px] uppercase tracking-[0.14em] text-neutral-900">
                     {option.label}
                   </span>
-                  <span className="mt-0.5 block text-xs text-white/40">
+                  <span className="mt-0.5 block text-xs text-neutral-500">
                     {checking ? "Checking…" : enabled ? option.hint : "Unsupported here"}
                   </span>
                 </span>
@@ -147,7 +147,7 @@ export function PostVideoExportModal({
             type="button"
             onClick={handleExport}
             disabled={!supported[selected] || checking}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/15 px-5 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/25 disabled:opacity-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-neutral-900 bg-neutral-900 px-5 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
           >
             <Download className="h-4 w-4" />
             Download {selected.toUpperCase()}

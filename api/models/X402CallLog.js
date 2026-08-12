@@ -80,6 +80,9 @@ x402CallLogSchema.index({ outcome: 1, createdAt: -1 });
 x402CallLogSchema.index({ network: 1, createdAt: -1 });
 x402CallLogSchema.index({ direction: 1, createdAt: -1 });
 x402CallLogSchema.index({ facilitator: 1, createdAt: -1 });
+// Public metrics / activation funnel: paid inbound by time + payer distincts
+x402CallLogSchema.index({ direction: 1, outcome: 1, createdAt: -1 });
+x402CallLogSchema.index({ direction: 1, outcome: 1, payer: 1 });
 // TTL: delete after N days (default 30; was 90)
 x402CallLogSchema.index(
   { createdAt: 1 },

@@ -119,142 +119,128 @@ function TokenCard({
         aria-label={`View ${launch.name}`}
       />
 
-      <div className="relative z-[1] pointer-events-none">
-        <div className="relative h-[5.75rem] overflow-hidden sm:h-[6.25rem]">
+      <div className="relative z-[1] flex flex-col gap-4 p-5 pointer-events-none sm:gap-5 sm:p-6">
+        {(showNew || showHot || showSaid) && (
+          <div className="flex flex-wrap gap-1.5">
+            {showNew ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground">
+                <Sparkles className="h-3 w-3" aria-hidden />
+                New
+              </span>
+            ) : null}
+            {showHot ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800 dark:text-amber-300">
+                <Flame className="h-3 w-3" aria-hidden />
+                Hot
+              </span>
+            ) : null}
+            {showSaid ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-muted/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground">
+                <BadgeCheck className="h-3 w-3" aria-hidden />
+                SAID
+              </span>
+            ) : null}
+          </div>
+        )}
+
+        <div className="flex items-start gap-3">
           <EarnTokenLogo
             src={launch.imageUri}
-            alt=""
-            variant="cover"
-            className="absolute inset-0 h-full w-full rounded-none border-0"
+            alt={launch.name}
+            className="h-14 w-14 rounded-2xl border-border/30 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:h-16 sm:w-16"
+            iconClassName="h-6 w-6"
           />
-          <div
-            className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent"
-            aria-hidden
-          />
-          {(showNew || showHot || showSaid) && (
-            <div className="absolute left-3 top-3 flex flex-wrap gap-1.5 sm:left-4 sm:top-3.5">
-              {showNew ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground backdrop-blur-sm">
-                  <Sparkles className="h-3 w-3" aria-hidden />
-                  New
-                </span>
-              ) : null}
-              {showHot ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800 dark:text-amber-300 backdrop-blur-sm">
-                  <Flame className="h-3 w-3" aria-hidden />
-                  Hot
-                </span>
-              ) : null}
-              {showSaid ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-border/50 bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground backdrop-blur-sm">
-                  <BadgeCheck className="h-3 w-3" aria-hidden />
-                  SAID
-                </span>
-              ) : null}
+          <div className="min-w-0 flex-1 pt-0.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-foreground line-clamp-1">
+                  {launch.name}
+                </h3>
+                <p className="mt-0.5 text-[13px] font-medium tracking-wide text-muted-foreground">
+                  ${launch.symbol}
+                </p>
+              </div>
+              <span className="shrink-0 pt-1 text-[11px] tabular-nums text-muted-foreground/80">
+                {formatRelativeTime(launch.createdAt)}
+              </span>
             </div>
-          )}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4 px-5 pb-5 pt-0 sm:gap-5 sm:px-6 sm:pb-6">
-          <div className="-mt-7 flex items-end gap-3 sm:-mt-8">
-            <EarnTokenLogo
-              src={launch.imageUri}
-              alt={launch.name}
-              className="h-14 w-14 rounded-2xl border-2 border-card shadow-md ring-1 ring-black/[0.04] dark:ring-white/[0.06] sm:h-16 sm:w-16"
-              iconClassName="h-6 w-6"
-            />
-            <div className="min-w-0 flex-1 pb-0.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-foreground line-clamp-1">
-                    {launch.name}
-                  </h3>
-                  <p className="mt-0.5 text-[13px] font-medium tracking-wide text-muted-foreground">
-                    ${launch.symbol}
-                  </p>
-                </div>
-                <span className="shrink-0 pt-1 text-[11px] tabular-nums text-muted-foreground/80">
-                  {formatRelativeTime(launch.createdAt)}
-                </span>
-              </div>
-            </div>
-          </div>
+        <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
 
-          <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{description}</p>
-
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="min-w-0 truncate font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground">
-                {formatTokenPriceUsd(launch.priceUsd)}
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="min-w-0 truncate font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+              {formatTokenPriceUsd(launch.priceUsd)}
+            </p>
+            {hasChange ? (
+              <p
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1 font-mono text-sm font-medium tabular-nums",
+                  changeUp && "text-emerald-600 dark:text-emerald-400",
+                  changeDown && "text-rose-600 dark:text-rose-400",
+                  !changeUp && !changeDown && "text-muted-foreground",
+                )}
+              >
+                {changeUp ? <TrendingUp className="h-3.5 w-3.5" aria-hidden /> : null}
+                {changeDown ? <TrendingDown className="h-3.5 w-3.5" aria-hidden /> : null}
+                <span>{formatPct(change24)}</span>
               </p>
-              {hasChange ? (
-                <p
-                  className={cn(
-                    "inline-flex shrink-0 items-center gap-1 font-mono text-sm font-medium tabular-nums",
-                    changeUp && "text-emerald-600 dark:text-emerald-400",
-                    changeDown && "text-rose-600 dark:text-rose-400",
-                    !changeUp && !changeDown && "text-muted-foreground",
-                  )}
-                >
-                  {changeUp ? <TrendingUp className="h-3.5 w-3.5" aria-hidden /> : null}
-                  {changeDown ? <TrendingDown className="h-3.5 w-3.5" aria-hidden /> : null}
-                  <span>{formatPct(change24)}</span>
-                </p>
-              ) : (
-                <p className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground/60">, </p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 border-t border-border/30 pt-3 sm:gap-3">
-              <div className="min-w-0 overflow-hidden">
-                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
-                  Mcap
-                </p>
-                <p
-                  className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
-                  title={formatCardUsd(launch.marketCapUsd)}
-                >
-                  {formatCardUsd(launch.marketCapUsd)}
-                </p>
-              </div>
-              <div className="min-w-0 overflow-hidden">
-                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
-                  Vol
-                </p>
-                <p
-                  className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
-                  title={formatCardUsd(launch.volume24hUsd)}
-                >
-                  {formatCardUsd(launch.volume24hUsd)}
-                </p>
-              </div>
-              <div className="min-w-0 overflow-hidden">
-                <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
-                  Liq
-                </p>
-                <p
-                  className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
-                  title={formatCardUsd(launch.liquidityUsd)}
-                >
-                  {formatCardUsd(launch.liquidityUsd)}
-                </p>
-              </div>
-            </div>
+            ) : (
+              <p className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground/60">-</p>
+            )}
           </div>
 
-          <div className="pointer-events-auto mt-auto flex items-center justify-end pt-1">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-9 gap-1.5 rounded-full border-border/50 px-3.5 text-[13px]"
-              asChild
-            >
-              <a href={pumpUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                Trade
-                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
-              </a>
-            </Button>
+          <div className="grid grid-cols-3 gap-2 border-t border-border/30 pt-3 sm:gap-3">
+            <div className="min-w-0 overflow-hidden">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                Mcap
+              </p>
+              <p
+                className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
+                title={formatCardUsd(launch.marketCapUsd)}
+              >
+                {formatCardUsd(launch.marketCapUsd)}
+              </p>
+            </div>
+            <div className="min-w-0 overflow-hidden">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                Vol
+              </p>
+              <p
+                className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
+                title={formatCardUsd(launch.volume24hUsd)}
+              >
+                {formatCardUsd(launch.volume24hUsd)}
+              </p>
+            </div>
+            <div className="min-w-0 overflow-hidden">
+              <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/70">
+                Liq
+              </p>
+              <p
+                className="mt-0.5 font-mono text-[13px] font-medium tabular-nums text-foreground/90"
+                title={formatCardUsd(launch.liquidityUsd)}
+              >
+                {formatCardUsd(launch.liquidityUsd)}
+              </p>
+            </div>
           </div>
+        </div>
+
+        <div className="pointer-events-auto mt-auto flex items-center justify-end pt-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 gap-1.5 rounded-full border-border/50 px-3.5 text-[13px]"
+            asChild
+          >
+            <a href={pumpUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+              Trade
+              <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+            </a>
+          </Button>
         </div>
       </div>
     </li>
@@ -329,9 +315,10 @@ export function EarnTokenPanel({
   const marketplace = marketQ.data?.launches ?? [];
   const showSkeleton = useMinimumSkeleton(marketQ.isLoading);
   const q = search.trim().toLowerCase();
-  const showLaunchStrip = marketplace.length > 0 && !showSkeleton && !marketQ.isError;
+  const myMintSet = new Set(myLaunches.map((l) => l.mint));
 
   const visibleLaunches = [...marketplace]
+    .filter((l) => !myMintSet.has(l.mint))
     .filter((l) => {
       if (!q) return true;
       return (
@@ -437,29 +424,8 @@ export function EarnTokenPanel({
         </div>
       </div>
 
-      {showLaunchStrip && visibleLaunches.length > 0 ? (
-        <div className="flex flex-col gap-3 rounded-[1.35rem] border border-border/40 bg-muted/15 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="min-w-0">
-            <p className="font-display text-[15px] font-semibold tracking-tight text-foreground">
-              Launch yours on Syra
-            </p>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
-              Join the marketplace from your Earn wallet. Launch as many tokens as you want.
-            </p>
-          </div>
-          <Button
-            variant="neon"
-            className="h-10 shrink-0 gap-1.5 rounded-full px-4 text-[13px]"
-            onClick={() => void handleLaunch()}
-          >
-            <Plus className="h-4 w-4" />
-            Launch token
-          </Button>
-        </div>
-      ) : null}
-
       {showSkeleton ? (
-        <EarnCardGridSkeleton count={6} heightClass="h-[19.5rem]" />
+        <EarnCardGridSkeleton count={6} heightClass="h-[17rem]" />
       ) : marketQ.isError ? (
         <div className="flex flex-col items-center justify-center rounded-[1.35rem] border border-border/40 bg-card/30 px-6 py-20 text-center">
           <p className="font-display text-lg font-semibold tracking-tight">Couldn’t load launches</p>
@@ -469,6 +435,7 @@ export function EarnTokenPanel({
           </Button>
         </div>
       ) : visibleLaunches.length === 0 ? (
+        myLaunches.length > 0 && !q ? null : (
         <div className="flex flex-col items-center justify-center rounded-[1.35rem] border border-border/40 bg-card/30 px-6 py-20 text-center">
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-border/40 bg-muted/20">
             <Coins className="h-5 w-5 text-muted-foreground" aria-hidden />
@@ -496,6 +463,7 @@ export function EarnTokenPanel({
             </Button>
           )}
         </div>
+        )
       ) : (
         <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-3">
           {visibleLaunches.map((launch, index) => (

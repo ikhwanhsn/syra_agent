@@ -1,6 +1,9 @@
 /**
  * Public x402 traction metrics — on-chain verifiable aggregates for /api/metrics.
  * Sources: X402CallLog (USD volume, payers), PaidApiCall (call counts).
+ *
+ * Hot path is the landing "Public proof" section. Live Solana RPC / DexScreener
+ * enrichment must never stall the response (RPC fallbacks can stack to ~60s).
  */
 import PaidApiCall from '../models/PaidApiCall.js';
 import X402CallLog from '../models/X402CallLog.js';
@@ -14,8 +17,51 @@ import { buildPublicRewardsSnapshot } from './syraUsageRewards.js';
 
 const PAID_MATCH = { outcome: 'paid', direction: 'inbound' };
 
+/** Fresh window: serve cached snapshot without rebuilding. */
+const METRICS_FRESH_TTL_MS = Math.max(
+  15_000,
+  Number.parseInt(process.env.PUBLIC_METRICS_CACHE_MS || '60000', 10) || 60_000,
+);
+/** After fresh TTL, still serve stale while a background rebuild runs. */
+const METRICS_STALE_TTL_MS = Math.max(
+  METRICS_FRESH_TTL_MS,
+  Number.parseInt(process.env.PUBLIC_METRICS_STALE_MS || String(10 * 60_000), 10) ||
+    10 * 60_000,
+);
+/** Cap slow enrichment so landing never waits on hung RPCs. */
+const ENRICHMENT_BUDGET_MS = Math.max(
+  1_000,
+  Number.parseInt(process.env.PUBLIC_METRICS_ENRICH_MS || '3500', 10) || 3_500,
+);
+
+/** @type {{ data: object; freshUntil: number; staleUntil: number } | null} */
+let metricsCache = null;
+/** @type {Promise<object> | null} */
+let metricsInflight = null;
+
 function roundUsd(n) {
   return Math.round((Number(n) || 0) * 100) / 100;
+}
+
+/**
+ * Resolve with `fallback` if `promise` does not settle within `ms`.
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {T} fallback
+ * @returns {Promise<T>}
+ */
+function withBudget(promise, ms, fallback) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise).catch(() => fallback),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(fallback), ms);
+      timer.unref?.();
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 /**
@@ -113,11 +159,11 @@ export async function buildPublicMetricsSnapshot() {
       .sort({ createdAt: -1 })
       .limit(50)
       .lean(),
-    buildActivationFunnel().catch(() => null),
-    buildSettlementHealthSnapshot().catch(() => null),
-    buildPublicBuybackSnapshot().catch(() => null),
-    buildPublicHolderFunnelSnapshot().catch(() => null),
-    buildPublicRewardsSnapshot().catch(() => null),
+    withBudget(buildActivationFunnel(), ENRICHMENT_BUDGET_MS * 2, null),
+    withBudget(buildSettlementHealthSnapshot(), ENRICHMENT_BUDGET_MS * 2, null),
+    withBudget(buildPublicBuybackSnapshot(), ENRICHMENT_BUDGET_MS, null),
+    withBudget(buildPublicHolderFunnelSnapshot(), ENRICHMENT_BUDGET_MS, null),
+    withBudget(buildPublicRewardsSnapshot(), ENRICHMENT_BUDGET_MS, null),
   ]);
 
   const totalUsd = totalUsdAgg[0]?.total ?? 0;
@@ -181,6 +227,61 @@ export async function buildPublicMetricsSnapshot() {
     holders: holders ?? null,
     rewards: rewards ?? null,
   };
+}
+
+async function rebuildPublicMetricsCache() {
+  const data = await buildPublicMetricsSnapshot();
+  const now = Date.now();
+  metricsCache = {
+    data,
+    freshUntil: now + METRICS_FRESH_TTL_MS,
+    staleUntil: now + METRICS_STALE_TTL_MS,
+  };
+  return data;
+}
+
+/**
+ * Cached public metrics for the landing page / JSON API.
+ * Fresh hit → instant. Stale hit → return immediately + refresh in background.
+ * Cold miss → single-flight rebuild (coalesces stampedes).
+ */
+export async function getPublicMetricsSnapshot() {
+  const now = Date.now();
+  if (metricsCache && now < metricsCache.freshUntil) {
+    return metricsCache.data;
+  }
+
+  if (metricsCache && now < metricsCache.staleUntil) {
+    if (!metricsInflight) {
+      metricsInflight = rebuildPublicMetricsCache()
+        .catch((err) => {
+          console.warn(
+            '[publicMetrics] background refresh failed:',
+            err instanceof Error ? err.message : String(err),
+          );
+          return metricsCache?.data;
+        })
+        .finally(() => {
+          metricsInflight = null;
+        });
+    }
+    return metricsCache.data;
+  }
+
+  if (metricsInflight) {
+    return metricsInflight;
+  }
+
+  metricsInflight = rebuildPublicMetricsCache().finally(() => {
+    metricsInflight = null;
+  });
+  return metricsInflight;
+}
+
+/** Test helper: clear in-memory metrics cache. */
+export function resetPublicMetricsCacheForTests() {
+  metricsCache = null;
+  metricsInflight = null;
 }
 
 /**

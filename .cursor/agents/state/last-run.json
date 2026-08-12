@@ -1,17 +1,17 @@
 {
   "date": "2026-08-12",
-  "updatedAt": "2026-08-12T02:40:00.000Z",
+  "updatedAt": "2026-08-12T12:55:00.000Z",
   "source": "https://api.syraa.fun/api/metrics",
   "mode": "daily",
   "weekday": "Wed",
-  "routedAgents": ["payments-security", "product"],
+  "routedAgents": ["content-proof", "distribution"],
   "northStar": {
-    "paidCallsLast7d": 27785,
-    "uniquePayingWalletsLast7d": 111
+    "paidCallsLast7d": 27519,
+    "uniquePayingWalletsLast7d": 110
   },
   "last7d": {
-    "calls": 27785,
-    "usdSettled": 2357.56
+    "calls": 27519,
+    "usdSettled": 2480.9
   },
   "buyback": {
     "totalBuybackUsdSpent": 23.82,
@@ -25,11 +25,9 @@
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0453,
-    "meetsLaunchGuardrail24h": true,
-    "settleFailRate1h": 0.0545,
-    "meetsLaunchGuardrail1h": false
+    "settleFailRate24h": 0.0476,
+    "meetsLaunchGuardrail24h": true
   },
-  "oneAction": "Code default X402_SETTLE_FACILITATOR_TIMEOUT_MS 3000→10000 in x402PaymentV2.js (env still overrides). Deploy/restart API; re-check last1h settleFailRate after ~1h.",
-  "bottleneck": "settlement"
+  "oneAction": "Refresh #34 shareCopy to evening metrics + Solscan s3n9W9k… then publish X from /post/video/34 and /post/photo/34 (CTA /marketplace + /token).",
+  "bottleneck": "proof-gap"
 }

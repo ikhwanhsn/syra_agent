@@ -42,8 +42,8 @@ export function PostXStatusControl({
       className={cn(
         "inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors sm:px-3",
         posted
-          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400/90 hover:bg-emerald-500/15"
-          : "border-amber-500/20 bg-amber-500/8 text-amber-300/80 hover:bg-amber-500/12",
+          ? "border-emerald-600/30 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+          : "border-amber-500/30 bg-amber-50 text-amber-700 hover:bg-amber-100",
         className,
       )}
       aria-pressed={posted}
@@ -77,13 +77,13 @@ export function PostXStatusLabel({
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] transition-colors",
         posted
-          ? "bg-emerald-500/12 text-emerald-400/85 hover:bg-emerald-500/18"
-          : "bg-amber-500/10 text-amber-300/75 hover:bg-amber-500/16",
+          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+          : "bg-amber-50 text-amber-700 hover:bg-amber-100",
       )}
       title={posted ? "Posted on X, click to change" : "Not posted on X, click to mark posted"}
     >
       <span
-        className={cn("h-1.5 w-1.5 rounded-full", posted ? "bg-emerald-400" : "bg-amber-400/80")}
+        className={cn("h-1.5 w-1.5 rounded-full", posted ? "bg-emerald-500" : "bg-amber-500")}
         aria-hidden
       />
       {posted ? "Posted" : "Not posted"}

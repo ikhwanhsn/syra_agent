@@ -31,7 +31,8 @@ export const LST_LOOP_CRON = Object.freeze({
   paperResolveMs: 300_000,
   realSignalMs: 600_000,
   realResolveMs: 300_000,
-  realEnabled: false,
+  /** Paper graduated (≥50 decided, net+). Lab only — public Earn still gated by adapter readiness. */
+  realEnabled: true,
   /** Optional Rise market address; empty = auto-pick from riseGetMarkets. */
   riseMarketAddress: '',
   evolution: Object.freeze({

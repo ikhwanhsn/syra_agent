@@ -63,6 +63,20 @@ const recommendationSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const contextChunkSchema = new mongoose.Schema(
+  {
+    id: { type: String },
+    text: { type: String, required: true },
+    role: { type: String, enum: ['user', 'assistant'], default: 'user' },
+    score: { type: Number },
+    rerankScore: { type: Number },
+    chatId: { type: String },
+    messageId: { type: String },
+    modality: { type: String },
+  },
+  { _id: false }
+);
+
 const messageSchema = new mongoose.Schema(
   {
     id: { type: String, required: true },
@@ -85,6 +99,8 @@ const messageSchema = new mongoose.Schema(
     followUps: { type: [String], default: undefined },
     /** Agent suggestion card from asset-research / signal tools. */
     recommendation: { type: recommendationSchema, default: undefined },
+    /** Retrieved long-term memory chunks for Context Cards (real RAG matches). */
+    contextChunks: { type: [contextChunkSchema], default: undefined },
     /** Rich client UI hint (e.g. pump.fun launch form when create params were missing). */
     inlineUi: { type: mongoose.Schema.Types.Mixed, default: undefined },
     inlineUiDismissed: { type: Boolean, default: undefined },

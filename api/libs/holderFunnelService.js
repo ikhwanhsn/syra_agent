@@ -1,5 +1,8 @@
 /**
  * Holder-growth funnel: snapshot DexScreener + staking metrics for public /api/metrics.
+ *
+ * Live pulse (Solana top-holders RPC + Streamflow) is best-effort with a short budget.
+ * Prefer the latest Mongo snapshot so /api/metrics never waits on hung RPCs.
  */
 import { isMongooseConnected } from "../config/mongoose.js";
 import HolderFunnelSnapshot from "../models/HolderFunnelSnapshot.js";
@@ -7,6 +10,10 @@ import { SYRA_TOKEN_MINT } from "./syraToken.js";
 import { gatherHolderPulseSnapshot } from "./syraHolderSnapshot.js";
 
 const SNAPSHOT_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6h
+const PULSE_BUDGET_MS = Math.max(
+  800,
+  Number.parseInt(process.env.PUBLIC_METRICS_HOLDER_PULSE_MS || "2500", 10) || 2_500,
+);
 
 function round(n, digits = 2) {
   const x = Number(n);
@@ -15,9 +22,63 @@ function round(n, digits = 2) {
   return Math.round(x * m) / m;
 }
 
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {T} fallback
+ * @returns {Promise<T>}
+ */
+function withBudget(promise, ms, fallback) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise).catch(() => fallback),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(fallback), ms);
+      timer.unref?.();
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 async function loadPulseData() {
   const out = await gatherHolderPulseSnapshot().catch(() => null);
   return out?.data ?? null;
+}
+
+function currentFromPulse(pulse) {
+  if (!pulse) return null;
+  return {
+    mint: SYRA_TOKEN_MINT,
+    marketCapUsd: round(pulse.marketCapUsd),
+    liquidityUsd: round(pulse.price?.liquidityUsd),
+    volume24hUsd: round(pulse.price?.volume24h),
+    priceUsd: round(pulse.price?.priceUsd, 8),
+    priceChange24hPct: round(pulse.price?.priceChange24h),
+    topHoldersSampled: pulse.holders?.holders?.length ?? null,
+    top10ConcentrationPct: round(pulse.holders?.top10ConcentrationPct),
+    uniqueStakers: pulse.staking?.uniqueWallets ?? null,
+    totalStakedFormatted: pulse.staking?.totalStakedFormatted ?? null,
+    dexscreenerUrl: `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`,
+  };
+}
+
+function currentFromDbRow(row) {
+  if (!row) return null;
+  return {
+    mint: row.mint || SYRA_TOKEN_MINT,
+    marketCapUsd: row.marketCapUsd ?? null,
+    liquidityUsd: row.liquidityUsd ?? null,
+    volume24hUsd: row.volume24hUsd ?? null,
+    priceUsd: row.priceUsd ?? null,
+    priceChange24hPct: row.priceChange24hPct ?? null,
+    topHoldersSampled: null,
+    top10ConcentrationPct: row.top10ConcentrationPct ?? null,
+    uniqueStakers: row.uniqueStakers ?? null,
+    totalStakedFormatted: row.totalStakedFormatted ?? null,
+    dexscreenerUrl: `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`,
+  };
 }
 
 /**
@@ -72,36 +133,37 @@ export async function buildPublicHolderFunnelSnapshot() {
   };
 
   try {
-    const pulse = await loadPulseData();
-    if (isMongooseConnected()) {
-      maybeCaptureHolderFunnelSnapshot().catch(() => {});
-    }
+    const latestPromise = isMongooseConnected()
+      ? HolderFunnelSnapshot.findOne({})
+          .sort({ capturedAt: -1 })
+          .lean()
+          .catch(() => null)
+      : Promise.resolve(null);
 
-    const history = isMongooseConnected()
-      ? await HolderFunnelSnapshot.find({
+    const historyPromise = isMongooseConnected()
+      ? HolderFunnelSnapshot.find({
           capturedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
         })
           .sort({ capturedAt: 1 })
           .limit(28)
           .lean()
           .catch(() => [])
-      : [];
+      : Promise.resolve([]);
 
-    const current = pulse
-      ? {
-          mint: SYRA_TOKEN_MINT,
-          marketCapUsd: round(pulse.marketCapUsd),
-          liquidityUsd: round(pulse.price?.liquidityUsd),
-          volume24hUsd: round(pulse.price?.volume24h),
-          priceUsd: round(pulse.price?.priceUsd, 8),
-          priceChange24hPct: round(pulse.price?.priceChange24h),
-          topHoldersSampled: pulse.holders?.holders?.length ?? null,
-          top10ConcentrationPct: round(pulse.holders?.top10ConcentrationPct),
-          uniqueStakers: pulse.staking?.uniqueWallets ?? null,
-          totalStakedFormatted: pulse.staking?.totalStakedFormatted ?? null,
-          dexscreenerUrl: `https://dexscreener.com/solana/${SYRA_TOKEN_MINT}`,
-        }
-      : null;
+    const pulsePromise = withBudget(loadPulseData(), PULSE_BUDGET_MS, null);
+
+    const [latest, history, pulse] = await Promise.all([
+      latestPromise,
+      historyPromise,
+      pulsePromise,
+    ]);
+
+    // Refresh snapshot off the request path when live pulse succeeded.
+    if (pulse && isMongooseConnected()) {
+      maybeCaptureHolderFunnelSnapshot().catch(() => {});
+    }
+
+    const current = currentFromPulse(pulse) || currentFromDbRow(latest);
 
     return {
       ...empty,

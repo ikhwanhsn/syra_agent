@@ -11,6 +11,7 @@ import {
   SITE_NAV_GROUPS,
   SITE_NAV_ADMIN_MORE,
   SITE_NAV_MORE,
+  getNavGroupLinkItems,
   type NavGroup,
   type NavLinkItem,
 } from "@/lib/siteNav";
@@ -144,10 +145,17 @@ function MobileNavGroupSection({
   isAdmin: boolean;
   onNavigate: () => void;
 }) {
-  const items = group.items?.filter((item) => !item.adminOnly || isAdmin) ?? [];
+  const topItems = group.items?.filter((item) => !item.adminOnly || isAdmin) ?? [];
+  const sections =
+    group.sections?.filter((section) => !section.adminOnly || isAdmin).map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.adminOnly || isAdmin),
+    })) ?? [];
+  const flatItems = getNavGroupLinkItems(group, isAdmin);
   const GroupIcon = group.icon;
+  const hasSections = sections.some((section) => section.items.length > 0);
 
-  if (items.length === 0 && group.href) {
+  if (flatItems.length === 0 && group.href) {
     const active = group.match(pathname);
     return (
       <div className="px-1">
@@ -179,23 +187,61 @@ function MobileNavGroupSection({
     );
   }
 
-  if (items.length === 0) return null;
+  if (flatItems.length === 0) return null;
 
   return (
     <section className="px-1">
       <MobileSectionLabel>{group.label}</MobileSectionLabel>
-      <ul className="flex flex-col gap-0.5">
-        {items.map((item) => (
-          <li key={item.href}>
-            <MobileNavItem
-              item={item}
-              pathname={pathname}
-              search={search}
-              onNavigate={onNavigate}
-            />
-          </li>
-        ))}
-      </ul>
+      {hasSections ? (
+        <div className="flex flex-col gap-1">
+          {topItems.length > 0 ? (
+            <ul className="flex flex-col gap-0.5">
+              {topItems.map((item) => (
+                <li key={item.href}>
+                  <MobileNavItem
+                    item={item}
+                    pathname={pathname}
+                    search={search}
+                    onNavigate={onNavigate}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {sections.map((section) =>
+            section.items.length === 0 ? null : (
+              <div key={section.id}>
+                <MobileSectionLabel>{section.label}</MobileSectionLabel>
+                <ul className="flex flex-col gap-0.5">
+                  {section.items.map((item) => (
+                    <li key={item.href}>
+                      <MobileNavItem
+                        item={item}
+                        pathname={pathname}
+                        search={search}
+                        onNavigate={onNavigate}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ),
+          )}
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-0.5">
+          {topItems.map((item) => (
+            <li key={item.href}>
+              <MobileNavItem
+                item={item}
+                pathname={pathname}
+                search={search}
+                onNavigate={onNavigate}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

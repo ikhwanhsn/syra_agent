@@ -1,0 +1,25 @@
+{
+  "date": "2026-08-12",
+  "updatedAt": "2026-08-12T12:55:00.000Z",
+  "mode": "helix-daily-evening",
+  "channel": "design-partner-outreach",
+  "oneAction": "Send 3 design-partner contacts (Ampersend catalog email + MCP-host builder DM + x402/builder DM) asking for one non-founder MCP syra_spend_news paid call; log name/channel/contactedAt/replyStatus in docs/AGENT_BUILDER_GTM.md.",
+  "notes": {
+    "ceoOutcome2": "External demand proof: ≥1 net-new mcpPaidCall non-founder OR ≥3 design partners contacted with logged replies",
+    "diagnosis": "conversion/attention mix is fine on API; MCP is founder-only (mcpPaidCalls=1). Design-partner table TBD×3. Ampersend never listed (0/55). Agent402 already live — not the gap.",
+    "killCriteria7d": "If all 3 replyStatus=no-reply and mcpPaidCalls still 1 after 7d → stop same cold-DM template; next pulse = Ampersend catalog follow-up or Cursor marketplace submit only.",
+    "liveMetricsQuoted": {
+      "uniquePayingWalletsLast7d": 110,
+      "paidCallsLast7d": 27519,
+      "last7d.usdSettled": 2480.9,
+      "bySource.mcpPaidCalls": 1,
+      "bySource.api": 134282,
+      "bySource.mcp-server": 1,
+      "funnel.firstPaidPayersLast30d": 136,
+      "settleFailRate24h": 0.0476,
+      "meetsLaunchGuardrail": true
+    },
+    "microTeam": ["Atlas", "Scout", "Catalog", "Agora"],
+    "doNotCount": "founder/treasury self-probe mcpPaidCalls"
+  }
+}

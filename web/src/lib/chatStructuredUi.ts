@@ -29,22 +29,37 @@ export type ChatRecommendation = {
   actions?: ChatRecommendationAction[];
 };
 
+/** Retrieved long-term memory chunks shown as Context Cards (real RAG matches only). */
+export type ChatContextChunk = {
+  id?: string | null;
+  text: string;
+  role: "user" | "assistant";
+  score?: number | null;
+  rerankScore?: number | null;
+  chatId?: string | null;
+  messageId?: string | null;
+  modality?: string;
+};
+
 export function extraAssistantUiFromUnknown(m: {
   sources?: unknown;
   reasoningSteps?: unknown;
   followUps?: unknown;
   recommendation?: unknown;
+  contextChunks?: unknown;
 }): {
   sources?: ChatSource[];
   reasoningSteps?: ReasoningStep[];
   followUps?: string[];
   recommendation?: ChatRecommendation;
+  contextChunks?: ChatContextChunk[];
 } {
   const out: {
     sources?: ChatSource[];
     reasoningSteps?: ReasoningStep[];
     followUps?: string[];
     recommendation?: ChatRecommendation;
+    contextChunks?: ChatContextChunk[];
   } = {};
   if (Array.isArray(m.sources) && m.sources.length > 0) {
     const sources = m.sources
@@ -119,6 +134,31 @@ export function extraAssistantUiFromUnknown(m: {
           : {}),
       };
     }
+  }
+  if (Array.isArray(m.contextChunks) && m.contextChunks.length > 0) {
+    const contextChunks = m.contextChunks
+      .filter((c): c is ChatContextChunk => {
+        if (!c || typeof c !== "object") return false;
+        const row = c as ChatContextChunk;
+        return typeof row.text === "string" && row.text.trim().length > 0;
+      })
+      .map((c) => ({
+        text: c.text.trim().slice(0, 2000),
+        role: c.role === "assistant" ? "assistant" : "user",
+        ...(c.id != null && String(c.id) ? { id: String(c.id) } : {}),
+        ...(typeof c.score === "number" && Number.isFinite(c.score)
+          ? { score: c.score }
+          : {}),
+        ...(typeof c.rerankScore === "number" && Number.isFinite(c.rerankScore)
+          ? { rerankScore: c.rerankScore }
+          : {}),
+        ...(c.chatId != null ? { chatId: c.chatId } : {}),
+        ...(c.messageId != null ? { messageId: c.messageId } : {}),
+        ...(typeof c.modality === "string" && c.modality.trim()
+          ? { modality: c.modality.trim() }
+          : {}),
+      }));
+    if (contextChunks.length) out.contextChunks = contextChunks;
   }
   return out;
 }

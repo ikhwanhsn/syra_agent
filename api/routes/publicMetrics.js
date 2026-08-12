@@ -5,7 +5,7 @@
  */
 import express from 'express';
 import {
-  buildPublicMetricsSnapshot,
+  getPublicMetricsSnapshot,
   fetchRecentLiveCalls,
 } from '../libs/publicMetricsService.js';
 
@@ -14,8 +14,9 @@ const SSE_INTERVAL_MS = 30_000;
 
 router.get('/metrics', async (_req, res) => {
   try {
-    const data = await buildPublicMetricsSnapshot();
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=120');
+    const data = await getPublicMetricsSnapshot();
+    // Align with in-process fresh TTL; CDN may still miss on CORS fetches.
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=120, stale-while-revalidate=600');
     res.json(data);
   } catch (error) {
     res.status(500).json({

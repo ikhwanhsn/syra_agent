@@ -114,6 +114,10 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
   }, []);
 
   useEffect(() => {
+    if (!onSelectModel) {
+      setModels([]);
+      return;
+    }
     let cancelled = false;
     chatApi
       .getModels()
@@ -126,7 +130,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(function Ch
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onSelectModel]);
 
   useEffect(() => {
     return () => {

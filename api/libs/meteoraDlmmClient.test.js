@@ -30,3 +30,14 @@ test("computeFeeYieldPct is realistic for SOL-USDC over a few hours", () => {
   const oneHourYield = computeFeeYieldPct(feeTvlDecimal, 1);
   assert.ok(oneHourYield < 0.02, `1h yield should be well under take-profit; got ${oneHourYield}%`);
 });
+
+test("Meteora /pools honors page_size (limit alone returns ~10 and starves LP)", async () => {
+  const limited = await fetch(
+    "https://dlmm.datapi.meteora.ag/pools?page=1&limit=80&sort_key=tvl&order_by=desc&hide_low_tvl_pools=true",
+  ).then((r) => r.json());
+  const paged = await fetch(
+    "https://dlmm.datapi.meteora.ag/pools?page=1&page_size=80&sort_key=tvl&order_by=desc&hide_low_tvl_pools=true",
+  ).then((r) => r.json());
+  assert.ok((limited?.data?.length || 0) <= 15, "limit-only should stay near default page size");
+  assert.ok((paged?.data?.length || 0) >= 40, `page_size=80 should return a full page, got ${paged?.data?.length}`);
+});

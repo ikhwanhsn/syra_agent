@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ReasoningStep, ReasoningStepKind } from "@/lib/chatStructuredUi";
@@ -97,11 +97,28 @@ export function AgentThinkingTrace({
 }
 
 export function HeuristicLoadingTasks({ labels }: { labels: string[] }) {
-  const steps: ReasoningStep[] = labels.map((label, i) => ({
+  const safeLabels = labels.length > 0 ? labels : ["Thinking…"];
+  const [stepIndex, setStepIndex] = useState(0);
+
+  useEffect(() => {
+    setStepIndex(0);
+  }, [safeLabels.join("|")]);
+
+  useEffect(() => {
+    if (safeLabels.length <= 1) return;
+    const interval = window.setInterval(() => {
+      setStepIndex((i) => (i + 1) % safeLabels.length);
+    }, 2400);
+    return () => window.clearInterval(interval);
+  }, [safeLabels.length]);
+
+  const steps: ReasoningStep[] = safeLabels.map((label, i) => ({
     id: `heuristic-${i}`,
     label,
     kind: i === 0 ? "reasoning" : "search",
-    status: i === 0 ? "running" : "skipped",
+    status:
+      i === stepIndex ? "running" : i < stepIndex ? "complete" : "skipped",
   }));
+
   return <TaskRows steps={steps} />;
 }

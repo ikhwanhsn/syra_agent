@@ -1,46 +1,64 @@
 {
-  "date": "2026-08-11",
-  "updatedAt": "2026-08-11T17:08:00.000Z",
+  "date": "2026-08-12",
+  "updatedAt": "2026-08-12T02:55:00.000Z",
   "source": "https://api.syraa.fun/api/metrics",
   "loopHealth": "Open",
-  "checklistItem": "Fund rewards epoch (maxSyraToFund=50000) so totalClaimableSyra > 0. Hold #34 publish until ≥5 consecutive 24h-green settle days; draft may be refreshed with live 7d + Solscan s3n9W9kL… but not shipped today.",
+  "checklistItem": "Publish weekly proof #34 (Revenue → $SYRA) from /post with live metrics + Solscan; CTAs /marketplace + /token|/rewards.",
   "northStar": {
-    "paidCallsLast7d": 28520,
-    "uniquePayingWalletsLast7d": 110,
-    "usdSettled7d": 2411.38
+    "paidCallsLast7d": 27770,
+    "uniquePayingWalletsLast7d": 111,
+    "usdSettled7d": 2364.43
   },
   "buyback": {
-    "totalBuybackUsdSpent": 24.39,
+    "buybackShareOfRevenue": 0.8,
+    "pendingRevenueUsd": 0.54,
+    "totalFlushedUsd": 0.87,
+    "totalBuybackUsdSpent": 23.82,
+    "totalSyraAcquired": 172452.066761,
     "treasurySyraBalance": 172452.066761,
+    "lastFlushAt": "2026-08-06T15:54:52.754Z",
+    "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG",
     "lastBuybackSolscan": "https://solscan.io/tx/s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG",
-    "lastFlushAt": "2026-08-06T15:54:52.754Z"
+    "x402SchedulerSolscan": "https://solscan.io/tx/mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7",
+    "note": "skipRevenueBuyback on Labs/partner payTo; totalBuybackUsdSpent is portfolio-maxed vs totalFlushedUsd 0.87"
   },
   "rewards": {
     "uniqueEarners": 108,
     "totalClaimableSyra": 50000,
     "totalClaimedSyra": 0,
-    "totalPendingPoints": 8189.736650000021,
-    "fundAttempt": "success 2026-08-11T17:08Z — fundedWallets=3 totalSyraFunded=50000 rate=1000. Render syra_agent clear-cache deploy + BUYBACK_CRON_SECRET set on service (value not stored in repo)."
+    "totalPendingPoints": 8375.776650000022,
+    "claimBlocker": "RewardsPage claim uses x-connected-wallet only; POST /rewards/claim requires session (auth_required)"
   },
   "holders": {
-    "marketCapUsd": 61756,
-    "liquidityUsd": 23338.27,
-    "volume24hUsd": 1690.66,
-    "uniqueStakers": 1
+    "mint": "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
+    "marketCapUsd": 57857,
+    "liquidityUsd": 22682.71,
+    "volume24hUsd": 894.1,
+    "priceChange24hPct": -9.67,
+    "top10ConcentrationPct": 44.64,
+    "uniqueStakers": 1,
+    "totalStakedFormatted": "2147163"
   },
   "settlement": {
-    "settleFailRate24h": 0.0337,
+    "settleFailRate24h": 0.0446,
     "meetsLaunchGuardrail24h": true,
-    "settleFailRate1h": 0.0657,
-    "topFailReason": "Facilitator settle failed (settle_timeout); local Solana settle did not confirm"
+    "settleFailRate1h": 0.0355,
+    "meetsLaunchGuardrail1h": true,
+    "tokenHypeOk": true
   },
   "publish": {
-    "status": "held_for_settlement_streak",
+    "status": "ready_to_ship",
     "postVideo": "https://www.syraa.fun/post/video/34",
     "postPhoto": "https://www.syraa.fun/post/photo/34",
     "draftReady": true,
-    "reason": "24h green (Mon 0.038 + Tue 0.0337) but CEO week requires ≥5 consecutive green days; 1h still 0.0657"
+    "reason": "24h settleFailRate 0.0446 < 0.05 and 1h green; hold for 5-day streak lifted for Mint weekly proof"
   },
-  "oneAction": "Epoch funded. Next: optional Solana session claim for proof tx. Hold #34 publish until 5-day settle streak.",
-  "notes": "Mint Tue 2026-08-11. Receipt Closed-but-quiet. Claim: no fund cron; dual auth. Lock: 1 staker vs 110 payers. Desk: refresh #34 later, do not publish."
+  "microTeam": {
+    "Receipt": "Open — public Solscan + metrics exist; rewards/claims and x402 flush volume do not close loop",
+    "Claim": "Funded but claimed=0; claim UX missing session auth",
+    "Lock": "1 unique staker; do not touch staking this week",
+    "Desk": "ONE item = publish #34 proof with live metrics + Solscan"
+  },
+  "oneAction": "Ship #34 X proof today (live 7d + Solscan). Parallel follow-up (not today's checklist): wire RewardsPage claim to session auth so totalClaimedSyra can move.",
+  "notes": "Mint Wed 2026-08-12. Loop Open. Desk #34 over CEX/KOL. Claim: no re-fund needed. Lock: N. Founder mcap levers ranked in Mint output."
 }

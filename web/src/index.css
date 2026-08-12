@@ -877,12 +877,20 @@
     }
   }
 
+  .typing-dot {
+    animation: typing-dot 1.1s ease-in-out infinite;
+  }
+
   .typing-dot-delay-1 {
     animation-delay: 0.15s;
   }
 
   .typing-dot-delay-2 {
     animation-delay: 0.3s;
+  }
+
+  .agent-loading-drive-cell {
+    animation: agent-loading-drive 1.2s ease-in-out infinite;
   }
 
   .thinking-shimmer-bar {
@@ -897,6 +905,19 @@
     animation: thinking-shimmer 2.8s ease-in-out infinite;
   }
 
+  @keyframes agent-loading-drive {
+    0%,
+    100% {
+      opacity: 0.2;
+      transform: scale(0.85);
+    }
+    40% {
+      opacity: 1;
+      transform: scale(1);
+      background-color: hsl(var(--primary) / 0.85);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .thinking-orbit,
     .thinking-glow,
@@ -905,7 +926,8 @@
     .thinking-progress,
     .typing-dot,
     .typing-dot-delay-1,
-    .typing-dot-delay-2 {
+    .typing-dot-delay-2,
+    .agent-loading-drive-cell {
       animation: none !important;
     }
   }
@@ -1298,24 +1320,24 @@ body.syra-qwerti-active #qwerti-widget-root {
   background:
     radial-gradient(
       ellipse 90% 55% at 50% -15%,
-      hsl(0 0% 100% / 0.1),
-      transparent 50%
+      hsl(0 0% 92% / 0.85),
+      transparent 55%
     ),
     radial-gradient(
       ellipse 70% 45% at 100% 100%,
-      hsl(0 0% 18% / 0.48),
+      hsl(0 0% 88% / 0.55),
       transparent 55%
     ),
     radial-gradient(
       ellipse 55% 40% at 0% 85%,
-      hsl(0 0% 12% / 0.42),
+      hsl(0 0% 90% / 0.5),
       transparent 50%
     );
 }
 
 .post-orb {
   filter: blur(72px);
-  opacity: 0.4;
+  opacity: 0.35;
   animation: post-orb-drift 18s ease-in-out infinite alternate;
 }
 
@@ -1326,7 +1348,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   right: -5%;
   background: radial-gradient(
     circle,
-    hsl(0 0% 100% / 0.35) 0%,
+    hsl(0 0% 78% / 0.55) 0%,
     transparent 70%
   );
 }
@@ -1336,7 +1358,7 @@ body.syra-qwerti-active #qwerti-widget-root {
   height: min(320px, 45vw);
   bottom: 10%;
   left: -8%;
-  background: radial-gradient(circle, hsl(0 0% 40% / 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, hsl(0 0% 82% / 0.45) 0%, transparent 70%);
   animation-duration: 22s;
   animation-direction: alternate-reverse;
 }
@@ -3230,16 +3252,16 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-progress-track {
-  background: hsl(0 0% 100% / 0.08);
+  background: hsl(0 0% 0% / 0.08);
 }
 
 .post-progress-fill {
   background: linear-gradient(
     90deg,
-    hsl(0 0% 100% / 0.5),
-    hsl(0 0% 100% / 0.85)
+    hsl(0 0% 20% / 0.55),
+    hsl(0 0% 10% / 0.9)
   );
-  box-shadow: 0 0 20px hsl(0 0% 100% / 0.35);
+  box-shadow: 0 0 16px hsl(0 0% 0% / 0.12);
 }
 
 .post-slide-timer {
@@ -3258,7 +3280,7 @@ body.syra-qwerti-active #qwerti-widget-root {
 }
 
 .post-play-btn {
-  box-shadow: 0 0 24px hsl(0 0% 100% / 0.2);
+  box-shadow: 0 8px 24px hsl(0 0% 0% / 0.12);
 }
 
 .post-record-wrap {
@@ -7201,16 +7223,16 @@ body.syra-qwerti-active #qwerti-widget-root {
   overflow-y: auto;
   margin: 0;
   border-radius: 0.625rem;
-  border: 1px solid hsl(0 0% 100% / 0.08);
-  background: hsl(0 0% 0% / 0.45);
+  border: 1px solid hsl(0 0% 0% / 0.1);
+  background: hsl(0 0% 98%);
   padding: 1rem 1.125rem;
   font-family: var(--font-inter), system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
-  color: hsl(0 0% 100% / 0.85);
+  color: hsl(0 0% 15%);
   scrollbar-width: thin;
-  scrollbar-color: hsl(0 0% 100% / 0.15) transparent;
+  scrollbar-color: hsl(0 0% 0% / 0.2) transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

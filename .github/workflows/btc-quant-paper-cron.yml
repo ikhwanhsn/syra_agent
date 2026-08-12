@@ -1,0 +1,52 @@
+# Keeps BTC quant paper lab accruing decided trades (Earn lane btc1).
+# Needed until paper-edge gates pass (≥50 decided + qualified leader).
+#
+# Repository secrets:
+#   SYRA_API_BASE_URL — e.g. https://api.syraa.fun
+#   SYRA_API_KEY — gateway API key (X-API-Key)
+#   BTC_QUANT_EXPERIMENT_CRON_SECRET — optional; must match API when set
+name: BTC quant paper cron
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  btc-quant-paper-ticks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST signal-tick + resolve-tick (btc1)
+        env:
+          BASE_URL: ${{ secrets.SYRA_API_BASE_URL }}
+          API_KEY: ${{ secrets.SYRA_API_KEY }}
+          CRON_SECRET: ${{ secrets.BTC_QUANT_EXPERIMENT_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_URL:-}" ]; then
+            echo "::warning::Set SYRA_API_BASE_URL in repo secrets to enable BTC quant paper cron."
+            exit 0
+          fi
+          if [ -z "${API_KEY:-}" ]; then
+            echo "::warning::Set SYRA_API_KEY in repo secrets (API gateway requires X-API-Key)."
+            exit 0
+          fi
+          ORIGIN="${BASE_URL%/}"
+          HDR=(-H "X-API-Key: ${API_KEY}" -H "Accept: application/json")
+          if [ -n "${CRON_SECRET:-}" ]; then
+            HDR+=(-H "x-btc-quant-secret: ${CRON_SECRET}")
+          fi
+          for PATH_SUFFIX in "signal-tick?lane=btc1" "resolve-tick?lane=btc1"; do
+            URL="${ORIGIN}/experiment/btc-quant/${PATH_SUFFIX}"
+            echo "POST ${URL}"
+            HTTP_CODE=$(curl -sS -o /tmp/btc-paper.json -w "%{http_code}" -X POST "${URL}" \
+              "${HDR[@]}")
+            echo "HTTP ${HTTP_CODE}"
+            cat /tmp/btc-paper.json
+            echo
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "::error::BTC quant paper ${PATH_SUFFIX} returned HTTP ${HTTP_CODE}"
+              exit 1
+            fi
+            node -e "const r=require('/tmp/btc-paper.json'); if(r.success!==true){console.error(r);process.exit(1)}"
+          done

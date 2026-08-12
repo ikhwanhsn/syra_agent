@@ -10,7 +10,12 @@ import { EmptyState } from "./EmptyState";
 import type { Agent } from "./AgentSelector";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
 import type { AgentInlineUiPayload } from "@/lib/chatApi";
-import type { ChatRecommendation, ChatSource, ReasoningStep } from "@/lib/chatStructuredUi";
+import type {
+  ChatContextChunk,
+  ChatRecommendation,
+  ChatSource,
+  ReasoningStep,
+} from "@/lib/chatStructuredUi";
 import {
   CHAT_CONTENT_INNER_CLASS,
   CHAT_MESSAGES_SCROLL_CLASS,
@@ -53,6 +58,7 @@ interface Message {
   reasoningSteps?: ReasoningStep[];
   followUps?: string[];
   recommendation?: ChatRecommendation;
+  contextChunks?: ChatContextChunk[];
 }
 
 interface ChatAreaProps {
@@ -88,7 +94,6 @@ export function ChatArea({
   onRegenerate,
   selectedAgent,
   sessionReady = true,
-  walletConnected = true,
   onToggleSidebar,
   sidebarCollapsed = false,
   inputRef,
@@ -199,7 +204,7 @@ export function ChatArea({
                 message.role === "assistant" &&
                 message.isStreaming &&
                 !message.content?.trim();
-              if (isEmptyStreamingAssistant && walletConnected) {
+              if (isEmptyStreamingAssistant) {
                 const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
                 return (
                   <LoadingStepMessage

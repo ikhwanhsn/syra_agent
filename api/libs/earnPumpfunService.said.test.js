@@ -31,6 +31,15 @@ test("verifyEarnTokenOnSaid syncs SAID across earnAnonymousId and hard-fails sig
   assert.match(serviceSrc, /lookupOnChainAgent/);
   assert.match(serviceSrc, /checkVerified/);
   assert.match(serviceSrc, /persistSaidForEarnWallet/);
+  assert.match(serviceSrc, /ensureSaidDirectoryProfile/);
+  assert.match(serviceSrc, /registerOffChain/);
+});
+
+test("saidClient registerOffChain uses pending directory endpoint", () => {
+  assert.match(saidSrc, /\/api\/register\/pending/);
+  assert.match(saidSrc, /SAID_PLATFORM_KEY/);
+  assert.match(saidSrc, /X-Platform-Key/);
+  assert.match(saidSrc, /getAgentDetails/);
 });
 
 test("verifyEarnTokenOnSaid uses Privy/WalletBroker when legacy keypair is unavailable", () => {

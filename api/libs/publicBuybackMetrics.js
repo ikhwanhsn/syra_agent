@@ -19,7 +19,15 @@ const RPC_URL =
   process.env.SOLANA_RPC_URL ||
   process.env.VITE_SOLANA_RPC_URL ||
   "https://api.mainnet-beta.solana.com";
-const RPC_TIMEOUT_MS = Number(process.env.SOLANA_RPC_TIMEOUT_MS) || 15_000;
+/** Keep buyback enrichment short — public metrics must not wait on hung RPCs. */
+const RPC_TIMEOUT_MS = Math.min(
+  8_000,
+  Number(process.env.SOLANA_RPC_TIMEOUT_MS) || 4_000,
+);
+const LIVE_BUDGET_MS = Math.max(
+  800,
+  Number.parseInt(process.env.PUBLIC_METRICS_BUYBACK_LIVE_MS || "2500", 10) || 2_500,
+);
 const BUYBACK_SHARE = 0.8;
 const USDC_MINT =
   process.env.USDC_MINT ||
@@ -36,6 +44,26 @@ function fetchWithTimeout(url, init = {}) {
   return fetch(url, { ...init, signal: init.signal || controller.signal }).finally(() =>
     clearTimeout(id),
   );
+}
+
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {T} fallback
+ * @returns {Promise<T>}
+ */
+function withBudget(promise, ms, fallback) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(promise).catch(() => fallback),
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(fallback), ms);
+      timer.unref?.();
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 function resolveTreasuryWallet() {
@@ -116,9 +144,14 @@ export async function buildPublicBuybackSnapshot() {
     recentBuybacks: [],
   };
 
+  const emptyLive = { syra: null, usdc: 0, sol: 0 };
   const [balances, prices] = await Promise.all([
-    fetchTreasuryBalances(treasuryWallet),
-    fetchBuybackSpotPrices().catch(() => ({ syraUsd: null, solUsd: null })),
+    withBudget(fetchTreasuryBalances(treasuryWallet), LIVE_BUDGET_MS, emptyLive),
+    withBudget(
+      fetchBuybackSpotPrices().catch(() => ({ syraUsd: null, solUsd: null })),
+      LIVE_BUDGET_MS,
+      { syraUsd: null, solUsd: null },
+    ),
   ]);
 
   const syraValue =
