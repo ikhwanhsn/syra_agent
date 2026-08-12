@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   growthKickerClass,
@@ -12,6 +12,9 @@ import {
 } from "@/components/growth/growthHomeStyles";
 
 const HANDSHAKE_EASE = [0.16, 1, 0.3, 1] as const;
+
+/** Fixed log viewport: 4 lines + caret. Never grows/shrinks with the handshake loop. */
+const LOG_VIEWPORT_CLASS = "relative h-[9.75rem] overflow-hidden sm:h-[10.25rem]";
 
 function LivePulse() {
   return (
@@ -89,7 +92,7 @@ function formatUsd(n: number): string {
 /**
  * Agentic terminal motif: animated x402 payment handshake + live traction strip.
  * Respects prefers-reduced-motion (static full log, no loop).
- * Scoped to this component only — no page scroll/reveal motion.
+ * Scoped to this component only — fixed-height log so the loop cannot shift the page.
  */
 export function GrowthX402Flow({
   avgUsdPerCall = null,
@@ -122,9 +125,11 @@ export function GrowthX402Flow({
       );
     });
 
-    // Soft loop: pause on settled, then replay.
+    // Soft loop: pause on settled, then replay. Reset count in the same tick as
+    // loopKey so old+new lines never stack (that was doubling height / shifting the page).
     timers.push(
       window.setTimeout(() => {
+        setVisibleCount(0);
         setLoopKey((k) => k + 1);
       }, 420 + lines.length * 520 + 2800),
     );
@@ -141,7 +146,10 @@ export function GrowthX402Flow({
 
   return (
     <div className={cn("flex flex-col gap-5", className)}>
-      <div className={growthTerminalFrameClass} aria-label="x402 payment handshake demo">
+      <div
+        className={cn(growthTerminalFrameClass, "shrink-0")}
+        aria-label="x402 payment handshake demo"
+      >
         <div className={growthTerminalTitlebarClass}>
           <div className="flex items-center gap-2.5">
             <span className="flex gap-1.5" aria-hidden>
@@ -180,31 +188,29 @@ export function GrowthX402Flow({
             }}
           />
 
-          <ol className="relative min-h-[8.5rem] space-y-1.5 sm:min-h-[9rem]" aria-live="polite">
-            <AnimatePresence initial={false}>
-              {lines.slice(0, visibleCount).map((line) => (
-                <motion.li
-                  key={`${loopKey}-${line.id}`}
-                  className="flex gap-2.5"
-                  initial={reduceMotion ? false : { opacity: 0, y: 6, x: 4 }}
-                  animate={{ opacity: 1, y: 0, x: 0 }}
-                  exit={reduceMotion ? undefined : { opacity: 0, y: -4 }}
-                  transition={{ duration: 0.35, ease: HANDSHAKE_EASE }}
+          {/* Fixed height + overflow clip: handshake loop must not resize the hero. */}
+          <ol className={cn(LOG_VIEWPORT_CLASS, "space-y-1.5")} aria-live="polite">
+            {lines.slice(0, visibleCount).map((line) => (
+              <motion.li
+                key={`${loopKey}-${line.id}`}
+                className="flex gap-2.5"
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.28, ease: HANDSHAKE_EASE }}
+              >
+                <span className="shrink-0 text-muted-foreground/50">{line.prefix}</span>
+                <span
+                  className={cn(
+                    line.tone === "ok" && "text-emerald-400",
+                    line.tone === "warn" && "text-foreground/85",
+                    line.tone === "muted" && "text-muted-foreground",
+                    line.tone === "default" && "text-foreground/90",
+                  )}
                 >
-                  <span className="shrink-0 text-muted-foreground/50">{line.prefix}</span>
-                  <span
-                    className={cn(
-                      line.tone === "ok" && "text-emerald-400",
-                      line.tone === "warn" && "text-foreground/85",
-                      line.tone === "muted" && "text-muted-foreground",
-                      line.tone === "default" && "text-foreground/90",
-                    )}
-                  >
-                    {line.text}
-                  </span>
-                </motion.li>
-              ))}
-            </AnimatePresence>
+                  {line.text}
+                </span>
+              </motion.li>
+            ))}
             {showCaret ? (
               <li className="flex gap-2.5 text-muted-foreground/60" aria-hidden>
                 <span className="shrink-0">▋</span>
