@@ -259,28 +259,28 @@ export function PostStudioSkeleton() {
       aria-label="Loading ship log"
       role="status"
     >
-      <Skeleton className="h-24 w-full rounded-xl bg-neutral-100" />
+      <Skeleton className="h-24 w-full rounded-xl bg-white/10" />
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-        <Skeleton className="h-32 w-full rounded-xl bg-neutral-100" />
-        <Skeleton className="h-32 w-full rounded-xl bg-neutral-100" />
+        <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
+        <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
       </div>
       <ul className="space-y-2">
         {Array.from({ length: 6 }).map((_, i) => (
           <li
             key={i}
-            className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-3.5 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex min-w-0 items-start gap-2.5">
-              <Skeleton className="mt-0.5 h-5 w-5 shrink-0 rounded-sm bg-neutral-100" />
+              <Skeleton className="mt-0.5 h-5 w-5 shrink-0 rounded-sm bg-white/10" />
               <div className="min-w-0 flex-1 space-y-1.5">
-                <Skeleton className="h-4 w-56 max-w-full bg-neutral-100" />
-                <Skeleton className="h-3 w-24 bg-neutral-100" />
+                <Skeleton className="h-4 w-56 max-w-full bg-white/10" />
+                <Skeleton className="h-3 w-24 bg-white/10" />
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 pl-7 sm:pl-0">
-              <Skeleton className="h-4 w-12 bg-neutral-100" />
-              <Skeleton className="h-4 w-12 bg-neutral-100" />
-              <Skeleton className="h-7 w-7 rounded-md bg-neutral-100" />
+              <Skeleton className="h-4 w-12 bg-white/10" />
+              <Skeleton className="h-4 w-12 bg-white/10" />
+              <Skeleton className="h-7 w-7 rounded-md bg-white/10" />
             </div>
           </li>
         ))}

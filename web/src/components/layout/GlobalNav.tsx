@@ -5,7 +5,7 @@ import { Link, useLocation } from "@/lib/navigation";
 import { isMarketplaceNavItemActive } from "@/lib/playgroundRoute";
 import { useTheme } from "next-themes";
 import { useMounted } from "@/hooks/useMounted";
-import { ArrowUpRight, Moon, Sun } from "lucide-react";
+import { ArrowUpRight, ChevronRight, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SITE_NAV_GROUPS,
@@ -38,9 +38,11 @@ import {
   getGlobalNavMaxWidthClass,
 } from "@/lib/layoutConstants";
 
-/** Visual panel only. Keep this off NavigationMenuContent so `pt-2` can bridge the trigger gap. */
+/** Visual panel only. Keep this off NavigationMenuContent so `pt-2` can bridge the trigger gap.
+ * Use overflow-visible so nested hover flyouts are not clipped.
+ */
 const navDropdownPanelClass = cn(
-  "overflow-hidden rounded-2xl border border-border/50 bg-popover/95 text-popover-foreground",
+  "overflow-visible rounded-2xl border border-border/50 bg-popover/95 text-popover-foreground",
   "shadow-[0_16px_48px_-12px_rgba(0,0,0,0.18)] backdrop-blur-xl backdrop-saturate-150",
   "dark:shadow-[0_16px_48px_-12px_rgba(0,0,0,0.55)]",
   "origin-top will-change-[opacity,transform]",
@@ -50,19 +52,25 @@ const navDropdownPanelClass = cn(
 /**
  * Positioning shell for dropdowns. Uses padding (not margin) under the trigger so the
  * pointer never leaves the menu while moving into the panel (avoids hover blink).
- * Motion: soft fade + slide-down + slight scale on open/close.
  */
 const navDropdownContentClass = cn(
-  "absolute left-0 top-full z-50 origin-top border-0 bg-transparent p-0 pt-2 shadow-none md:w-auto",
+  "absolute left-0 top-full z-50 origin-top overflow-visible border-0 bg-transparent p-0 pt-2 shadow-none md:w-auto",
   "data-[motion^=from-]:animate-in data-[motion^=to-]:animate-out",
   "data-[motion^=from-]:fade-in-0 data-[motion^=to-]:fade-out-0",
   "data-[motion^=from-]:zoom-in-[0.98] data-[motion^=to-]:zoom-out-[0.98]",
   "data-[motion^=from-]:slide-in-from-top-2 data-[motion^=to-]:slide-out-to-top-1",
   "data-[motion^=from-]:duration-200 data-[motion^=to-]:duration-150",
   "data-[motion^=from-]:ease-[cubic-bezier(0.16,1,0.3,1)] data-[motion^=to-]:ease-in",
-  "data-[motion^=from-]:fill-mode-both data-[motion^=to-]:fill-mode-both",
   "motion-reduce:data-[motion^=from-]:!animate-none motion-reduce:data-[motion^=to-]:!animate-none",
-  "motion-reduce:data-[motion^=from-]:!opacity-100 motion-reduce:data-[motion^=to-]:!opacity-0",
+);
+
+const navFlyoutPanelClass = cn(
+  "absolute left-full top-0 z-[60] pl-1.5",
+  "opacity-0 invisible pointer-events-none translate-x-1",
+  "transition-[opacity,transform,visibility] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+  "group-hover/flyout:opacity-100 group-hover/flyout:visible group-hover/flyout:pointer-events-auto group-hover/flyout:translate-x-0",
+  "group-focus-within/flyout:opacity-100 group-focus-within/flyout:visible group-focus-within/flyout:pointer-events-auto group-focus-within/flyout:translate-x-0",
+  "motion-reduce:transition-none motion-reduce:translate-x-0",
 );
 
 const navTriggerClass = cn(
@@ -71,6 +79,12 @@ const navTriggerClass = cn(
   "text-muted-foreground hover:bg-accent/55 hover:text-foreground",
   "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   "data-[state=open]:bg-accent/80 data-[state=open]:text-foreground",
+);
+
+const navRowClass = cn(
+  "group flex w-full select-none items-center gap-3 rounded-xl p-2.5 no-underline outline-none",
+  "transition-[background-color,color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+  "hover:bg-accent/70 focus:bg-accent/70",
 );
 
 /**
@@ -92,6 +106,27 @@ function isItemActive(pathname: string, search: string, href: string) {
   return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }
 
+function NavItemIcon({
+  icon: ItemIcon,
+  active,
+}: {
+  icon?: NavLinkItem["icon"];
+  active?: boolean;
+}) {
+  if (!ItemIcon) return null;
+  return (
+    <span
+      className={cn(
+        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/40 transition-[border-color,background-color,transform] duration-200",
+        "group-hover:border-border/80 group-hover:bg-background/80",
+        active && "border-border bg-background",
+      )}
+    >
+      <ItemIcon className="h-4 w-4 text-foreground/75" />
+    </span>
+  );
+}
+
 function NavMenuLink({
   item,
   pathname,
@@ -101,22 +136,11 @@ function NavMenuLink({
   pathname: string;
   search: string;
 }) {
-  const ItemIcon = item.icon;
   const active = isItemActive(pathname, search, item.href);
 
   const content = (
     <>
-      {ItemIcon ? (
-        <span
-          className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-muted/40 transition-[border-color,background-color,transform] duration-200",
-            "group-hover:border-border/80 group-hover:bg-background/80",
-            active && "border-border bg-background",
-          )}
-        >
-          <ItemIcon className="h-4 w-4 text-foreground/75" />
-        </span>
-      ) : null}
+      <NavItemIcon icon={item.icon} active={active} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1">
           <span className="truncate text-sm font-medium leading-tight">
@@ -135,12 +159,7 @@ function NavMenuLink({
     </>
   );
 
-  const linkClass = cn(
-    "group flex w-full select-none items-center gap-3 rounded-xl p-2.5 no-underline outline-none",
-    "transition-[background-color,color,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-    "hover:bg-accent/70 focus:bg-accent/70",
-    active && "bg-accent/90",
-  );
+  const linkClass = cn(navRowClass, active && "bg-accent/90");
 
   if (item.external) {
     return (
@@ -170,24 +189,76 @@ function NavMenuLink({
   );
 }
 
-function NavSectionLabel({
+/** First-level row that opens a nested hover flyout of pages. */
+function NavFlyoutSection({
   section,
+  pathname,
+  search,
 }: {
-  section: Pick<NavSection, "label" | "icon">;
+  section: NavSection;
+  pathname: string;
+  search: string;
 }) {
   const SectionIcon = section.icon;
+  const childActive = section.items.some((item) =>
+    isItemActive(pathname, search, item.href),
+  );
+  const countLabel =
+    section.items.length === 1
+      ? "1 page"
+      : `${section.items.length} pages`;
+
   return (
-    <li className="flex items-center gap-2 px-2.5 pb-1 pt-2 first:pt-0.5">
-      {SectionIcon ? (
-        <SectionIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
-      ) : null}
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55">
-        {section.label}
-      </span>
-      <span
-        className="h-px min-w-0 flex-1 bg-gradient-to-r from-border/50 to-transparent"
-        aria-hidden
-      />
+    <li className="group/flyout relative">
+      <div
+        className={cn(
+          navRowClass,
+          "cursor-default",
+          "group-hover/flyout:bg-accent/70 group-focus-within/flyout:bg-accent/70",
+          childActive && "bg-accent/90",
+        )}
+        tabIndex={0}
+        role="button"
+        aria-haspopup="menu"
+      >
+        <NavItemIcon icon={SectionIcon} active={childActive} />
+        <span className="min-w-0 flex-1">
+          <span className="truncate text-sm font-medium leading-tight">
+            {section.label}
+          </span>
+          <span className="mt-0.5 block truncate text-xs leading-snug text-muted-foreground">
+            {countLabel}
+          </span>
+        </span>
+        <ChevronRight
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground/60 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            "group-hover/flyout:translate-x-0.5 group-hover/flyout:text-foreground/70",
+            "group-focus-within/flyout:translate-x-0.5",
+          )}
+          aria-hidden
+        />
+      </div>
+
+      <div className={navFlyoutPanelClass}>
+        <ul
+          className={cn(
+            "w-[min(100vw-2rem,17.5rem)] p-2",
+            navDropdownPanelClass,
+          )}
+          role="menu"
+          aria-label={section.label}
+        >
+          {section.items.map((item) => (
+            <NavMenuLink
+              key={item.href}
+              item={item}
+              pathname={pathname}
+              search={search}
+            />
+          ))}
+        </ul>
+      </div>
     </li>
   );
 }
@@ -213,7 +284,7 @@ function NavMenuGroup({
     })) ?? [];
   const flatItems = getNavGroupLinkItems(group, isAdmin);
   const hasSections = sections.some((section) => section.items.length > 0);
-  const isWide = hasSections || flatItems.length > 4;
+  const isWide = !hasSections && flatItems.length > 4;
 
   if (flatItems.length === 0 && group.href) {
     return (
@@ -249,42 +320,31 @@ function NavMenuGroup({
       </NavigationMenuTrigger>
       <NavigationMenuContent className={navDropdownContentClass}>
         {hasSections ? (
-          <div
+          <ul
             className={cn(
-              "grid gap-1 p-2",
+              "w-[min(100vw-2rem,17.5rem)] p-2",
               navDropdownPanelClass,
-              "w-[min(100vw-2rem,42rem)] grid-cols-1 sm:grid-cols-2",
-              "nav-mega-panel",
             )}
           >
-            {topItems.length > 0 ? (
-              <ul className="col-span-full flex flex-col gap-0.5 border-b border-border/40 pb-2">
-                {topItems.map((item) => (
-                  <NavMenuLink
-                    key={item.href}
-                    item={item}
-                    pathname={pathname}
-                    search={search}
-                  />
-                ))}
-              </ul>
-            ) : null}
+            {topItems.map((item) => (
+              <NavMenuLink
+                key={item.href}
+                item={item}
+                pathname={pathname}
+                search={search}
+              />
+            ))}
             {sections.map((section) =>
               section.items.length === 0 ? null : (
-                <ul key={section.id} className="flex flex-col gap-0.5">
-                  <NavSectionLabel section={section} />
-                  {section.items.map((item) => (
-                    <NavMenuLink
-                      key={item.href}
-                      item={item}
-                      pathname={pathname}
-                      search={search}
-                    />
-                  ))}
-                </ul>
+                <NavFlyoutSection
+                  key={section.id}
+                  section={section}
+                  pathname={pathname}
+                  search={search}
+                />
               ),
             )}
-          </div>
+          </ul>
         ) : (
           <ul
             className={cn(
@@ -367,9 +427,9 @@ export function GlobalNav() {
           delayDuration={100}
           skipDelayDuration={180}
           viewport={false}
-          className="relative z-10 hidden shrink-0 lg:flex"
+          className="relative z-10 hidden shrink-0 overflow-visible lg:flex"
         >
-          <NavigationMenuList className="gap-0.5">
+          <NavigationMenuList className="gap-0.5 overflow-visible">
             {SITE_NAV_GROUPS.map((group) => (
               <NavMenuGroup
                 key={group.id}

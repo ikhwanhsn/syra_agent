@@ -46,7 +46,7 @@ export default function PostPage() {
   }, [statusTick]);
 
   return (
-    <div className="post-root relative flex min-h-[100dvh] w-full flex-col overflow-x-hidden bg-white text-neutral-900">
+    <div className="post-root relative flex min-h-[100dvh] w-full flex-col overflow-x-hidden bg-[#030303] text-white">
       <div
         className="post-ambient pointer-events-none absolute inset-0"
         aria-hidden
@@ -70,18 +70,18 @@ export default function PostPage() {
             <img
               src="/images/logo.jpg"
               alt=""
-              className="h-10 w-10 shrink-0 rounded-xl border border-neutral-200 object-cover sm:h-11 sm:w-11"
+              className="h-10 w-10 shrink-0 rounded-xl border border-white/10 object-cover sm:h-11 sm:w-11"
             />
             <div className="min-w-0 text-left">
               <h1 className="font-display text-lg font-medium tracking-tight sm:text-xl">
                 Syra Ship Log
               </h1>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-400">
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
                 Social post studio
               </p>
             </div>
           </div>
-          <p className="max-w-xl text-left text-sm text-neutral-500 sm:text-right">
+          <p className="max-w-xl text-left text-sm text-white/55 sm:text-right">
             Turn each ship log into a growth-ready X post. Record the video deck
             or export branded photos with one-click share copy.
           </p>
@@ -91,20 +91,20 @@ export default function PostPage() {
           <PostStudioSkeleton />
         ) : (
           <>
-            <div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-left sm:mb-8 sm:px-5 sm:py-4">
+            <div className="mb-6 rounded-xl border border-white/20 bg-white/[0.04] px-4 py-3 text-left sm:mb-8 sm:px-5 sm:py-4">
               <div className="mb-2 flex items-center gap-2">
-                <Lock className="h-3.5 w-3.5 shrink-0 text-neutral-700" aria-hidden />
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-700">
+                <Lock className="h-3.5 w-3.5 shrink-0 text-white/80" aria-hidden />
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/80">
                   Locked format · #{POST_TEMPLATE_UPDATE_NUMBER}
                 </p>
               </div>
-              <p className="text-xs leading-relaxed text-neutral-500 sm:text-sm">
+              <p className="text-xs leading-relaxed text-white/55 sm:text-sm">
                 Every future ship log follows this structure:{" "}
-                <span className="text-neutral-700">
+                <span className="text-white/75">
                   {POST_VIDEO_SLIDE_COUNT} video slides
                 </span>{" "}
                 ({POST_VIDEO_SLIDE_SLOTS.map((s) => s.kind).join(" → ")}) and{" "}
-                <span className="text-neutral-700">
+                <span className="text-white/75">
                   {POST_PHOTO_CARD_COUNT} photo cards
                 </span>{" "}
                 in fixed role order. The Format Template cannot be removed from the
@@ -113,13 +113,13 @@ export default function PostPage() {
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
                 <Link
                   to={`/post/video/${POST_TEMPLATE_UPDATE_NUMBER}`}
-                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-700 transition-colors hover:text-neutral-900"
+                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
                 >
                   Open video template
                 </Link>
                 <Link
                   to={`/post/photo/${POST_TEMPLATE_UPDATE_NUMBER}`}
-                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-700 transition-colors hover:text-neutral-900"
+                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
                 >
                   Open photo template
                 </Link>
@@ -129,16 +129,16 @@ export default function PostPage() {
             <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
               <Link
                 to={`/post/video/${latestVisible}`}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-5 transition-colors hover:border-neutral-400 hover:bg-neutral-100 sm:p-6"
+                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/30 hover:bg-white/[0.06] sm:p-6"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-900">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white">
                   <Video className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <p className="font-display text-sm font-medium text-neutral-900 sm:text-base">
+                  <p className="font-display text-sm font-medium text-white/90 sm:text-base">
                     Video
                   </p>
-                  <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
+                  <p className="mt-1 text-xs text-white/45 sm:text-sm">
                     16:9 slide deck · {POST_VIDEO_SLIDE_COUNT} fixed kinds ·
                     proof-first
                   </p>
@@ -147,16 +147,16 @@ export default function PostPage() {
 
               <Link
                 to={`/post/photo/${latestVisible}`}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-5 transition-colors hover:border-neutral-400 hover:bg-neutral-100 sm:p-6"
+                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/30 hover:bg-white/[0.06] sm:p-6"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-900">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white">
                   <ImageIcon className="h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <p className="font-display text-sm font-medium text-neutral-900 sm:text-base">
+                  <p className="font-display text-sm font-medium text-white/90 sm:text-base">
                     Photo
                   </p>
-                  <p className="mt-1 text-xs text-neutral-500 sm:text-sm">
+                  <p className="mt-1 text-xs text-white/45 sm:text-sm">
                     {POST_PHOTO_CARD_COUNT} cards per update · matched X copy
                   </p>
                 </div>

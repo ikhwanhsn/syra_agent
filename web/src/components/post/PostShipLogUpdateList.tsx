@@ -111,15 +111,15 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
     <>
       <div className="mt-8 w-full min-w-0 text-left sm:mt-10">
         <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-400">
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
             Ship log updates
-            <span className="ml-2 text-neutral-300">({updates.length})</span>
+            <span className="ml-2 text-white/25">({updates.length})</span>
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-neutral-400">
-              <span className="text-emerald-600">● Posted</span>
-              <span className="mx-1.5 text-neutral-300">·</span>
-              <span className="text-amber-600">● Not posted</span>
+            <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">
+              <span className="text-emerald-400/80">● Posted</span>
+              <span className="mx-1.5 text-white/20">·</span>
+              <span className="text-amber-300/70">● Not posted</span>
             </p>
             {deletableUpdates.length > 0 ? (
               <>
@@ -128,7 +128,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   onClick={() =>
                     setSelected(new Set(deletableUpdates.map((bundle) => bundle.video.meta.updateNumber)))
                   }
-                  className="min-h-9 font-mono text-[9px] uppercase tracking-[0.12em] text-neutral-500 transition-colors hover:text-neutral-800 sm:min-h-0"
+                  className="min-h-9 font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70 sm:min-h-0"
                 >
                   Select all
                 </button>
@@ -136,7 +136,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   <button
                     type="button"
                     onClick={clearSelection}
-                    className="min-h-9 font-mono text-[9px] uppercase tracking-[0.12em] text-neutral-500 transition-colors hover:text-neutral-800 sm:min-h-0"
+                    className="min-h-9 font-mono text-[9px] uppercase tracking-[0.12em] text-white/40 transition-colors hover:text-white/70 sm:min-h-0"
                   >
                     Clear
                   </button>
@@ -175,16 +175,16 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                   className={cn(
                     "flex flex-col gap-3 rounded-lg border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 sm:py-3",
                     isLocked
-                      ? "border-neutral-300 bg-neutral-50"
+                      ? "border-white/25 bg-white/[0.05]"
                       : isSelected
-                        ? "border-red-300 bg-red-50"
-                        : "border-neutral-200 bg-white",
+                        ? "border-red-500/25 bg-red-500/[0.04]"
+                        : "border-white/8 bg-white/[0.02]",
                   )}
                 >
                   <div className="flex min-w-0 items-start gap-2.5 sm:items-center">
                     {isLocked ? (
                       <span
-                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-neutral-700 sm:mt-0 sm:h-4 sm:w-4"
+                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-white/80 sm:mt-0 sm:h-4 sm:w-4"
                         title="Locked format template"
                         aria-label="Locked format template"
                       >
@@ -194,25 +194,25 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={(checked) => toggleSelected(meta.updateNumber, checked === true)}
-                        className="mt-0.5 border-neutral-300 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80 sm:mt-0"
+                        className="mt-0.5 border-white/25 data-[state=checked]:border-red-500/50 data-[state=checked]:bg-red-500/80 sm:mt-0"
                         aria-label={`Select update #${meta.updateNumber} for bulk delete`}
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm leading-snug text-neutral-800 break-words">
+                      <p className="text-sm leading-snug text-white/85 break-words">
                         #{meta.updateNumber} · {meta.title}
                         {isLocked ? (
-                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-600">
+                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
                             Template
                           </span>
                         ) : null}
                         {isLatest ? (
-                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-600">
+                          <span className="ml-2 inline-block font-mono text-[10px] uppercase tracking-[0.12em] text-white/80">
                             Latest
                           </span>
                         ) : null}
                       </p>
-                      <p className="mt-0.5 font-mono text-[10px] text-neutral-400">{meta.published}</p>
+                      <p className="mt-0.5 font-mono text-[10px] text-white/35">{meta.published}</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 pl-7 sm:shrink-0 sm:pl-0">
@@ -221,19 +221,19 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                     ) : null}
                     <Link
                       to={`/post/video/${meta.updateNumber}`}
-                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-500 transition-colors hover:text-neutral-800 sm:min-h-0"
+                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
                     >
                       Video
                     </Link>
                     <Link
                       to={`/post/photo/${meta.updateNumber}`}
-                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-500 transition-colors hover:text-neutral-800 sm:min-h-0"
+                      className="inline-flex min-h-9 items-center font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/80 sm:min-h-0"
                     >
                       Photo
                     </Link>
                     {isLocked ? (
                       <span
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-neutral-300 sm:h-7 sm:w-7"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/20 sm:h-7 sm:w-7"
                         title="Cannot delete format template"
                         aria-hidden
                       >
@@ -243,7 +243,7 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
                       <button
                         type="button"
                         onClick={() => setSingleDeleteTarget(bundle)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600 sm:h-7 sm:w-7"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-red-500/10 hover:text-red-400/90 sm:h-7 sm:w-7"
                         aria-label={`Delete update #${meta.updateNumber}`}
                         title="Delete from studio"
                       >

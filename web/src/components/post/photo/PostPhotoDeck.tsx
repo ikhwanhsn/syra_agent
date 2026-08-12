@@ -47,17 +47,12 @@ function CardButton({
       className={cn(
         "post-photo-template-btn flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors",
         active
-          ? "bg-neutral-900 text-white"
-          : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900",
+          ? "bg-white/12 text-white"
+          : "text-white/60 hover:bg-white/[0.04] hover:text-white/85",
       )}
     >
       <span className="min-w-0 flex-1 text-xs">{label}</span>
-      <span
-        className={cn(
-          "shrink-0 font-mono text-[9px] uppercase tracking-[0.12em]",
-          active ? "text-white/50" : "text-neutral-400",
-        )}
-      >
+      <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">
         {sublabel}
       </span>
     </button>
@@ -75,7 +70,7 @@ function LayoutVariantSelector({
     <div
       role="group"
       aria-label="Layout variant"
-      className="inline-flex items-center gap-0.5 rounded-full border border-neutral-200 bg-neutral-50 p-0.5"
+      className="inline-flex items-center gap-0.5 rounded-full border border-white/10 bg-white/[0.04] p-0.5"
     >
       {Array.from({ length: PHOTO_LAYOUT_VARIANT_COUNT }, (_, i) => {
         const variant = i as PhotoLayoutVariant;
@@ -88,10 +83,10 @@ function LayoutVariantSelector({
             aria-label={PHOTO_LAYOUT_VARIANT_LABELS[variant]}
             onClick={() => onChange(variant)}
             className={cn(
-              "inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900",
+              "inline-flex h-10 min-w-10 items-center justify-center rounded-full px-3 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               active
-                ? "bg-neutral-900 text-white"
-                : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800",
+                ? "bg-white/15 text-white"
+                : "text-white/50 hover:bg-white/[0.06] hover:text-white/80",
             )}
           >
             {PHOTO_LAYOUT_VARIANT_SHORT[variant]}
@@ -176,20 +171,20 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
   }, [exporting, activeCard, activeVariant]);
 
   return (
-    <div className="post-root post-photo-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-white text-neutral-900">
+    <div className="post-root post-photo-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-[#030303] text-white">
       <header className="post-chrome-header relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-3 sm:px-6 sm:py-4 md:px-8">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <PostBackLink to="/post" />
           <img
             src="/images/logo.jpg"
             alt=""
-            className="h-7 w-7 shrink-0 rounded-lg border border-neutral-200 object-cover sm:h-8 sm:w-8"
+            className="h-7 w-7 shrink-0 rounded-lg border border-white/10 object-cover sm:h-8 sm:w-8"
           />
           <div className="min-w-0">
-            <span className="font-display text-sm font-medium tracking-tight text-neutral-900">
+            <span className="font-display text-sm font-medium tracking-tight text-white/90">
               Syra
             </span>
-            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-400">
+            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
               {meta.published} · Photo
             </p>
           </div>
@@ -202,15 +197,15 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             defaultPosted={meta.postedOnX}
           />
 
-          <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 p-0.5">
+          <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
             <Link
               to={`/post/video/${meta.updateNumber}`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-500 transition-colors hover:text-neutral-800 sm:px-3"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/70 sm:px-3"
             >
               <Video className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Video</span>
             </Link>
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-neutral-900 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white sm:px-3">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white sm:px-3">
               <ImageIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Photo</span>
             </span>
@@ -227,10 +222,10 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             type="button"
             onClick={handleCopy}
             disabled={exporting}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:bg-white/15 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
           >
             {imageCopied ? (
-              <Check className="h-4 w-4 text-neutral-900" />
+              <Check className="h-4 w-4 text-white" />
             ) : (
               <Copy className="h-4 w-4" />
             )}
@@ -243,7 +238,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             type="button"
             onClick={handleDownload}
             disabled={exporting}
-            className="post-play-btn inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-900 bg-neutral-900 px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-5"
+            className="post-play-btn inline-flex h-9 items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-white/25 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-5"
           >
             <Download className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">Download</span>
@@ -252,16 +247,16 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
       </header>
 
       <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col lg:flex-row">
-        <aside className="post-photo-sidebar shrink-0 border-b border-neutral-200 lg:w-72 lg:border-b-0 lg:border-r">
+        <aside className="post-photo-sidebar shrink-0 border-b border-white/[0.06] lg:w-72 lg:border-b-0 lg:border-r">
           <div className="px-3 py-3 sm:px-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-600">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/70">
               {POST_PHOTO_CARD_COUNT} cards · {POST_PHOTO_CARD_COUNT} X posts
             </p>
-            <p className="mt-1 text-xs text-neutral-500">{meta.tagline}</p>
+            <p className="mt-1 text-xs text-white/50">{meta.tagline}</p>
           </div>
 
           <div className="post-photo-template-list max-h-56 overflow-y-auto px-2 pb-2 lg:max-h-none lg:flex-1">
-            <p className="px-2.5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-neutral-400">
+            <p className="px-2.5 pb-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-white/30">
               Ship log deck
             </p>
             {cards.map((card, index) => {
@@ -278,14 +273,14 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             })}
           </div>
 
-          <div className="border-t border-neutral-200 px-3 py-3 sm:px-4">
-            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-neutral-600">
+          <div className="border-t border-white/[0.06] px-3 py-3 sm:px-4">
+            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-white/70">
               X post for this card
             </p>
-            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-neutral-500">
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-white/55">
               {cardShareText}
             </p>
-            <p className="mt-2 font-mono text-[10px] text-neutral-400">
+            <p className="mt-2 font-mono text-[10px] text-white/25">
               {shareCopyHasLink(cardShareText)
                 ? "Each card uses its own copy + link"
                 : "Unique footer link on copy"}
@@ -307,7 +302,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
             aria-hidden
           />
           <div className="relative z-10 mb-2 flex w-full max-w-[1200px] flex-col items-center gap-2 sm:flex-row sm:justify-between sm:gap-3">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-400">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/35">
               {slotLabel}
               {" · "}
               {activeCard.role}
@@ -326,7 +321,7 @@ export function PostPhotoDeck({ post }: PostPhotoDeckProps) {
           <div className="relative z-10 w-full">
             <PostPhotoSatoriPreview card={activeCard} variant={activeVariant} />
           </div>
-          <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-neutral-400 sm:block">
+          <p className="post-footer-hint relative z-10 mt-3 hidden text-center font-mono text-[10px] text-white/30 sm:block">
             Pick layout A/B/C per card, export PNG, then paste the matching X
             post, 15 posts per ship log
           </p>

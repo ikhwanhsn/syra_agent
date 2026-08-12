@@ -73,7 +73,7 @@ export function PostDeck({ post }: PostDeckProps) {
   return (
     <div
       ref={containerRef}
-      className="post-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-white text-neutral-900"
+      className="post-root relative flex min-h-[100dvh] w-full min-w-0 flex-col overflow-x-hidden bg-[#030303] text-white"
     >
       <header className="post-chrome-header relative z-20 flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-3 sm:px-6 sm:py-4 md:px-8">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
@@ -81,11 +81,11 @@ export function PostDeck({ post }: PostDeckProps) {
           <img
             src="/images/logo.jpg"
             alt=""
-            className="h-7 w-7 shrink-0 rounded-lg border border-neutral-200 object-cover sm:h-8 sm:w-8"
+            className="h-7 w-7 shrink-0 rounded-lg border border-white/10 object-cover sm:h-8 sm:w-8"
           />
           <div className="min-w-0">
-            <span className="font-display text-sm font-medium tracking-tight text-neutral-900">Syra</span>
-            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-400">
+            <span className="font-display text-sm font-medium tracking-tight text-white/90">Syra</span>
+            <p className="truncate font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
               {meta.published} · Remotion
             </p>
           </div>
@@ -95,14 +95,14 @@ export function PostDeck({ post }: PostDeckProps) {
           <PostUpdateNav updateNumber={meta.updateNumber} format="video" />
           <PostXStatusControl updateNumber={meta.updateNumber} defaultPosted={meta.postedOnX} />
 
-          <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 p-0.5">
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-neutral-900 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white sm:px-3">
+          <nav className="post-photo-mode-nav flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-0.5">
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white sm:px-3">
               <Video className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Video</span>
             </span>
             <Link
               to={`/post/photo/${meta.updateNumber}`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-500 transition-colors hover:text-neutral-800 sm:px-3"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-white/45 transition-colors hover:text-white/70 sm:px-3"
             >
               <ImageIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Photo</span>
@@ -115,7 +115,7 @@ export function PostDeck({ post }: PostDeckProps) {
             type="button"
             onClick={() => setExportModalOpen(true)}
             disabled={exporting}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-neutral-900 bg-neutral-900 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 font-mono text-[10px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-white/25 disabled:opacity-50 sm:h-10 sm:gap-2 sm:px-4"
           >
             <Download className="h-4 w-4 shrink-0" />
             <span className="hidden sm:inline">
@@ -129,13 +129,13 @@ export function PostDeck({ post }: PostDeckProps) {
       </header>
 
       <div className="post-chrome-stage relative z-10 flex min-h-0 w-full min-w-0 flex-1 items-center justify-center px-2 py-2 sm:px-4 sm:py-3 md:px-6">
-        <div className="w-full max-w-5xl overflow-hidden rounded-lg border border-neutral-200 bg-black shadow-2xl">
+        <div className="w-full max-w-5xl overflow-hidden rounded-lg border border-white/10 bg-black shadow-2xl">
           <PostVideoPlayer slides={slides} autoPlay loop controls initiallyMuted />
         </div>
       </div>
 
       <footer className="post-chrome-footer relative z-20 shrink-0 px-3 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-2 sm:px-6 sm:pb-6 md:px-8 md:pb-8">
-        <p className="text-center font-mono text-[10px] text-neutral-400 sm:text-[11px]">
+        <p className="text-center font-mono text-[10px] text-white/35 sm:text-[11px]">
           Syra cinematic · {slideCount} slides · Remotion preview (same as download)
         </p>
       </footer>
@@ -149,15 +149,15 @@ export function PostDeck({ post }: PostDeckProps) {
 
       {exporting ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#030303]/80 px-4 backdrop-blur-sm"
           role="status"
           aria-live="polite"
         >
-          <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-6 text-center shadow-2xl">
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-700">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 text-center shadow-2xl">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/80">
               Rendering video
             </p>
-            <p className="mt-2 font-display text-lg text-neutral-900">
+            <p className="mt-2 font-display text-lg text-white/90">
               Full HD · 30fps · {exportFormat.toUpperCase()}
             </p>
             <div className="post-progress-track mx-auto mt-5 h-1.5 w-full overflow-hidden rounded-full">
@@ -166,12 +166,12 @@ export function PostDeck({ post }: PostDeckProps) {
                 style={{ width: `${Math.round(exportProgress * 100)}%` }}
               />
             </div>
-            <p className="mt-3 font-mono text-xs tabular-nums text-neutral-500">
+            <p className="mt-3 font-mono text-xs tabular-nums text-white/45">
               {Math.round(exportProgress * 100)}% · slide{" "}
               {String(exportSlideIndex + 1).padStart(2, "0")} /{" "}
               {String(slideCount).padStart(2, "0")}
             </p>
-            <p className="mt-2 text-xs text-neutral-400">Keep this tab open until the download starts</p>
+            <p className="mt-2 text-xs text-white/35">Keep this tab open until the download starts</p>
           </div>
         </div>
       ) : null}
