@@ -1,20 +1,20 @@
 {
-  "date": "2026-08-11",
-  "updatedAt": "2026-08-11T17:08:00.000Z",
+  "date": "2026-08-12",
+  "updatedAt": "2026-08-12T02:40:00.000Z",
   "source": "https://api.syraa.fun/api/metrics",
   "mode": "daily",
-  "weekday": "Tue",
-  "routedAgents": ["token-marketcap"],
+  "weekday": "Wed",
+  "routedAgents": ["payments-security", "product"],
   "northStar": {
-    "paidCallsLast7d": 28520,
-    "uniquePayingWalletsLast7d": 110
+    "paidCallsLast7d": 27785,
+    "uniquePayingWalletsLast7d": 111
   },
   "last7d": {
-    "calls": 28520,
-    "usdSettled": 2411.38
+    "calls": 27785,
+    "usdSettled": 2357.56
   },
   "buyback": {
-    "totalBuybackUsdSpent": 24.39,
+    "totalBuybackUsdSpent": 23.82,
     "totalSyraAcquired": 172452.066761,
     "treasurySyraBalance": 172452.066761,
     "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
@@ -25,10 +25,11 @@
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0337,
+    "settleFailRate24h": 0.0453,
     "meetsLaunchGuardrail24h": true,
-    "settleFailRate1h": 0.0657
+    "settleFailRate1h": 0.0545,
+    "meetsLaunchGuardrail1h": false
   },
-  "oneAction": "Funded epoch: POST /internal/rewards/fund maxSyraToFund=50000 → fundedWallets=3, totalSyraFunded=50000. Live metrics totalClaimableSyra=50000. Do not publish #34 yet.",
-  "bottleneck": "token-loop"
+  "oneAction": "Code default X402_SETTLE_FACILITATOR_TIMEOUT_MS 3000→10000 in x402PaymentV2.js (env still overrides). Deploy/restart API; re-check last1h settleFailRate after ~1h.",
+  "bottleneck": "settlement"
 }

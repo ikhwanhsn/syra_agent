@@ -1,0 +1,50 @@
+{
+  "date": "2026-08-12",
+  "updatedAt": "2026-08-12T02:40:00.000Z",
+  "source": "https://api.syraa.fun/api/metrics",
+  "mode": "propose",
+  "weekday": "Wed",
+  "oneAction": "Log ≥3 design-partner outreach rows in docs/AGENT_BUILDER_GTM.md (name, surface, contactedAt, reply status). Do not founder-pay MCP as proof. Do not publish proof #34. Eng stays on settle 1h hold only.",
+  "riceWinner": "Design-partner outreach logged (CEO #2) — RICE≈14.4; settlement hold is higher RICE but eng/ops gate, not a product feature ship",
+  "killList": [
+    "Token-led homepage GTM / Buy $SYRA as hero CTA while settle 1h red / streak <5d",
+    "Earn LP Autopilot feature expansion / LP Autopilot as peer hero CTA",
+    "Telegram as hero CTA",
+    "Five-pillar feature parity theater before external MCP demand proof",
+    "CEX/listing applications before settlement green + external payer",
+    "Self-generated mcpPaidCalls counted as distribution proof",
+    "New experiment desks / Outcomes surface expansion",
+    "Wallet / Privy polish as primary eng priority while settle 1h red",
+    "MCP Integrate polish / new activation surfaces while settleFailRate1h > 0.05",
+    "Proof post #34 publish before ≥5 consecutive green settle days"
+  ],
+  "northStar": {
+    "paidCallsLast7d": 27785,
+    "uniquePayingWalletsLast7d": 111
+  },
+  "settlement": {
+    "settleFailRate24h": 0.0452,
+    "meetsLaunchGuardrail24h": true,
+    "settleFailRate1h": 0.0545,
+    "meetsLaunchGuardrail1h": false
+  },
+  "bySource": {
+    "api": 133087,
+    "mcpPaidCalls": 1
+  },
+  "shipThisWeek": [
+    "Design-partner outreach logged in AGENT_BUILDER_GTM.md (founder/ops, ≤2h)",
+    "Settlement 1h hold ops only if red persists (eng — not product surface)"
+  ],
+  "defer": [
+    "Invest positions Live",
+    "Earn on-chain payouts",
+    "Treasury productize",
+    "Grow executable",
+    "Starter credits / demo payer",
+    "Proof post publish",
+    "Hero MCP copy polish beyond zombie demotion"
+  ],
+  "notes": "Surface expansion BLOCKED: 24h green 0.0452, 1h RED 0.0545. paidCalls7d −735 vs yesterday; wallets +1. mcpPaidCalls still 1. Rewards epoch funded yesterday (50000 claimable / 0 claimed). Micro-team: Rice+Map → outreach; Lens → fund/keypair cliff + hero dilution (defer eng copy until 1h green unless pure zombie demote).",
+  "bottleneck": "settlement+distribution"
+}

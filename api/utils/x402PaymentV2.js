@@ -267,7 +267,7 @@ const X402_VERIFY_FACILITATOR_TIMEOUT_MS = Number.parseInt(
   10
 );
 const X402_SETTLE_FACILITATOR_TIMEOUT_MS = Number.parseInt(
-  process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "3000",
+  process.env.X402_SETTLE_FACILITATOR_TIMEOUT_MS || "10000",
   10
 );
 /** Extra facilitator settle attempts after the first (transient flake only). Default 0 — local Solana RPC fallback covers facilitator flake; retries stacked settle latency on the paid path. */
