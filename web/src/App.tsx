@@ -10,6 +10,7 @@ import Index from "@/pages/Index";
 import NotFound from "@/pages/NotFound";
 import GrowthHomePage from "@/pages/GrowthHomePage";
 import DashboardLayout from "@/pages/DashboardLayout";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
 
 const DashboardOverview = lazy(() => import("@/pages/DashboardOverview"));
@@ -394,9 +395,11 @@ function AppRoutes() {
 
 function SuspenseOutlet() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Outlet />
-    </Suspense>
+    <RouteErrorBoundary label="This page">
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    </RouteErrorBoundary>
   );
 }
 
@@ -423,7 +426,9 @@ const App = () => (
         <Route
           element={
             <Suspense fallback={<RouteFallback />}>
-              <PostStudioLayout />
+              <RouteErrorBoundary label="Ship log studio">
+                <PostStudioLayout />
+              </RouteErrorBoundary>
             </Suspense>
           }
         >

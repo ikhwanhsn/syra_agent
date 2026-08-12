@@ -30,6 +30,7 @@ import {
   PostVideoCtaLink,
   PostVideoLinkArrow,
 } from "@/components/post/PostVideoChip";
+import { PostLogoImg } from "@/components/post/PostLogoImg";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -84,9 +85,7 @@ export function renderCoverExtended(
       return (
         <PostSlideLayout isActive={isActive} template={layout} variant="cover">
           <PostReveal isActive={isActive} delayMs={0}>
-            <img
-              src="/images/logo.jpg"
-              alt=""
+            <PostLogoImg
               className="post-cover-logo mx-auto h-16 w-16 rounded-2xl border border-neutral-200 object-cover sm:h-[4.5rem] sm:w-[4.5rem]"
             />
           </PostReveal>

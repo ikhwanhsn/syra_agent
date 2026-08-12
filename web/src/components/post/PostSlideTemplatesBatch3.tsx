@@ -21,6 +21,7 @@ import {
   PostVideoCtaLink,
   PostVideoLinkArrow,
 } from "@/components/post/PostVideoChip";
+import { PostLogoImg } from "@/components/post/PostLogoImg";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -83,9 +84,7 @@ export function renderCoverBatch3(
             <div className="post-batch3-ring-frame">
               <div className="post-batch3-ring-glow" aria-hidden />
               <div className="post-batch3-ring-inner">
-                <img
-                  src="/images/logo.jpg"
-                  alt=""
+                <PostLogoImg
                   className="post-cover-logo mx-auto h-12 w-12 rounded-xl border border-neutral-200 object-cover sm:h-14 sm:w-14"
                 />
                 <CoverBadge
@@ -148,9 +147,7 @@ export function renderCoverBatch3(
           <PostSlideContent align="left">
             <PostReveal isActive={isActive} delayMs={0}>
               <div className="post-batch3-corner-anchor">
-                <img
-                  src="/images/logo.jpg"
-                  alt=""
+                <PostLogoImg
                   className="post-batch3-corner-logo-img h-10 w-10 rounded-lg border border-neutral-300 object-cover sm:h-12 sm:w-12"
                 />
                 <span className="post-batch3-corner-line" aria-hidden />
