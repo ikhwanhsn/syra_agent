@@ -22,6 +22,8 @@ interface SimulationPanelProps {
   chain?: LabChain;
   /** Draft values from settings form (optional, falls back to saved settings) */
   draft?: {
+    intervalMin?: number;
+    jitterPct?: number;
     refundEnabled?: boolean;
     autoCallEnabled?: boolean;
     targetVolumeUsd?: number;
@@ -78,6 +80,8 @@ export function SimulationPanel({
     return formatSimulationSol(n);
   };
 
+  const intervalMin = draft?.intervalMin ?? (settings ? Math.round(settings.intervalMs / 60_000) : 5);
+  const jitterPct = draft?.jitterPct ?? settings?.jitterPct ?? 20;
   const refundEnabled = draft?.refundEnabled ?? settings?.refundEnabled ?? true;
   const autoCallEnabled = draft?.autoCallEnabled ?? settings?.autoCallEnabled ?? false;
   const priceMultiplier =
@@ -90,6 +94,8 @@ export function SimulationPanel({
     () =>
       runLabsX402Simulation({
         payerCount,
+        intervalMin,
+        jitterPct,
         refundEnabled,
         autoCallEnabled,
         endpoints,
@@ -98,6 +104,8 @@ export function SimulationPanel({
       }),
     [
       payerCount,
+      intervalMin,
+      jitterPct,
       refundEnabled,
       autoCallEnabled,
       endpoints,
@@ -106,7 +114,10 @@ export function SimulationPanel({
     ],
   );
 
-  const callsRange = useMemo(() => getCallsRange(payerCount), [payerCount]);
+  const callsRange = useMemo(
+    () => getCallsRange(payerCount, intervalMin, jitterPct),
+    [payerCount, intervalMin, jitterPct],
+  );
 
   const perWalletRows = useMemo(
     () => buildPerWalletBalanceRows(wallets, result.walletBalances),
@@ -122,8 +133,8 @@ export function SimulationPanel({
             Volume & cost simulation
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Plan how to hit a 24h USD volume target, calls, price multiplier, and wallet funding.
-            Batch wait is random 15-60 minutes.
+            Plan how to hit a 24h USD volume target, calls, interval, price multiplier, and wallet
+            funding.
             {priceMultiplier !== 1 ? (
               <>
                 {" "}
@@ -227,10 +238,10 @@ export function SimulationPanel({
                 </p>
                 <dl className="space-y-2">
                   <StatRow label="Payer wallets" value={String(payerCount)} />
+                  <StatRow label="Interval" value={`${intervalMin} min`} hint={`±${jitterPct}% jitter`} />
                   <StatRow
-                    label="Batch wait"
+                    label="Interval range"
                     value={`${result.intervalRangeMin}–${result.intervalRangeMax} min`}
-                    hint="random each batch"
                   />
                   <StatRow
                     label="Price multiplier"
@@ -327,9 +338,13 @@ export function SimulationPanel({
                     }
                   />
                   <StatRow
-                    label="Batch wait"
-                    value={`${result.intervalRangeMin}–${result.intervalRangeMax} min`}
-                    hint={`random, ${payerCount} payer${payerCount === 1 ? "" : "s"}`}
+                    label="Recommended interval"
+                    value={
+                      result.suggestedIntervalMin != null
+                        ? `${result.suggestedIntervalMin} min`
+                        : "-"
+                    }
+                    hint={`with ${payerCount} payer${payerCount === 1 ? "" : "s"}`}
                   />
                   <StatRow
                     label="Projected gross at target"
