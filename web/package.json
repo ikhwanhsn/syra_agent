@@ -8,7 +8,7 @@
     "sync:x402-playground": "node ../scripts/sync-x402-playground-catalog.mjs",
     "prebuild": "npm run sync:x402-playground && npm run generate:seo",
     "pretest": "npm run sync:x402-playground",
-    "build": "vite build",
+    "build": "node --max-old-space-size=6144 ./node_modules/vite/bin/vite.js build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -92,7 +92,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "viem": "^2.39.3",
-    "wagmi": "^3.7.6",
+    "wagmi": "^2.19.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
