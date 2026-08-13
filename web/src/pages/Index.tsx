@@ -438,19 +438,32 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
     setChatsLoading(false);
   }, [initialChatId, initialChat]);
 
-  // When no chat or only local chat is selected, ensure URL is / (e.g. after deleting all chats).
-  // Skip when we have initialChatId: owner opened /c/:shareId and we're about to restore that chat (don't navigate away).
-  // Use window.location.pathname because we may have set URL via replaceState, so React Router still thinks we're at "/".
+  // Keep the browser on /agent when there is no shareable chat history (new chat, empty
+  // selection, or stale /c/:shareId left behind by replaceState after switching chats).
+  // Skip when we have initialChatId: owner opened /c/:shareId and we're about to restore that chat.
+  // Use window.location.pathname because replaceState can leave React Router on "/agent".
   useEffect(() => {
     if (initialChatId) return;
-    if (activeChat !== null && !isLocalChat(activeChat)) return;
+    if (activeChat !== null && !isLocalChat(activeChat)) {
+      const chat = chats.find((c) => c.id === activeChat);
+      const messages = chatMessages[activeChat] ?? [];
+      // Share URLs are only valid after a full turn exists.
+      if (chat?.shareId && messages.length >= 2) return;
+    }
     const pathname =
       typeof window !== "undefined"
         ? window.location.pathname
         : location.pathname;
-    if (pathname === "/" || !pathname.startsWith("/c/")) return;
-    navigate("/", { replace: true });
-  }, [initialChatId, activeChat, location.pathname, navigate]);
+    if (pathname === "/agent" || !pathname.startsWith("/c/")) return;
+    navigate("/agent", { replace: true });
+  }, [
+    initialChatId,
+    activeChat,
+    chats,
+    chatMessages,
+    location.pathname,
+    navigate,
+  ]);
 
   // Update browser URL to current chat share link only after history exists (avoids blink: we use replaceState so we stay on same route and don't remount).
   useEffect(() => {
@@ -534,8 +547,11 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
   }, [shareIdFromQuery, anonymousId, ready, setSearchParams, navigate]);
 
   const handleNewChat = async () => {
-    if (isNonChatRoute) {
-      navigate("/", { replace: true });
+    const onSharePath =
+      typeof window !== "undefined" &&
+      window.location.pathname.startsWith("/c/");
+    if (isNonChatRoute || onSharePath) {
+      navigate("/agent", { replace: true });
     }
     if (!anonymousId) return;
     if (!walletConnected) {
@@ -580,8 +596,8 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       },
       { replace: true },
     );
-    if (location.pathname !== "/") {
-      navigate("/", { replace: true });
+    if (location.pathname !== "/agent") {
+      navigate("/agent", { replace: true });
     }
     setSidebarOpen(false);
   }, [navigate, location.pathname, setSearchParams]);
@@ -613,7 +629,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
             },
             { replace: true },
           );
-          navigate("/", { replace: true });
+          navigate("/agent", { replace: true });
         }
         setSidebarOpen(false);
       } catch (err) {
@@ -657,7 +673,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
           },
           { replace: true },
         );
-        navigate("/", { replace: true });
+        navigate("/agent", { replace: true });
       }
       setSidebarOpen(false);
     },
@@ -1250,7 +1266,7 @@ export default function Index({ initialChatId, initialChat }: IndexProps = {}) {
       setActiveChat(id);
       setSidebarOpen(false);
       if (isNonChatRoute) {
-        navigate("/", { replace: true });
+        navigate("/agent", { replace: true });
       }
       focusChatInput();
     },

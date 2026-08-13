@@ -60,7 +60,7 @@ export function PromptCard({
   const handleUse = () => {
     void userPromptsApi.recordUse(prompt.id).catch(() => {});
     void queryClient.invalidateQueries({ queryKey });
-    navigate("/", { state: { prompt: prompt.prompt } });
+    navigate("/agent", { state: { prompt: prompt.prompt } });
   };
 
   const categoryLabel = CATEGORY_LABELS[prompt.category] ?? prompt.category;

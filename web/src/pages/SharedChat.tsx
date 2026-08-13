@@ -145,7 +145,7 @@ export default function SharedChat({
                 </Link>
               </Button>
               <Button asChild variant="outline" className="gap-2 border-border/60">
-                <Link to="/">
+                <Link to="/agent">
                   <MessageSquare className="h-4 w-4" />
                   Start your own chat
                 </Link>
@@ -177,7 +177,7 @@ export default function SharedChat({
               : errorMessage}
           </p>
           <Button asChild>
-            <Link to="/">Go to Syra Agent</Link>
+            <Link to="/agent">Go to Syra Agent</Link>
           </Button>
         </div>
       </div>
@@ -204,13 +204,13 @@ export default function SharedChat({
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:flex-shrink-0">
           <Button asChild variant="default" size="sm" className="gap-1.5 w-full sm:w-auto touch-manipulation min-h-[44px] sm:min-h-9">
-            <Link to="/">
+            <Link to="/agent">
               <MessageSquare className="h-4 w-4" />
               New Chat
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="w-full sm:w-auto touch-manipulation min-h-[44px] sm:min-h-9">
-            <Link to="/">Open in Syra</Link>
+            <Link to="/agent">Open in Syra</Link>
           </Button>
         </div>
       </header>
