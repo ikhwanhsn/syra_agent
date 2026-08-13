@@ -110,7 +110,8 @@
     "ws": "^8.21.0",
     "x402-express": "^0.7.3",
     "x402-solana": "^0.1.4",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "algosdk": "^3.6.0"
   },
   "overrides": {
     "axios": "$axios",
@@ -122,7 +123,6 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "algosdk": "^3.6.0",
     "nodemon": "^3.1.11"
   }
 }
