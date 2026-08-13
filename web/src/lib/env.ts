@@ -92,6 +92,8 @@ export const env = {
   stakingTokenPriceUsd: read("VITE_STAKING_TOKEN_PRICE_USD"),
   streamflowStakingMint: read("VITE_STREAMFLOW_STAKING_MINT"),
   adminDashboardWallet: read("VITE_ADMIN_DASHBOARD_WALLET"),
+  /** Relay bridge app-fee claim address (EVM). Falls back in bridgeConfig. */
+  bridgeFeeRecipient: read("VITE_BRIDGE_FEE_RECIPIENT"),
 } as const;
 
 /**

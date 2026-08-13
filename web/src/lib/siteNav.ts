@@ -14,6 +14,7 @@ import {
   Presentation,
   Coins,
   ArrowLeftRight,
+  ArrowRightLeft,
   Layers,
   Wrench,
   FileSearch,
@@ -212,7 +213,11 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
     label: "Earn",
     href: "/staking",
     icon: Coins,
-    match: (p) => p.startsWith("/staking") || p.startsWith("/swap") || p.startsWith("/lp"),
+    match: (p) =>
+      p.startsWith("/staking") ||
+      p.startsWith("/swap") ||
+      p.startsWith("/bridge") ||
+      p.startsWith("/lp"),
     items: [
       {
         href: "/staking",
@@ -225,6 +230,12 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
         label: "Swap",
         icon: ArrowLeftRight,
         description: "Buy & sell tokens via Jupiter",
+      },
+      {
+        href: "/bridge",
+        label: "Bridge",
+        icon: ArrowRightLeft,
+        description: "Bridge assets across chains via Relay",
       },
       {
         href: "/lp",

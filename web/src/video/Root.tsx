@@ -30,6 +30,13 @@ import {
 } from "@/video/compositions/LlmExchangePromo";
 import { LLM_EXCHANGE_PROMO_FPS } from "@/video/content/llmExchangePromo";
 import {
+  BridgePromo,
+  BRIDGE_PROMO_DURATION,
+  BRIDGE_PROMO_HEIGHT,
+  BRIDGE_PROMO_WIDTH,
+} from "@/video/compositions/BridgePromo";
+import { BRIDGE_PROMO_FPS } from "@/video/content/bridgePromo";
+import {
   POST_VIDEO_LAYOUT_HEIGHT,
   POST_VIDEO_LAYOUT_WIDTH,
 } from "@/video/constants";
@@ -89,6 +96,15 @@ export function RemotionRoot() {
         fps={LLM_EXCHANGE_PROMO_FPS}
         width={LLM_EXCHANGE_PROMO_WIDTH}
         height={LLM_EXCHANGE_PROMO_HEIGHT}
+        defaultProps={{ bgm: true }}
+      />
+      <Composition
+        id="BridgePromo"
+        component={BridgePromo}
+        durationInFrames={BRIDGE_PROMO_DURATION}
+        fps={BRIDGE_PROMO_FPS}
+        width={BRIDGE_PROMO_WIDTH}
+        height={BRIDGE_PROMO_HEIGHT}
         defaultProps={{ bgm: true }}
       />
     </>

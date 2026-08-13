@@ -1,7 +1,8 @@
 /**
  * LLM Exchange launch promo — ~40s @ 30fps, 1920×1080.
- * Gold reference for Syra video quality (see web/src/video/QUALITY_BAR.md).
- * Layout/motion floor lives in engine/promoKit.tsx.
+ * Craft reference for Syra motion density (see web/src/video/QUALITY_BAR.md).
+ * Not a template to clone: new ships invent their own spine, sound, and heroes.
+ * Layout/motion primitives live in engine/promoKit.tsx.
  */
 import {
   AbsoluteFill,

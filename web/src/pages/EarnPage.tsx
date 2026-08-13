@@ -12,8 +12,6 @@ import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
 import { useWalletContext } from "@/contexts/WalletContext";
-import { DASHBOARD_SIDEBAR_PROPORTIONAL_CONTENT } from "@/lib/layoutConstants";
-import { cn } from "@/lib/utils";
 
 const EARN_TRACKS = ["yield", "token", "prompts", "skills", "llm"] as const;
 type EarnTrack = (typeof EARN_TRACKS)[number];
@@ -92,71 +90,69 @@ export default function EarnPage() {
 
   return (
     <PillarLayout embedded hideHeader title="Earn">
-      <div className={cn(DASHBOARD_SIDEBAR_PROPORTIONAL_CONTENT)}>
-        {!key ? (
-          <EarnPageSkeleton track={trackSkeleton} />
-        ) : (
-          <EarnTrackTabs
-            activeTrack={activeTrack}
-            onTrackChange={handleTrackChange}
-            yieldContent={
-              <EarnYieldPanel
-                anonymousId={anonymousId}
-                walletAddress={address}
-                connected={connected}
-                syraAuthenticated={syraAuthenticated}
-                syraAuthReady={syraAuthReady}
-                onSignIn={handleSignIn}
-                onRequestAuth={handleRequestAuth}
-              />
-            }
-            promptsContent={
-              <EarnPromptPanel
-                anonymousId={anonymousId}
-                connected={connected}
-                syraAuthenticated={syraAuthenticated}
-                syraAuthReady={syraAuthReady}
-                onSignIn={handleSignIn}
-                onRequestAuth={handleRequestAuth}
-              />
-            }
-            skillsContent={
-              <EarnSkillsPanel
-                anonymousId={anonymousId}
-                skillsQueryKey={skillsQueryKey}
-                connected={connected}
-                syraAuthenticated={syraAuthenticated}
-                syraAuthReady={syraAuthReady}
-                onSignIn={handleSignIn}
-                onRequestAuth={handleRequestAuth}
-                onSkillsChanged={invalidateSkills}
-              />
-            }
-            tokenContent={
-              <EarnTokenPanel
-                baseAnonymousId={anonymousId}
-                walletAddress={address}
-                connected={connected}
-                syraAuthenticated={syraAuthenticated}
-                onSignIn={handleSignIn}
-                onRequestAuth={handleRequestAuth}
-              />
-            }
-            llmContent={
-              <EarnLlmPanel
-                anonymousId={anonymousId}
-                llmQueryKey={llmQueryKey}
-                connected={connected}
-                syraAuthenticated={syraAuthenticated}
-                syraAuthReady={syraAuthReady}
-                onSignIn={handleSignIn}
-                onRequestAuth={handleRequestAuth}
-                onLlmChanged={invalidateLlm}
-              />
-            }
-          />
-        )}
-      </div>
+      {!key ? (
+        <EarnPageSkeleton track={trackSkeleton} />
+      ) : (
+        <EarnTrackTabs
+          activeTrack={activeTrack}
+          onTrackChange={handleTrackChange}
+          yieldContent={
+            <EarnYieldPanel
+              anonymousId={anonymousId}
+              walletAddress={address}
+              connected={connected}
+              syraAuthenticated={syraAuthenticated}
+              syraAuthReady={syraAuthReady}
+              onSignIn={handleSignIn}
+              onRequestAuth={handleRequestAuth}
+            />
+          }
+          promptsContent={
+            <EarnPromptPanel
+              anonymousId={anonymousId}
+              connected={connected}
+              syraAuthenticated={syraAuthenticated}
+              syraAuthReady={syraAuthReady}
+              onSignIn={handleSignIn}
+              onRequestAuth={handleRequestAuth}
+            />
+          }
+          skillsContent={
+            <EarnSkillsPanel
+              anonymousId={anonymousId}
+              skillsQueryKey={skillsQueryKey}
+              connected={connected}
+              syraAuthenticated={syraAuthenticated}
+              syraAuthReady={syraAuthReady}
+              onSignIn={handleSignIn}
+              onRequestAuth={handleRequestAuth}
+              onSkillsChanged={invalidateSkills}
+            />
+          }
+          tokenContent={
+            <EarnTokenPanel
+              baseAnonymousId={anonymousId}
+              walletAddress={address}
+              connected={connected}
+              syraAuthenticated={syraAuthenticated}
+              onSignIn={handleSignIn}
+              onRequestAuth={handleRequestAuth}
+            />
+          }
+          llmContent={
+            <EarnLlmPanel
+              anonymousId={anonymousId}
+              llmQueryKey={llmQueryKey}
+              connected={connected}
+              syraAuthenticated={syraAuthenticated}
+              syraAuthReady={syraAuthReady}
+              onSignIn={handleSignIn}
+              onRequestAuth={handleRequestAuth}
+              onLlmChanged={invalidateLlm}
+            />
+          }
+        />
+      )}
     </PillarLayout>
   );
 }

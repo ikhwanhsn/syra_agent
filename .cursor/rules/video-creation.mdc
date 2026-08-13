@@ -1,5 +1,5 @@
 ---
-description: Route create/edit video through video-shotcraft + video-use. Enforce Syra QUALITY_BAR (LlmExchangePromo floor) for every new promo.
+description: Route create/edit video through video-shotcraft + video-use. QUALITY_BAR is a craft floor; each ship must be creatively distinct.
 alwaysApply: true
 ---
 
@@ -8,7 +8,9 @@ alwaysApply: true
 Whenever the user asks to create, make, produce, polish, or edit a video / promo / launch film / ship-log video / demo reel:
 
 1. Read and follow the matching skill (`video-shotcraft` or `video-use`).
-2. Meet or beat [`web/src/video/QUALITY_BAR.md`](web/src/video/QUALITY_BAR.md). Gold reference: `LlmExchangePromo`. Reuse [`web/src/video/engine/promoKit.tsx`](web/src/video/engine/promoKit.tsx). Do not ship a flat slide deck with fades.
+2. Meet or beat [`web/src/video/QUALITY_BAR.md`](web/src/video/QUALITY_BAR.md). Past promos (e.g. `LlmExchangePromo`, `BridgePromo`) are **craft references**, not scripts to clone.
+3. Reuse [`web/src/video/engine/promoKit.tsx`](web/src/video/engine/promoKit.tsx) as a **toolkit** (shell, particles, springs, theme). Invent structure, motion heroes, and sound that fit **this** ship.
+4. Do not ship a flat slide deck with opacity-only fades.
 
 ## Skills (on this machine)
 
@@ -19,27 +21,38 @@ Whenever the user asks to create, make, produce, polish, or edit a video / promo
 
 ## Routing
 
-1. **No footage / product update / promo / ship-log / feature launch** → `video-shotcraft` `SKILL.md` + `references/pipeline.md` (or Ink Press / guided as chosen).
+1. **No footage / product update / promo / ship-log / feature launch** → `video-shotcraft` `SKILL.md` + `references/pipeline.md` (or Ink Press / guided as chosen). Prefer **autonomous free creation** when the user wants max creativity unless they pick guided or Ink Press.
 2. **Raw takes / screen recordings / talking-head folders** → `video-use` `SKILL.md` + `helpers/`.
 3. **Both** → shotcraft plates first, then video-use edit pass.
 
-## Syra quality floor (non-negotiable)
+## Creative mandate (every new promo)
+
+Before coding, the design spec must answer: **how is this film different from the last Syra promo?**
+
+| Do | Do not |
+|----|--------|
+| Derive storyboard from **this** update's facts and emotion | Copy the prior scene spine (`cover → problem → reveal → …`) by default |
+| Pick **new** Gallery / shotcraft shot cards when they fit | Reuse the same hero motion order every time |
+| Choose a **fresh BGM** and a **distinct SFX palette** under `remotion-public/audio/video/<slug>/` | Point every cue at `llm-exchange/*.mp3` without intent |
+| Vary scene count, duration, and information architecture | Treat `PromoSceneShell` as the only allowed layout for every beat |
+| Raise craft density above the floor | Ship thinner motion or a slide deck with fades |
+
+Same Syra theme tokens unless the brief overrides. Same caption safe area. Different film.
+
+## Syra quality floor (non-negotiable craft)
 
 Before coding a new promo, re-read `QUALITY_BAR.md`. Hard requirements:
 
-- **Scene shell:** header / body / caption zones via `PromoSceneShell`. Captions never collide with body.
-- **Caption safe area:** ~110px bottom. Mid-scene stills (~40–50%) must show the full layout (all N cards, not N−1).
-- **Motion density:** particles, drifting gold glows, enter/exit scale, scene wipes, title shimmer, spring cards, ≥1 Ken Burns/UI push, ≥1 sequential highlight, CTA hold ≥1s. One hero technique per scene.
+- **Readable layout:** captions never collide with body; ~110px bottom safe area; mid-scene stills (~40–50%) show the full promised layout.
+- **Motion density:** particles, drifting gold glows, enter/exit scale (not opacity alone), scene transitions, spring entrances, ≥1 hero camera/UI push, ≥1 sequential or highlight beat, CTA/brand hold ≥1s. One hero technique per scene.
 - **Theme:** `SYRA_VIDEO_THEME` (white / dark type / gold `#F3BA2F`) unless the brief says otherwise.
-- **Audio:** cue table with relative frames; `bgm` inputProp; deliver **BGM + no-BGM** mp4s.
-- **Assets:** captures + audio under `web/remotion-public/` (Remotion `publicDir`); deliverables under `web/public/videos/<slug>/`.
+- **Audio:** cue table with relative frames; unique bed + SFX for the slug when possible; `bgm` inputProp; deliver **BGM + no-BGM** mp4s.
+- **Assets:** captures + audio under `web/remotion-public/`; deliverables under `web/public/videos/<slug>/`.
 - **Copy:** founder-plain, concrete facts, clear CTA URLs; no em dashes.
-
-Raise the bar each time: pull stronger shotcraft shot-card demos when a scene needs more polish.
 
 ## Hosting
 
 - Compositions under `web/src/video/`, register in `web/src/video/Root.tsx`.
-- Scaffold: `content/<slug>Promo.ts`, `compositions/<Slug>Promo.tsx`, `*PromoAudio.tsx`, `<slug>/design-spec.md` + `storyboard.md`.
-- Format default: 1920×1080 @ 30fps.
-- Definition of done: Root registration, mid-scene still QA, shotcraft final-review, both mp4s in `public/videos/<slug>/`, density ≥ LlmExchangePromo.
+- Scaffold: `content/<slug>Promo.ts`, `compositions/<Slug>Promo.tsx`, `*PromoAudio.tsx`, `<slug>/design-spec.md` + `storyboard.md` (include a **Differentiation** section).
+- Format default: 1920×1080 @ 30fps (duration flexes to the story).
+- Definition of done: Root registration, mid-scene still QA, shotcraft final-review, both mp4s in `public/videos/<slug>/`, craft ≥ prior gold references **and** creatively distinct from them.

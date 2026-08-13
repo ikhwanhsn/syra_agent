@@ -35,14 +35,6 @@ export const DASHBOARD_SIDEBAR_WIDTH = "min(280px,22vw)";
 export const DASHBOARD_SIDEBAR_COLLAPSED_WIDTH = "4.5rem";
 
 /**
- * Main-column measure that stays proportional to the expanded dashboard sidebar (~3×).
- * Use for focused pillar browse UIs (e.g. Earn tabs + cards) so content does not float
- * in a wide empty main pane.
- */
-export const DASHBOARD_SIDEBAR_PROPORTIONAL_CONTENT =
-  "w-full max-w-[min(100%,calc(min(280px,22vw)*3))]";
-
-/**
  * Max width for dashboard main column (leaderboard, trading lab, arbitrage, marketplace routes).
  * Keeps wide tables and the arbitrage grid aligned on the same measure.
  */

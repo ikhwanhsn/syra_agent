@@ -30,6 +30,8 @@ On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syra
 | **Agent Wallet** | `/wallet` | Treasury, deposits, policy caps |
 | **Dashboard** | `/overview` | Usage, spend, agent monitoring |
 | **Agent chat** | `/` | Reference client, research, tools, onchain actions |
+| **Swap** | `/swap` | Solana token swaps via Jupiter |
+| **Bridge** | `/bridge` | Cross-chain bridge via Relay (0.25% fee → SYRA buyback queue) |
 | **Proof / experiments** | `/alpha`, experiments routes | Live demos powered by the Syra rail |
 
 ---
@@ -41,6 +43,7 @@ On localhost, API calls go through **`/api`** (Vite proxies to `https://api.syra
 | `VITE_PRIVY_APP_ID` | **Required** for wallet connect (Privy) |
 | `VITE_USE_LOCAL_API` | Proxy `/api` to local gateway on port 3000 |
 | `VITE_SYRA_API_URL` | Override API origin (avoid localhost unless local mode is on) |
+| `VITE_BRIDGE_FEE_RECIPIENT` | Optional EVM address for Relay bridge app fees (defaults to Base settler / `BASE_PAYTO`) |
 
 See [`.env.example`](./.env.example) and [PRIVY_SETUP.md](./PRIVY_SETUP.md) for production wallet issues.
 

@@ -482,6 +482,20 @@ When settled x402 revenue is paid to the **Syra treasury** (not Labs/partner `pa
 
 `GET /internal/buyback/status` — pending queued revenue and last flush metadata (internal).
 
+### Relay bridge app fees → same buyback queue
+
+The `/bridge` web page uses [Relay](https://docs.relay.link/) with a **0.25% (25 bps) app fee**. Fees accrue off-chain in USDC to an EVM claim address (claim free on Base via [relay.link/claim-app-fees](https://relay.link/claim-app-fees)).
+
+On each completed bridge, the UI POSTs `requestId` to `POST /bridge/buyback/report`. The API verifies `paidAppFees` against Relay `GET /requests/v2`, then calls `queueBuybackRevenue` (idempotent per `requestId` via `bridge_fee_receipts`). **No per-bridge Jupiter swap** — fees join the existing 24h batch.
+
+| Env | Purpose |
+|-----|---------|
+| `RELAY_APP_FEE_RECIPIENT` | EVM claim address (defaults to `BASE_PAYTO`) |
+| `RELAY_API_KEY` | Optional; higher rate limits / revenue share on Relay quotes |
+| `VITE_BRIDGE_FEE_RECIPIENT` | Same address for the web widget `appFees` (defaults to `BASE_PAYTO`) |
+
+Periodically claim accrued Relay app-fee USDC to Base so treasury stays funded for the Jupiter buyback flush.
+
 ---
 
 ## Pact Network (agent x402 refund coverage)

@@ -32,6 +32,7 @@ import { BtcPageSkeleton } from "@/components/btc/BtcPageSkeleton";
 import { AgentSetupPageSkeleton } from "@/components/settings/AgentSetupPageSkeleton";
 import { StakingPageSkeleton } from "@/components/staking/StakingPageSkeleton";
 import { SwapPageSkeleton } from "@/components/swap/SwapPageSkeleton";
+import { BridgePageSkeleton } from "@/components/bridge/BridgePageSkeleton";
 import {
   PostDeckPageSkeleton,
   PostPhotoPageSkeleton,
@@ -51,6 +52,7 @@ import { cn } from "@/lib/utils";
 
 export { StakingPageSkeleton as StreamflowPageSkeleton };
 export { SwapPageSkeleton };
+export { BridgePageSkeleton };
 
 export { LpPoolsContentSkeleton };
 
@@ -266,6 +268,7 @@ function skeletonForPath(pathname: string, search = "") {
   if (root === "rewards") return <RewardsPageSkeleton />;
   if (root === "privacy" || root === "terms" || root === "cookies") return <LegalPageSkeleton />;
   if (root === "swap") return <SwapPageSkeleton />;
+  if (root === "bridge") return <BridgePageSkeleton />;
   if (root === "staking") return <StakingPageSkeleton />;
   if (root === "organize") {
     return (
@@ -320,6 +323,7 @@ function pathUsesSelfPaddedSkeleton(pathname: string) {
     root === "marketplace" ||
     root === "playground" ||
     root === "swap" ||
+    root === "bridge" ||
     root === "staking" ||
     root === "post"
   );

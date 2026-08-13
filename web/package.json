@@ -45,6 +45,10 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@relayprotocol/relay-kit-hooks": "^4.0.2",
+    "@relayprotocol/relay-kit-ui": "^11.0.2",
+    "@relayprotocol/relay-sdk": "^7.0.1",
+    "@relayprotocol/relay-svm-wallet-adapter": "^21.0.1",
     "@remotion/player": "^4.0.491",
     "@remotion/web-renderer": "^4.0.491",
     "@resvg/resvg-wasm": "^2.6.2",
@@ -88,6 +92,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "viem": "^2.39.3",
+    "wagmi": "^3.7.6",
     "zod": "^3.25.76"
   },
   "devDependencies": {

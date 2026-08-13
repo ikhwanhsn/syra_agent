@@ -25,6 +25,8 @@ interface ImportMetaEnv {
   readonly VITE_STREAMFLOW_STAKING_MINT?: string;
   readonly VITE_ADMIN_DASHBOARD_WALLET?: string;
   readonly VITE_API_KEY?: string;
+  /** EVM address that receives Relay bridge app fees (buyback claim wallet). */
+  readonly VITE_BRIDGE_FEE_RECIPIENT?: string;
 }
 
 interface ImportMeta {

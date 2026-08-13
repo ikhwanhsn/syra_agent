@@ -57,6 +57,7 @@ import { createAnalyticsRouter } from "./routes/analytics.js";
 import { createPublicMetricsRouter } from "./routes/publicMetrics.js";
 import { createFreeTierRouter } from "./routes/freeTier.js";
 import { createInternalBuybackRouter } from "./routes/internalBuyback.js";
+import { createBridgeBuybackRouter } from "./routes/bridgeBuyback.js";
 import {
   createSyraRewardsRouter,
   createInternalRewardsRouter,
@@ -1463,6 +1464,7 @@ app.use("/internal", createSyraTradingTelegramWebhookRouter());
 app.use("/internal", createSyraTelegramWebhookRouter());
 app.use("/internal", createCrossmintWebhookRouter());
 app.use("/internal", createInternalBuybackRouter());
+app.use("/bridge", createBridgeBuybackRouter());
 app.use("/internal", createInternalRewardsRouter());
 app.use("/rewards", createSyraRewardsRouter());
 app.use("/internal", createInternalHackathonScoutRouter());

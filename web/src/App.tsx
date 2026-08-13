@@ -39,6 +39,7 @@ const InvestPage = lazy(() => import("@/pages/InvestPage"));
 const SpendPage = lazy(() => import("@/pages/SpendPage"));
 const TreasuryPage = lazy(() => import("@/pages/TreasuryPage"));
 const SwapPage = lazy(() => import("@/pages/SwapPage"));
+const BridgePage = lazy(() => import("@/pages/BridgePage"));
 const AnsemPage = lazy(() => import("@/pages/AnsemPage"));
 const MarketingLayout = lazy(() =>
   import("@/components/marketing/MarketingLayout").then((m) => ({ default: m.MarketingLayout })),
@@ -152,6 +153,7 @@ function AppRoutes() {
       <Route path="/settings" element={<Index />} />
       <Route path="/wallet" element={<AgentWalletPage />} />
       <Route path="/swap" element={<SwapPage />} />
+      <Route path="/bridge" element={<BridgePage />} />
       <Route path="/lp" element={<LpPoolsPage />} />
       <Route path="/overview/earn" element={<Navigate to="/earn" replace />} />
       <Route path="/overview/treasury" element={<Navigate to="/treasury" replace />} />
