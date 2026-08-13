@@ -6,7 +6,7 @@
 
 **Cadence:** Weekly (odd-ISO-week Thursday via `/growth`) · **Time box:** ~45–60 minutes
 
-**Personas:** `@.cursor/rules/dead-code.mdc` · `@.cursor/rules/code-review.mdc` · `@.cursor/rules/test-case-generation.mdc` · `@.cursor/rules/performance-engineering.mdc` · `@.cursor/rules/devops-sre.mdc` · `@.cursor/rules/qa-testing.mdc` · `@.cursor/rules/push-deploy-watch.mdc`
+**Personas:** `@.cursor/rules/dead-code.mdc` · `@.cursor/rules/code-review.mdc` · `@.cursor/rules/test-case-generation.mdc` · `@.cursor/rules/performance-engineering.mdc` · `@.cursor/rules/devops-sre.mdc` · `@.cursor/rules/qa-testing.mdc` · `@.cursor/rules/push-deploy-watch.mdc` (push/deploy **only** when the user explicitly asks this turn — never as part of routine Keel / IMPLEMENT work)
 
 **Invoke:** `@.cursor/agents/platform-health.md run this`
 
@@ -21,7 +21,7 @@
 | **Prune** | Dead-code | explore | Unused exports, dead routes, duplicate logic, orphaned models, admin pages not on GTM paths. Focus area from last-run bottleneck (money-path if settlement/token-loop — prefer tests/docs over refactors). |
 | **Spec** | Tests | explore | Missing tests on the focus money-path or the proposed cleanup. Name 1–3 high-value test cases; do not scaffold a whole suite unless IMPLEMENT. |
 | **Speed** | Perf | explore | Only if bottleneck is web/docs: bundle/rerender/hot path. Otherwise return “perf not the constraint today.” |
-| **Ops** | DevOps | explore | GHA failures, scout crons, deploy config, push→Vercel/Render watch. One reliability footgun. Do not expand CI theater. |
+| **Ops** | DevOps | explore | GHA failures, scout crons, deploy config. Report only — do **not** `git push` unless the parent user message explicitly asked to push/deploy. One reliability footgun. Do not expand CI theater. |
 
 Then the parent synthesizes. Do not skip specialists on a full run.
 
@@ -76,3 +76,4 @@ Output format (strict):
 - No full rewrite.
 - Do not break x402 settlement or claim transfers in a drive-by.
 - Prefer deleting unused surface over adding abstractions.
+- Never `git push` / deploy-watch unless the user explicitly asked to push or deploy in this turn. Completing a cleanup or IMPLEMENT is not a push ask.

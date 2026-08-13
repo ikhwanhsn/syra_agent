@@ -1,23 +1,24 @@
 {
-  "date": "2026-08-12",
-  "updatedAt": "2026-08-12T12:55:00.000Z",
+  "date": "2026-08-13",
+  "updatedAt": "2026-08-13T16:50:00.000Z",
   "source": "https://api.syraa.fun/api/metrics",
-  "mode": "daily",
-  "weekday": "Wed",
-  "routedAgents": ["content-proof", "distribution"],
+  "mode": "daily-execute",
+  "weekday": "Thu",
+  "isoWeek": 33,
+  "routedAgents": ["distribution", "platform-health"],
   "northStar": {
-    "paidCallsLast7d": 27519,
-    "uniquePayingWalletsLast7d": 110
+    "paidCallsLast7d": 28524,
+    "uniquePayingWalletsLast7d": 105
   },
   "last7d": {
-    "calls": 27519,
-    "usdSettled": 2480.9
+    "calls": 28524,
+    "usdSettled": 3095.47
   },
   "buyback": {
-    "totalBuybackUsdSpent": 23.82,
-    "totalSyraAcquired": 172452.066761,
+    "totalBuybackUsdSpent": 3680.02,
+    "totalSyraAcquired": 39918011.903536,
     "treasurySyraBalance": 172452.066761,
-    "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG"
+    "lastBuybackSignature": "mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7"
   },
   "rewards": {
     "uniqueEarners": 108,
@@ -25,9 +26,9 @@
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0476,
+    "settleFailRate24h": 0.0031,
     "meetsLaunchGuardrail24h": true
   },
-  "oneAction": "Refresh #34 shareCopy to evening metrics + Solscan s3n9W9k… then publish X from /post/video/34 and /post/photo/34 (CTA /marketplace + /token).",
-  "bottleneck": "proof-gap"
+  "oneAction": "DONE batch: Ampersend catalog email sent + GTM logged; /ansem web surface deleted. Founder still pastes DM #2/#3.",
+  "bottleneck": "distribution"
 }

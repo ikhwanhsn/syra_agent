@@ -32,7 +32,7 @@
 | LP, experiments, ROI of bets | Wager (profit-experiments) |
 | x402, settlement, secrets, wallets, security | Sentinel (payments-security) |
 | Code, tests, CI, dead code, perf, “fix this” | Keel (platform-health) |
-| Push / ship / deploy / wait for Vercel or Render | Keel (platform-health) + `.cursor/rules/push-deploy-watch.mdc` |
+| Explicit push / deploy / wait for Vercel or Render (not “ship” alone) | Keel (platform-health) + `.cursor/rules/push-deploy-watch.mdc` |
 | `/growth` metrics standup | Helix daily prompt below |
 | `/growth week` | Helix week-mode |
 | **No lead owns this domain** | **Bench (hire.md)** |

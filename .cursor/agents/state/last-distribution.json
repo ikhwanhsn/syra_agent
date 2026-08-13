@@ -1,25 +1,25 @@
 {
-  "date": "2026-08-12",
-  "updatedAt": "2026-08-12T12:55:00.000Z",
-  "mode": "helix-daily-evening",
+  "date": "2026-08-13",
+  "updatedAt": "2026-08-13T16:50:00.000Z",
+  "mode": "helix-daily-execute",
+  "weekday": "Thu",
+  "isoWeek": 33,
   "channel": "design-partner-outreach",
-  "oneAction": "Send 3 design-partner contacts (Ampersend catalog email + MCP-host builder DM + x402/builder DM) asking for one non-founder MCP syra_spend_news paid call; log name/channel/contactedAt/replyStatus in docs/AGENT_BUILDER_GTM.md.",
+  "oneAction": "EXECUTED: Ampersend catalog email sent (register-ampersend); GTM table logged #1 sent + #2/#3 awaiting_founder_send with paste-ready DMs in docs/AGENT_BUILDER_GTM.md.",
   "notes": {
     "ceoOutcome2": "External demand proof: ≥1 net-new mcpPaidCall non-founder OR ≥3 design partners contacted with logged replies",
-    "diagnosis": "conversion/attention mix is fine on API; MCP is founder-only (mcpPaidCalls=1). Design-partner table TBD×3. Ampersend never listed (0/55). Agent402 already live — not the gap.",
-    "killCriteria7d": "If all 3 replyStatus=no-reply and mcpPaidCalls still 1 after 7d → stop same cold-DM template; next pulse = Ampersend catalog follow-up or Cursor marketplace submit only.",
-    "liveMetricsQuoted": {
-      "uniquePayingWalletsLast7d": 110,
-      "paidCallsLast7d": 27519,
-      "last7d.usdSettled": 2480.9,
-      "bySource.mcpPaidCalls": 1,
-      "bySource.api": 134282,
-      "bySource.mcp-server": 1,
-      "funnel.firstPaidPayersLast30d": 136,
-      "settleFailRate24h": 0.0476,
-      "meetsLaunchGuardrail": true
+    "executed": {
+      "ampersendEmail": "sent via api npm run register-ampersend → ampersend@edgeandnode.com + refreshed ampersend/catalog-registration.json (53 endpoints)",
+      "gtmTable": "3 rows with contactedAt=2026-08-13; replyStatus sent|awaiting_founder_send|awaiting_founder_send",
+      "dmScripts": "paste-ready in AGENT_BUILDER_GTM.md for MCP host + x402/Celo cohort"
     },
-    "microTeam": ["Atlas", "Scout", "Catalog", "Agora"],
-    "doNotCount": "founder/treasury self-probe mcpPaidCalls"
+    "founderNext": "Paste DM #2 and #3 to two real humans today; flip replyStatus to sent.",
+    "killCriteria7d": "If all 3 replyStatus=no-reply and mcpPaidCalls still 1 after 7d → stop same cold-DM template; next pulse = npm @syra-ai/mcp-server x402-mcp keyword publish OR Cursor marketplace submit only.",
+    "liveMetricsQuoted": {
+      "uniquePayingWalletsLast7d": 105,
+      "bySource.mcpPaidCalls": 1,
+      "settleFailRate24h": 0.0031,
+      "meetsLaunchGuardrail": true
+    }
   }
 }

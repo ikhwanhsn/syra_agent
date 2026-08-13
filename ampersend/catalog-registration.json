@@ -870,6 +870,26 @@
       }
     },
     {
+      "url": "https://api.syraa.fun/llm/route",
+      "methods": [
+        "POST"
+      ],
+      "x402_enabled": true,
+      "x402_protocol_version": 2,
+      "network": "base",
+      "description": "OpenAI-compatible POST /llm/route that smart-routes to community LLM providers listed on Earn → LLM. Use when an agent wants the cheapest or most callable completion without picking a vendor. Inputs: messages (required), optional model, max_tokens, temperature, tools, response_format, seed, route_policy. Headers: X-Syra-Route (cheapest|reliable|fastest|quality), optional X-Syra-Provider. Price is dynamic from the selected provider quote × platform margin. Failover tries the next-best provider. Returns chat.completion plus syra_route metadata. GET /llm/models for discovery. Sellers list endpoints on /earn?track=llm.",
+      "enabled": true,
+      "pricing_config": {
+        "amount": "4000",
+        "amountAtomicUnit": "4000",
+        "currency": "USDC",
+        "networkCaip2ID": "eip155:8453",
+        "assetAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "payTo": "0xF9dcBFF7EdDd76c58412fd46f4160c96312ce734",
+        "x402Schema": "exact"
+      }
+    },
+    {
       "url": "https://api.syraa.fun/images/generations",
       "methods": [
         "POST"

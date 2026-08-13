@@ -28,15 +28,41 @@
 
 ## Design partners (target: 3)
 
-Track in this table; replace placeholders as partners onboard.
+Track in this table; replace placeholders as partners onboard. CEO outcome #2: ≥1 net-new non-founder `mcpPaidCalls`, or ≥3 partners with logged contact + reply status.
 
-| # | Partner / agent | Surface (MCP/SDK) | First paid date | D7 repeat | Notes |
-|---|-----------------|-------------------|-----------------|-----------|-------|
-| 1 | _TBD_ | | | | |
-| 2 | _TBD_ | | | | |
-| 3 | _TBD_ | | | | |
+| # | Partner / agent | Surface (MCP/SDK) | contactedAt | replyStatus | First paid date | D7 repeat | Notes |
+|---|-----------------|-------------------|-------------|-------------|-----------------|-----------|-------|
+| 1 | Ampersend / Edge & Node (catalog) | Marketplace listing → agent discovery | 2026-08-13 | sent | | | Catalog email sent via `npm run register-ampersend` → `ampersend@edgeandnode.com` + `ampersend/catalog-registration.json` (53 Base x402 endpoints). Awaiting list confirmation. |
+| 2 | MCP host builder (Cursor / Claude Desktop integrator) | MCP → `syra_spend_news` | 2026-08-13 | awaiting_founder_send | | | Paste-ready DM below. Ask one paid call from **their** Solana USDC wallet (not founder/treasury). |
+| 3 | x402 / Celo builders cohort agent | MCP or SDK first paid | 2026-08-13 | awaiting_founder_send | | | Paste-ready DM below. Same ask: their-wallet `syra_spend_news` in ~5 min. |
 
 Recruit via: hackathon winners, MCP host communities, inbound from marketplace Integrate.
+
+### Outreach drafts (2026-08-13)
+
+**Ampersend (done):** subject `Catalog listing request: Syra x402 APIs (Base mainnet, 53 endpoints)` → `ampersend@edgeandnode.com`. Body from `buildCatalogEmailBody` in `api/scripts/registerAmpersendMarketplace.js`; attachment `ampersend/catalog-registration.json`.
+
+**DM #2 — MCP host builder** (paste into X/Discord/email to a real MCP host human):
+
+```
+Hey — Syra is live pay-per-call crypto intel for agents (x402 + MCP).
+
+If you host MCP tools for builders: install @syra-ai/mcp-server, fund Solana USDC, run syra_spend_news once from your wallet (~5 min). Docs: https://docs.syraa.fun
+
+Goal is one external paid receipt, not a demo from our side. Happy to unblock config if anything 402s. Settlement is green today.
+```
+
+**DM #3 — x402 / Celo cohort builder**:
+
+```
+Building on x402 / Celo agent rails? Syra settles USDC on HTTP 402 for crypto news + insights (MCP + SDK).
+
+Ask: one syra_spend_news paid call from your wallet so we can log a non-founder mcpPaidCall. Path: https://docs.syraa.fun · https://syraa.fun/marketplace
+
+No token pitch — just a real settle receipt. I can pair on the first call if useful.
+```
+
+When you send a DM, flip that row’s `replyStatus` to `sent` (then `replied` / `no-reply`). Do not count founder/treasury self-probes as outcome #2.
 
 ---
 

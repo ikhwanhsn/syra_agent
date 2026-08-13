@@ -1,13 +1,26 @@
 ---
-description: When the user asks to push, push then wait for Vercel + Render; on failure fix, push again, until both succeed.
+description: Only when the user explicitly asks to push or deploy — then push and wait for Vercel + Render; on failure fix and repush until green. Never auto-push.
 alwaysApply: true
 ---
 
 # Push → deploy watch (Syra)
 
-Whenever the user asks to **push**, **commit and push**, **ship**, or **deploy** (including after a fix meant for production):
+## Hard gate (read first)
 
-## Loop (mandatory)
+**Do not push, commit-and-push, or deploy unless this turn’s user message explicitly asks for it.**
+
+Allowed triggers (user must say one of these, or clearly equivalent): `push`, `commit and push`, `deploy`, `/push`, or “push and watch deploys.”
+
+**Not triggers** (finish the local work and stop; do not push):
+
+- “ship”, “ship this”, “ship it”, ship-log, “make it live,” “done,” “finish,” “implement,” “fix,” “IMPLEMENT”
+- Completing a feature, video, post, or production-bound fix
+- Inferring that production needs the change
+- Prior turns where the user once asked to push (history never authorizes a new push)
+
+If the user only asked to commit (no push), commit only. If unclear, ask — do not push.
+
+## When the gate passes — loop (mandatory)
 
 1. **Push** to the tracked remote branch (`git push` / `git push -u` as needed). No force-push to `main`/`master` unless the user explicitly demands it.
 2. **Wait** until both production deploys finish for the pushed SHA (or the newest production deploy after the push):
@@ -15,7 +28,7 @@ Whenever the user asks to **push**, **commit and push**, **ship**, or **deploy**
    - **Render `syra-agent`** (API → https://api.syraa.fun) when `api/` (or shared deploy-triggering paths) changed; if only `web/`/`documentation/` changed, still confirm Vercel, and skip Render only when the push clearly cannot trigger an API deploy
    - Also watch **Vercel `syra-documentation`** when `documentation/` is in the push
 3. Prefer `node scripts/watch-deploys.mjs` (repo helper). If it is unavailable, poll with the CLI/API recipes below.
-4. **On Error / build_failed / update_failed:** pull build logs, fix the root cause in-repo, commit (if the user already authorized commits/push for this ship), push again, and re-enter the wait. Repeat until **all required deploys are Ready/live**.
+4. **On Error / build_failed / update_failed:** pull build logs, fix the root cause in-repo, commit (only if this turn already authorized commit/push), push again, and re-enter the wait. Repeat until **all required deploys are Ready/live**.
 5. Soft cap: **5** fix→push cycles. If still red, stop with the failing platform, log excerpt, and the next fix to try. Do not claim success.
 
 ## Auth / tools (do not print secrets)
@@ -33,7 +46,9 @@ Whenever the user asks to **push**, **commit and push**, **ship**, or **deploy**
 
 ## Do not
 
-- Stop after `git push` without watching deploys
+- **Auto-push** after coding, fixing, shipping assets, or “making something production-ready”
+- Treat “ship” / ship-log / product delivery language as a push request
+- Stop after `git push` without watching deploys (only applies when the user asked to push)
 - Treat Queued/Building as done
-- Skip the fix→push retry when logs show a clear in-repo build/runtime error you can fix
+- Skip the fix→push retry when logs show a clear in-repo build/runtime error you can fix (only inside an authorized push turn)
 - Push unrelated dirty files, secrets, or `web/out/` promo dumps
