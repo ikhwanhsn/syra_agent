@@ -16,8 +16,6 @@ interface AutoCallSettingsPanelProps {
   onSave: (patch: Partial<LabX402Settings>) => void;
   isSaving: boolean;
   onDraftChange?: (draft: {
-    intervalMin: number;
-    jitterPct: number;
     refundEnabled: boolean;
     autoCallEnabled: boolean;
     maxDailyCallsMin: number;
@@ -25,14 +23,6 @@ interface AutoCallSettingsPanelProps {
     targetVolumeUsd: number;
     priceMultiplier: number;
   }) => void;
-}
-
-function msToMinutes(ms: number): number {
-  return Math.round(ms / 60_000);
-}
-
-function minutesToMs(min: number): number {
-  return Math.max(1, min) * 60_000;
 }
 
 function normalizeRange(min: number, max: number): { min: number; max: number } {
@@ -49,9 +39,7 @@ export function AutoCallSettingsPanel({
   onDraftChange,
 }: AutoCallSettingsPanelProps) {
   const [autoCallEnabled, setAutoCallEnabled] = useState(false);
-  const [intervalMin, setIntervalMin] = useState(5);
   const [refundEnabled, setRefundEnabled] = useState(true);
-  const [jitterPct, setJitterPct] = useState(20);
   const [maxDailyCallsMin, setMaxDailyCallsMin] = useState(2000);
   const [maxDailyCallsMax, setMaxDailyCallsMax] = useState(2000);
   const [targetVolumeUsd, setTargetVolumeUsd] = useState(50);
@@ -61,9 +49,7 @@ export function AutoCallSettingsPanel({
   useEffect(() => {
     if (!settings) return;
     setAutoCallEnabled(settings.autoCallEnabled);
-    setIntervalMin(msToMinutes(settings.intervalMs));
     setRefundEnabled(settings.refundEnabled);
-    setJitterPct(settings.jitterPct);
     const legacy = settings.maxDailyCalls ?? 2000;
     const range = normalizeRange(
       settings.maxDailyCallsMin ?? legacy,
@@ -85,8 +71,6 @@ export function AutoCallSettingsPanel({
 
   useEffect(() => {
     onDraftChange?.({
-      intervalMin,
-      jitterPct,
       refundEnabled,
       autoCallEnabled,
       maxDailyCallsMin,
@@ -95,8 +79,6 @@ export function AutoCallSettingsPanel({
       priceMultiplier,
     });
   }, [
-    intervalMin,
-    jitterPct,
     refundEnabled,
     autoCallEnabled,
     maxDailyCallsMin,
@@ -120,7 +102,8 @@ export function AutoCallSettingsPanel({
       <div>
         <h3 className="text-sm font-semibold">Auto-call scheduler</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Each payer wallet calls a random /insights/* endpoint on the configured interval.
+          Each payer wallet calls a random /insights/* endpoint. Wait between batches is random,
+          3-7 minutes (avg ~5, former interval cadence).
         </p>
       </div>
 
@@ -137,28 +120,6 @@ export function AutoCallSettingsPanel({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="interval">Interval (minutes)</Label>
-          <Input
-            id="interval"
-            type="number"
-            min={1}
-            max={60}
-            value={intervalMin}
-            onChange={(e) => setIntervalMin(Number(e.target.value))}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="jitter">Jitter (%)</Label>
-          <Input
-            id="jitter"
-            type="number"
-            min={0}
-            max={50}
-            value={jitterPct}
-            onChange={(e) => setJitterPct(Number(e.target.value))}
-          />
-        </div>
         <div className="space-y-2">
           <Label htmlFor="max-daily-calls-min">Daily calls min (MongoDB cap)</Label>
           <Input
@@ -196,7 +157,8 @@ export function AutoCallSettingsPanel({
           />
           <p className="text-xs text-muted-foreground">
             Ops goal for gross paid volume today (UTC). Progress is tracked on this tab; simulation
-            uses this to recommend interval and funding. Does not stop the scheduler by itself, use daily call caps for hard limits.
+            uses this to recommend funding. Does not stop the scheduler by itself, use daily call
+            caps for hard limits.
           </p>
         </div>
         <div className="space-y-2 sm:col-span-2">
@@ -255,9 +217,7 @@ export function AutoCallSettingsPanel({
           const range = normalizeRange(maxDailyCallsMin, maxDailyCallsMax);
           onSave({
             autoCallEnabled,
-            intervalMs: minutesToMs(intervalMin),
             refundEnabled,
-            jitterPct,
             maxDailyCallsMin: range.min,
             maxDailyCallsMax: range.max,
             targetVolumeUsd: Math.min(100_000, Math.max(1, Math.round(targetVolumeUsd * 100) / 100)),

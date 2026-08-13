@@ -6,6 +6,10 @@ const EST_SOL_PER_CALL = 0.00002;
 const SOL_RENT_BUFFER = 0.01;
 const BALANCE_SAFETY_MARGIN = 1.25;
 
+/** Matches api/libs/labs/labX402Scheduler.js auto batch wait. */
+export const AUTO_BATCH_INTERVAL_MIN_MINUTES = 3;
+export const AUTO_BATCH_INTERVAL_MAX_MINUTES = 7;
+
 /** Matches api/libs/labs/labX402Refund.js low-balance top-up target. */
 export function computePayerRefundTarget(maxPriceUsd: number, avgPriceUsd: number): number {
   return Math.max(maxPriceUsd * 2, avgPriceUsd * 3);
@@ -43,8 +47,10 @@ export interface PerWalletBalanceRow {
 
 export interface LabsX402SimulationInput {
   payerCount: number;
-  intervalMin: number;
-  jitterPct: number;
+  /** Ignored: scheduler uses a random 3-7 min batch wait. */
+  intervalMin?: number;
+  /** Ignored: jitter is no longer operator-configured. */
+  jitterPct?: number;
   refundEnabled: boolean;
   autoCallEnabled: boolean;
   endpoints: LabX402Endpoint[];
@@ -230,15 +236,18 @@ export function suggestIntervalMinutes(payerCount: number, targetCallsPerDay: nu
   return Math.max(1, Math.min(60, Math.round(raw * 10) / 10));
 }
 
-export function jitterIntervalRange(
-  intervalMin: number,
-  jitterPct: number,
-): { min: number; max: number } {
-  const jitter = (jitterPct / 100) * intervalMin;
+export function autoBatchIntervalRange(): { min: number; max: number } {
   return {
-    min: Math.max(1, Math.round((intervalMin - jitter) * 10) / 10),
-    max: Math.min(60, Math.round((intervalMin + jitter) * 10) / 10),
+    min: AUTO_BATCH_INTERVAL_MIN_MINUTES,
+    max: AUTO_BATCH_INTERVAL_MAX_MINUTES,
   };
+}
+
+export function jitterIntervalRange(
+  _intervalMin?: number,
+  _jitterPct?: number,
+): { min: number; max: number } {
+  return autoBatchIntervalRange();
 }
 
 function formatUsd(n: number): string {
@@ -252,8 +261,9 @@ export function formatSimulationUsd(n: number): string {
 
 export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402SimulationResult {
   const payerCount = Math.max(0, input.payerCount);
-  const intervalMin = Math.max(1, Math.min(60, input.intervalMin));
-  const jitterPct = Math.max(0, Math.min(50, input.jitterPct));
+  const range = autoBatchIntervalRange();
+  const intervalMin = (range.min + range.max) / 2;
+  const jitterPct = 0;
   const rawMult = Number(input.priceMultiplier);
   const priceMultiplier = Number.isFinite(rawMult)
     ? Math.min(100, Math.max(1, rawMult))
@@ -295,8 +305,6 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   const netUsdcPerDay = input.refundEnabled ? 0 : grossUsdcPerDay;
   const grossUsdcPerWalletPerDay = payerCount > 0 ? grossUsdcPerDay / payerCount : 0;
 
-  const range = jitterIntervalRange(intervalMin, jitterPct);
-
   const suggestedIntervalMin = suggestIntervalMinutes(payerCount, targetCallsPerDay);
   const projectedTargetGrossUsd = Math.round(targetCallsPerDay * safeAvgPrice * 100) / 100;
   const volumeGapUsd = Math.max(0, Math.round((targetVolumeUsd - grossUsdcPerDay) * 100) / 100);
@@ -315,29 +323,26 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   }
   if (payerCount <= 0) {
     achievementHints.push("Add at least one payer wallet so the scheduler can generate volume.");
-  } else if (suggestedIntervalMin != null && input.autoCallEnabled) {
+  } else if (input.autoCallEnabled) {
     if (grossUsdcPerDay + 0.005 < targetVolumeUsd) {
-      if (suggestedIntervalMin < intervalMin) {
+      const neededPayers = Math.max(
+        1,
+        Math.ceil((targetCallsPerDay * intervalMin) / MINUTES_PER_DAY),
+      );
+      if (neededPayers > payerCount) {
         achievementHints.push(
-          `Lower interval to ~${suggestedIntervalMin} min (with ${payerCount} payer${payerCount === 1 ? "" : "s"}) to hit ~${formatUsd(targetVolumeUsd)}/day.`,
+          `Add ~${neededPayers - payerCount} more payer wallet${neededPayers - payerCount === 1 ? "" : "s"} (≈${neededPayers} total) at the random 3-7 min batch wait` +
+            (priceMultiplier < 100
+              ? `, or raise the price multiplier (currently ×${priceMultiplier}).`
+              : "."),
         );
-      } else if (suggestedIntervalMin >= intervalMin) {
-        const neededPayers = Math.max(
-          1,
-          Math.ceil((targetCallsPerDay * intervalMin) / MINUTES_PER_DAY),
+      } else {
+        achievementHints.push(
+          `Aim for ~${targetCallsPerDay.toLocaleString()} calls/day (~${formatUsd(projectedTargetGrossUsd)} at avg effective price). Batch wait is random 3-7 min.` +
+            (priceMultiplier < 100
+              ? ` Raise the price multiplier (currently ×${priceMultiplier}) if volume stays short.`
+              : ""),
         );
-        if (neededPayers > payerCount) {
-          achievementHints.push(
-            `Add ~${neededPayers - payerCount} more payer wallet${neededPayers - payerCount === 1 ? "" : "s"} (≈${neededPayers} total) at ${intervalMin} min interval, or lower the interval` +
-              (priceMultiplier < 100
-                ? `, or raise the price multiplier (currently ×${priceMultiplier}).`
-                : "."),
-          );
-        } else {
-          achievementHints.push(
-            `Aim for ~${targetCallsPerDay.toLocaleString()} calls/day (~${formatUsd(projectedTargetGrossUsd)} at avg effective price).`,
-          );
-        }
       }
     } else {
       achievementHints.push(
@@ -409,12 +414,8 @@ export function runLabsX402Simulation(input: LabsX402SimulationInput): LabsX402S
   };
 }
 
-export function getCallsRange(
-  payerCount: number,
-  intervalMin: number,
-  jitterPct: number,
-): { min: number; max: number } {
-  const range = jitterIntervalRange(intervalMin, jitterPct);
+export function getCallsRange(payerCount: number): { min: number; max: number } {
+  const range = autoBatchIntervalRange();
   return {
     min: estimateCallsPerDay(payerCount, range.max),
     max: estimateCallsPerDay(payerCount, range.min),
