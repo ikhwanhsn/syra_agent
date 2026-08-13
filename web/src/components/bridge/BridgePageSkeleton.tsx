@@ -1,3 +1,4 @@
+import { SwapMarketPanelSkeleton } from "@/components/swap/SwapPageSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DASHBOARD_CONTENT_SHELL,
@@ -34,19 +35,23 @@ export function BridgePageSkeleton() {
           <Skeleton className="h-4 w-full max-w-md" />
         </div>
 
-        <div className="flex w-full flex-1 justify-center lg:justify-start">
-          <div className={cn(widgetShellClass, "w-full max-w-md p-4 sm:p-5")}>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-5 w-20" />
-                <Skeleton className="h-8 w-8 rounded-lg" />
+        <div className="grid w-full flex-1 gap-6 lg:grid-cols-[minmax(320px,400px)_minmax(0,1fr)] xl:gap-8">
+          <aside className="min-w-0">
+            <div className={cn(widgetShellClass, "w-full p-4 sm:p-5")}>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+                <Skeleton className="h-24 w-full rounded-2xl" />
+                <Skeleton className="mx-auto h-10 w-10 rounded-xl" />
+                <Skeleton className="h-24 w-full rounded-2xl" />
+                <Skeleton className="h-12 w-full rounded-xl" />
               </div>
-              <Skeleton className="h-24 w-full rounded-2xl" />
-              <Skeleton className="mx-auto h-10 w-10 rounded-xl" />
-              <Skeleton className="h-24 w-full rounded-2xl" />
-              <Skeleton className="h-12 w-full rounded-xl" />
             </div>
-          </div>
+            <Skeleton className="mx-auto mt-4 h-3 w-64 max-w-full" />
+          </aside>
+          <SwapMarketPanelSkeleton />
         </div>
       </div>
     </div>

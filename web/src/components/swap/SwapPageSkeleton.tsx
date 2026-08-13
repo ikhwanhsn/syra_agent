@@ -75,7 +75,7 @@ function SwapCardSkeleton() {
   );
 }
 
-function SwapMarketPanelSkeleton() {
+export function SwapMarketPanelSkeleton() {
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <div className={cn(overviewCardShell, "p-0")}>

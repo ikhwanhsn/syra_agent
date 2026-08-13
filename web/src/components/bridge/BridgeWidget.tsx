@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SwapWidget, type Token } from "@relayprotocol/relay-kit-ui";
 import { adaptSolanaWallet } from "@relayprotocol/relay-svm-wallet-adapter";
 import type { Execute } from "@relayprotocol/relay-sdk";
@@ -11,34 +11,30 @@ import {
 } from "@/lib/bridgeBuybackApi";
 import {
   BASE_CHAIN_ID,
-  BASE_USDC_ADDRESS,
   BRIDGE_APP_FEE_PERCENT_LABEL,
   RELAY_SOLANA_CHAIN_ID,
-  SOLANA_USDC_ADDRESS,
 } from "@/lib/bridgeConfig";
+import {
+  DEFAULT_BRIDGE_FROM,
+  DEFAULT_BRIDGE_TO,
+} from "@/lib/bridgeMarketToken";
 
-const DEFAULT_FROM: Token = {
-  chainId: BASE_CHAIN_ID,
-  address: BASE_USDC_ADDRESS,
-  decimals: 6,
-  name: "USD Coin",
-  symbol: "USDC",
-  logoURI: "https://ethereum-optimism.github.io/data/USDC/logo.png",
+export type BridgeTokensChange = {
+  from?: Token;
+  to?: Token;
 };
 
-const DEFAULT_TO: Token = {
-  chainId: RELAY_SOLANA_CHAIN_ID,
-  address: SOLANA_USDC_ADDRESS,
-  decimals: 6,
-  name: "USD Coin",
-  symbol: "USDC",
-  logoURI:
-    "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
-};
+function BridgeWidgetInner({
+  onTokensChange,
+}: {
+  onTokensChange?: (tokens: BridgeTokensChange) => void;
+}) {
+  const [fromToken, setFromToken] = useState<Token | undefined>(DEFAULT_BRIDGE_FROM);
+  const [toToken, setToToken] = useState<Token | undefined>(DEFAULT_BRIDGE_TO);
 
-function BridgeWidgetInner() {
-  const [fromToken, setFromToken] = useState<Token | undefined>(DEFAULT_FROM);
-  const [toToken, setToToken] = useState<Token | undefined>(DEFAULT_TO);
+  useEffect(() => {
+    onTokensChange?.({ from: fromToken, to: toToken });
+  }, [fromToken, toToken, onTokensChange]);
 
   const {
     connected: solanaConnected,
@@ -130,7 +126,7 @@ function BridgeWidgetInner() {
       : undefined;
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full">
       <SwapWidget
         fromToken={fromToken}
         setFromToken={setFromToken}
@@ -161,6 +157,10 @@ function BridgeWidgetInner() {
   );
 }
 
-export function BridgeWidget() {
-  return <BridgeWidgetInner />;
+export function BridgeWidget({
+  onTokensChange,
+}: {
+  onTokensChange?: (tokens: BridgeTokensChange) => void;
+} = {}) {
+  return <BridgeWidgetInner onTokensChange={onTokensChange} />;
 }
