@@ -17,7 +17,8 @@ describe("isDashboardLayoutRoute", () => {
     expect(isDashboardLayoutRoute("/earn/token/abc")).toBe(true);
     expect(isDashboardLayoutRoute("/assets/sol")).toBe(true);
     expect(isDashboardLayoutRoute("/organize")).toBe(true);
-    expect(isDashboardLayoutRoute("/btc-experiment")).toBe(true);
+    expect(isDashboardLayoutRoute("/lp-experiment")).toBe(true);
+    expect(isDashboardLayoutRoute("/meridian")).toBe(true);
     expect(isDashboardLayoutRoute("/btc")).toBe(true);
   });
 
@@ -46,9 +47,9 @@ describe("dashboardFallbackShellClass", () => {
     expect(shell).toContain(PAGE_SAFE_AREA_BOTTOM);
   });
 
-  it("does not treat BTC experiment as the Bitcoin page", () => {
+  it("does not treat LP experiment as the Bitcoin page", () => {
     const btc = dashboardFallbackShellClass("/btc");
-    const experiment = dashboardFallbackShellClass("/btc-experiment");
+    const experiment = dashboardFallbackShellClass("/lp-experiment");
     expect(btc).toContain(PAGE_PADDING_TOP_STANDARD);
     expect(btc).toContain(PAGE_SAFE_AREA_BOTTOM);
     expect(experiment).toContain(PAGE_SAFE_AREA_BOTTOM_COMPACT);

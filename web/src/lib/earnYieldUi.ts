@@ -1,5 +1,4 @@
 import {
-  Bitcoin,
   Crosshair,
   Droplets,
   Layers,
@@ -330,7 +329,6 @@ export function resolveFlatInvestStatus(input: {
 
 export function earnProductIcon(product: Pick<EarnYieldProduct, "id">): LucideIcon {
   if (product.id === "lp_meteora_dlmm") return Droplets;
-  if (product.id === "cbbtc_onchain_signal") return Bitcoin;
   if (product.id === "momentum_rotator") return RefreshCw;
   if (product.id === "lst_loop") return Layers;
   if (product.id === "alpha_sniper") return Crosshair;

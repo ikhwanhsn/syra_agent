@@ -112,7 +112,6 @@ BlockRun-style traction and onboarding endpoints (no API key):
 | `GET /free/assets` | Free tier — assets board subset |
 | `GET /free/coingecko/price` | Free tier — token prices |
 | `GET /free/dossier/basic?mint=` | Free tier — basic mint snapshot |
-| `GET /experiment/scalper/reference` | Reference agent card (x402 spend + paper equity) |
 
 **Registry submission:** `node -r dotenv/config scripts/registerX402Registries.js --validate`
 

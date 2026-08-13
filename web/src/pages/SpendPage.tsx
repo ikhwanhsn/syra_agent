@@ -232,14 +232,7 @@ export default function SpendPage() {
               title="Connect to pay from your agent wallet"
               description="Catalog is free. Fund USDC to run full tools."
             />
-          ) : (
-            <PillarConnectCTA
-              title="Fund your spend wallet to run paid tools"
-              description="Browse freely. Fund USDC when you're ready to settle calls."
-              fundHref="/wallet"
-              fundLabel="Fund wallet"
-            />
-          )}
+          ) : null}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <OverviewStatCard

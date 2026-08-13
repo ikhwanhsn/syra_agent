@@ -2279,6 +2279,91 @@ curl "${BASE_URL}/preview/signal?token=solana&source=okx"`,
     ],
   }),
 
+  "llm-route": doc({
+    title: "LLM Exchange Smart Router",
+    overview:
+      "Two-sided LLM marketplace router. Sellers list Claude (Anthropic), Gemini (Google), DeepSeek/Together/Groq/vLLM (OpenAI-compatible), or custom gateways on Earn → LLM and set prices. Agents call **one** OpenAI-shaped endpoint (`POST /llm/route`); Syra translates per provider protocol and smart-routes by policy (`cheapest` | `reliable` | `fastest` | `quality`) with automatic failover. Callers pay Syra via x402; Syra keeps ~20% platform fee (feeds $SYRA buyback) and accrues the rest to the seller payout ledger. Syra OpenRouter is always available as a system fallback so the router is never empty.",
+    price: "Dynamic per request (seller quote × 1.2 margin; floor $0.004 USD)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/llm/models",
+        description:
+          "Free discovery catalog of routable marketplace models with price hints, callability scores, and latency. No x402 payment required.",
+        requestExample: `curl ${BASE_URL}/llm/models`,
+        responseExample: `{
+  "object": "list",
+  "policies": ["cheapest", "reliable", "fastest", "quality"],
+  "default_policy": "cheapest",
+  "endpoint": "/llm/route",
+  "data": [
+    {
+      "id": "gpt-4o-mini",
+      "providerSlug": "fast-llama",
+      "priceHintUsd": 0.0048,
+      "callabilityScore": 0.97,
+      "p50LatencyMs": 420
+    }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/llm/route",
+        description:
+          "OpenAI-compatible chat completion with smart routing. Required: messages[]. Optional: model, max_tokens, temperature, tools, route_policy. Headers: X-Syra-Route (cheapest|reliable|fastest|quality), optional X-Syra-Provider.",
+        bodyExample: `{
+  "messages": [
+    { "role": "user", "content": "Summarize BTC in one paragraph." }
+  ],
+  "max_tokens": 256,
+  "route_policy": "cheapest"
+}`,
+        requestExample: `curl -X POST ${BASE_URL}/llm/route \\
+  -H "Content-Type: application/json" \\
+  -H "X-Syra-Route: cheapest" \\
+  -d '{"messages":[{"role":"user","content":"Hello"}],"max_tokens":64}'`,
+        responseExample: `{
+  "id": "gen-...",
+  "object": "chat.completion",
+  "model": "gpt-4o-mini",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "..." },
+      "finish_reason": "stop"
+    }
+  ],
+  "syra_route": {
+    "policy": "cheapest",
+    "provider_slug": "fast-llama",
+    "price_usd": 0.0048,
+    "platform_fee_usd": 0.00096,
+    "seller_share_usd": 0.00384
+  }
+}`,
+      },
+    ],
+    paymentFlow: paymentFlowFor(0.004),
+    extraSections: [
+      {
+        title: "Sell your LLM",
+        content:
+          "Dashboard → Earn → LLM → List LLM. Choose a provider type (OpenAI-compatible, Anthropic/Claude, Google/Gemini, or Custom), paste your API key (encrypted at rest), model ids, and per-1M-token or flat pricing. Base URL is optional for Claude/Gemini (official defaults apply). Activate after a connection test. Claim seller earnings from the same tab. Hold/stake ≥100k $SYRA for a lower platform fee and featured placement.",
+      },
+      {
+        title: "Supported protocols",
+        content:
+          "openai: DeepSeek, Together, Groq, Mistral, vLLM, Ollama, OpenRouter — POST /chat/completions + Bearer. anthropic: Claude — POST /v1/messages + x-api-key. google: Gemini — generateContent + API key. openai_custom: configurable chat path + auth header/scheme for proprietary OpenAI-shaped gateways. Callers always send OpenAI chat bodies; Syra normalizes every response to chat.completion.",
+      },
+      {
+        title: "Routing policies",
+        content:
+          "cheapest (default): lowest quote among healthy providers. reliable: highest callability score. fastest: lowest p50 latency. quality: blends callability + latency. On failure, the router tries the next-best provider (up to 3 attempts) before returning 502.",
+      },
+    ],
+  }),
+
   "images-generations": doc({
     title: "Image Generations (OpenRouter)",
     overview:

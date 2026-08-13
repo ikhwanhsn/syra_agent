@@ -13,13 +13,14 @@ test("performance fee on positive PnL", () => {
   assert.ok(fee.totalUsd >= 15); // 15% of 100
 });
 
-test("zero PnL still charges flat for hybrid", () => {
-  const fee = computeOutcomeFee("robinhood_lp_autopilot", {
+test("zero PnL still charges flat for hybrid-style products", () => {
+  const fee = computeOutcomeFee("treasury_autopilot", {
     realizedPnlUsd: 0,
-    managedCapitalUsd: 0,
+    managedCapitalUsd: 1_000,
+    billingPeriodDays: 30,
   });
-  assert.equal(fee.billingModel, "hybrid");
-  assert.ok(fee.breakdown.flatCycleFeeUsd > 0);
+  assert.equal(fee.billingModel, "aum");
+  assert.ok(fee.breakdown.aumFeeUsd > 0);
   assert.ok(fee.totalUsd > 0);
 });
 

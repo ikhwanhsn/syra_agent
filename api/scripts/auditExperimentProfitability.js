@@ -83,14 +83,11 @@ async function main() {
 
   const desks = [
     { id: "lp_meteora", col: "lpexperimentruns", pnl: "simNetPnlSol" },
-    { id: "lp_robinhood", col: "robinhood_lp_experiment_runs", pnl: "simNetPnlUsd" },
-    { id: "btc_onchain", col: "tradingexperimentruns", pnl: "simPnlUsd", match: { suite: "btc_onchain" } },
     { id: "stocks", col: "stocks_experiment_runs", pnl: "simPnlUsd" },
     { id: "momentum", col: "momentum_rotator_runs", pnl: "simPnlUsd" },
     { id: "lst_loop", col: "lst_loop_runs", pnl: "simPnlUsd" },
     { id: "sniper", col: "sniper_runs", pnl: "simPnlUsd" },
-    { id: "scalper", col: "scalper_runs", pnl: "simPnlUsd" },
-    { id: "mm", col: "mm_runs", pnl: "simPnlUsd" },
+    { id: "meridian", col: "meridian_runs", pnl: "simNetPnlSol" },
   ];
 
   const report = { generatedAt: new Date().toISOString(), desks: {}, redFlags: [] };
@@ -101,21 +98,6 @@ async function main() {
     const flags = flagsFor(d.id, stats);
     report.desks[d.id] = { ...stats, flags };
     for (const f of flags) report.redFlags.push({ desk: d.id, flag: f });
-  }
-
-  // BTC3 equity check
-  const btc3 = await db.collection("btc3_paper_rebalances").find({}).sort({ _id: -1 }).limit(1).toArray();
-  const btc3First = await db.collection("btc3_paper_rebalances").find({}).sort({ _id: 1 }).limit(1).toArray();
-  report.desks.btc3 = {
-    latestEquityUsd: btc3[0]?.equityUsd ?? null,
-    startEquityUsd: btc3First[0]?.equityUsd ?? null,
-    returnPct: btc3[0]?.returnPct ?? null,
-    lastActivityAt: btc3[0]?.createdAt ? new Date(btc3[0].createdAt).toISOString() : null,
-    flags: [],
-  };
-  if (btc3[0]?.returnPct < 0) {
-    report.desks.btc3.flags.push("net_negative");
-    report.redFlags.push({ desk: "btc3", flag: "net_negative" });
   }
 
   // LP real stuck

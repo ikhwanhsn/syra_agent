@@ -14,10 +14,13 @@
     "preview": "vite preview",
     "generate:seo": "node scripts/seo/generate.mjs",
     "generate:favicons": "node scripts/generate-favicons.mjs",
+    "generate:xlayer": "vitest run src/components/post/photo/satori/renderXLayerSvg.test.ts",
     "test": "node scripts/check-no-em-dash.mjs && vitest run",
     "test:watch": "vitest",
     "remotion": "remotion studio src/video/remotion-entry.ts",
-    "remotion:studio": "remotion studio src/video/remotion-entry.ts"
+    "remotion:studio": "remotion studio src/video/remotion-entry.ts",
+    "remotion:llm-exchange": "remotion render src/video/remotion-entry.ts LlmExchangePromo out/llm-exchange-promo.mp4",
+    "remotion:llm-exchange:nobgm": "remotion render src/video/remotion-entry.ts LlmExchangePromo out/llm-exchange-promo-nobgm.mp4 --props=out/props-nobgm.json"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

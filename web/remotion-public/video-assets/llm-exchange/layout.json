@@ -1,0 +1,47 @@
+{
+  "pageW": 1920,
+  "pageH": 1080,
+  "pages": {
+    "earn-llm": {
+      "texture": "earn-llm.png",
+      "elements": {
+        "list-dialog": {
+          "x": 64,
+          "y": 280,
+          "w": 980,
+          "h": 700
+        },
+        "provider-select": {
+          "x": 92,
+          "y": 430,
+          "w": 900,
+          "h": 52
+        },
+        "card-claude": {
+          "x": 1070,
+          "y": 280,
+          "w": 780,
+          "h": 320
+        },
+        "card-gemini": {
+          "x": 1070,
+          "y": 620,
+          "w": 780,
+          "h": 300
+        }
+      }
+    },
+    "route-terminal": {
+      "texture": "route-terminal.png",
+      "elements": {
+        "term": {
+          "x": 96,
+          "y": 160,
+          "w": 1700,
+          "h": 700
+        }
+      }
+    }
+  },
+  "note": "Fictional demo UI for LLM Exchange promo. No real secrets."
+}

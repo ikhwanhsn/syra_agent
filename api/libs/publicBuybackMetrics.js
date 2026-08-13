@@ -3,13 +3,17 @@
  *
  * Buyback USD is the greater of:
  *   1) ledger spend (x402 + on-chain recorded events)
- *   2) live treasury portfolio value (SYRA + USDC + SOL balances)
+ *   2) live portfolio value across primary treasury + silent totals wallets
  * so manual SOL buys and wallet holdings always show in the proof total.
+ *
+ * Proof fields (treasuryWallet, recentBuybacks, lastBuyback*) stay primary-only;
+ * silent totals wallets never appear in the public response.
  */
 import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import bs58 from "bs58";
 import { isMongooseConnected } from "../config/mongoose.js";
 import { BUYBACK_ACCUMULATOR_ID } from "../config/buybackSchedulerConfig.js";
+import { resolveBuybackTotalsWallets } from "../config/buybackTotalsWallets.js";
 import BuybackAccumulator from "../models/BuybackAccumulator.js";
 import BuybackEvent from "../models/BuybackEvent.js";
 import { SYRA_TOKEN_MINT } from "./syraToken.js";
@@ -119,10 +123,61 @@ async function fetchTreasuryBalances(wallet) {
 }
 
 /**
+ * @param {{ syra: number | null; usdc: number; sol: number }} balances
+ * @param {{ syraUsd: number | null; solUsd: number | null }} prices
+ */
+function portfolioUsdFromBalances(balances, prices) {
+  const syraValue =
+    balances.syra != null && prices.syraUsd != null && prices.syraUsd > 0
+      ? balances.syra * prices.syraUsd
+      : 0;
+  const solValue =
+    balances.sol > 0 && prices.solUsd != null && prices.solUsd > 0
+      ? balances.sol * prices.solUsd
+      : 0;
+  return roundUsd(syraValue + balances.usdc + solValue);
+}
+
+/**
+ * Map a BuybackEvent lean doc to the public recent-buybacks shape.
+ * @param {object} e
+ * @param {{ syraUsd: number | null }} prices
+ */
+export function mapRecentBuybackEvent(e, prices) {
+  const recordedUsd = Number(e.buybackUsd) || 0;
+  const syraAmt = Number(e.outAmountHuman) || 0;
+  const estimated =
+    recordedUsd <= 0 && syraAmt > 0 && prices.syraUsd != null && prices.syraUsd > 0
+      ? syraAmt * prices.syraUsd
+      : recordedUsd;
+  return {
+    at: e.createdAt ? new Date(e.createdAt).toISOString() : null,
+    revenueUsd: roundUsd(estimated),
+    buybackUsd: roundUsd(estimated),
+    syraAcquired: e.outAmountHuman ?? null,
+    swapSignature: e.swapSignature,
+    source: e.source || "x402_scheduler",
+    solscanUrl: e.swapSignature ? `https://solscan.io/tx/${e.swapSignature}` : null,
+  };
+}
+
+/**
+ * Mongo filter: primary treasury proof rows only (legacy null wallet included).
+ * @param {string | null} primaryWallet
+ */
+export function primaryBuybackProofFilter(primaryWallet) {
+  if (!primaryWallet) {
+    return { treasuryWallet: { $in: [null] } };
+  }
+  return { treasuryWallet: { $in: [primaryWallet, null] } };
+}
+
+/**
  * Build public buyback section for /api/metrics.
  */
 export async function buildPublicBuybackSnapshot() {
   const treasuryWallet = resolveTreasuryWallet();
+  const silentWallets = resolveBuybackTotalsWallets({ primaryWallet: treasuryWallet });
   const note =
     "When settled x402 revenue is paid to the Syra treasury (not Labs/partner payTo overrides), ~80% is queued and batched into Jupiter/DEX $SYRA buys about every 24h. Labs insight routes that pay to lab wallets intentionally skip this queue (skipRevenueBuyback). Buyback spent is the greater of recorded swap USD and the live treasury wallet portfolio (SYRA + USDC + SOL). pendingRevenueUsd / totalFlushedUsd are the queue proof; totalBuybackUsdSpent may be higher because it includes the live portfolio. $SYRA acquired is the live treasury holding. Tokens fund usage rewards / airdrops - not burned.";
   const empty = {
@@ -145,8 +200,13 @@ export async function buildPublicBuybackSnapshot() {
   };
 
   const emptyLive = { syra: null, usdc: 0, sol: 0 };
-  const [balances, prices] = await Promise.all([
+  const [balances, silentBalancesList, prices] = await Promise.all([
     withBudget(fetchTreasuryBalances(treasuryWallet), LIVE_BUDGET_MS, emptyLive),
+    Promise.all(
+      silentWallets.map((w) =>
+        withBudget(fetchTreasuryBalances(w), LIVE_BUDGET_MS, emptyLive),
+      ),
+    ),
     withBudget(
       fetchBuybackSpotPrices().catch(() => ({ syraUsd: null, solUsd: null })),
       LIVE_BUDGET_MS,
@@ -154,30 +214,34 @@ export async function buildPublicBuybackSnapshot() {
     ),
   ]);
 
-  const syraValue =
-    balances.syra != null && prices.syraUsd != null && prices.syraUsd > 0
-      ? balances.syra * prices.syraUsd
-      : 0;
-  const solValue =
-    balances.sol > 0 && prices.solUsd != null && prices.solUsd > 0
-      ? balances.sol * prices.solUsd
-      : 0;
-  const portfolioUsd = roundUsd(syraValue + balances.usdc + solValue);
+  const primaryPortfolioUsd = portfolioUsdFromBalances(balances, prices);
+  let combinedSyra =
+    balances.syra != null && Number.isFinite(balances.syra) ? Number(balances.syra) : null;
+  let combinedPortfolioUsd = primaryPortfolioUsd;
+  for (const silentBal of silentBalancesList) {
+    combinedPortfolioUsd = roundUsd(
+      combinedPortfolioUsd + portfolioUsdFromBalances(silentBal, prices),
+    );
+    if (silentBal.syra != null && Number.isFinite(silentBal.syra)) {
+      combinedSyra = (combinedSyra ?? 0) + Number(silentBal.syra);
+    }
+  }
 
   empty.treasurySyraBalance = balances.syra;
   empty.treasuryUsdcBalance = roundUsd(balances.usdc);
   empty.treasurySolBalance = balances.sol;
-  empty.treasuryPortfolioUsd = portfolioUsd;
-  empty.totalSyraAcquired = Number(balances.syra) || 0;
-  empty.totalBuybackUsdSpent = portfolioUsd;
+  empty.treasuryPortfolioUsd = primaryPortfolioUsd;
+  empty.totalSyraAcquired = Number(combinedSyra) || 0;
+  empty.totalBuybackUsdSpent = combinedPortfolioUsd;
 
   if (!isMongooseConnected()) {
     return empty;
   }
 
-  const [doc, recent, eventsAgg] = await Promise.all([
+  const proofFilter = primaryBuybackProofFilter(treasuryWallet);
+  const [doc, recent, eventsAgg, lastPrimary] = await Promise.all([
     BuybackAccumulator.findById(BUYBACK_ACCUMULATOR_ID).lean().catch(() => null),
-    BuybackEvent.find({})
+    BuybackEvent.find(proofFilter)
       .sort({ createdAt: -1 })
       .limit(10)
       .lean()
@@ -205,9 +269,17 @@ export async function buildPublicBuybackSnapshot() {
         },
       },
     ]).catch(() => []),
+    BuybackEvent.findOne(proofFilter)
+      .sort({ createdAt: -1 })
+      .select("swapSignature")
+      .lean()
+      .catch(() => null),
   ]);
 
-  const lastSig = doc?.lastBuybackSignature || recent?.[0]?.swapSignature || null;
+  const lastSig =
+    lastPrimary?.swapSignature ||
+    recent?.[0]?.swapSignature ||
+    null;
   const ledgerSpent = Number(
     doc?.totalBuybackUsdSpent ??
       (doc?.totalFlushedUsd != null ? Number(doc.totalFlushedUsd) * BUYBACK_SHARE : 0),
@@ -220,14 +292,14 @@ export async function buildPublicBuybackSnapshot() {
       : 0;
   const eventsWithEstimate = eventsSpent + estimatedZeroUsd;
 
-  // Prefer live treasury holding over summed swap events (manual buys, transfers, etc.).
+  // Prefer live holdings (primary + silent) over summed swap events.
   const totalSyraAcquired =
-    balances.syra != null && Number.isFinite(balances.syra)
-      ? balances.syra
+    combinedSyra != null && Number.isFinite(combinedSyra)
+      ? combinedSyra
       : Number(doc?.totalSyraAcquired) || 0;
 
   const totalBuybackUsdSpent = roundUsd(
-    Math.max(ledgerSpent, eventsWithEstimate, portfolioUsd),
+    Math.max(ledgerSpent, eventsWithEstimate, combinedPortfolioUsd),
   );
 
   return {
@@ -242,7 +314,7 @@ export async function buildPublicBuybackSnapshot() {
     treasurySyraBalance: balances.syra,
     treasuryUsdcBalance: roundUsd(balances.usdc),
     treasurySolBalance: balances.sol,
-    treasuryPortfolioUsd: portfolioUsd,
+    treasuryPortfolioUsd: primaryPortfolioUsd,
     lastFlushAt: doc?.lastFlushAt
       ? new Date(doc.lastFlushAt).toISOString()
       : null,
@@ -250,24 +322,6 @@ export async function buildPublicBuybackSnapshot() {
     lastBuybackSolscan: lastSig
       ? `https://solscan.io/tx/${lastSig}`
       : null,
-    recentBuybacks: (recent || []).map((e) => {
-      const recordedUsd = Number(e.buybackUsd) || 0;
-      const syraAmt = Number(e.outAmountHuman) || 0;
-      const estimated =
-        recordedUsd <= 0 && syraAmt > 0 && prices.syraUsd != null && prices.syraUsd > 0
-          ? syraAmt * prices.syraUsd
-          : recordedUsd;
-      return {
-        at: e.createdAt ? new Date(e.createdAt).toISOString() : null,
-        revenueUsd: roundUsd(estimated),
-        buybackUsd: roundUsd(estimated),
-        syraAcquired: e.outAmountHuman ?? null,
-        swapSignature: e.swapSignature,
-        source: e.source || "x402_scheduler",
-        solscanUrl: e.swapSignature
-          ? `https://solscan.io/tx/${e.swapSignature}`
-          : null,
-      };
-    }),
+    recentBuybacks: (recent || []).map((e) => mapRecentBuybackEvent(e, prices)),
   };
 }

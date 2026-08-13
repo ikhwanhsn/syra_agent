@@ -571,7 +571,7 @@ export default function GrowthHomePage() {
               </Link>
               <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:justify-start">
                 <Link
-                  to="/lp-robinhood"
+                  to="/lp-experiment"
                   className={cn(
                     growthCtaSecondaryClass,
                     "w-full border-border/55 bg-background/50 sm:w-auto",

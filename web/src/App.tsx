@@ -40,8 +40,6 @@ const SpendPage = lazy(() => import("@/pages/SpendPage"));
 const TreasuryPage = lazy(() => import("@/pages/TreasuryPage"));
 const SwapPage = lazy(() => import("@/pages/SwapPage"));
 const AnsemPage = lazy(() => import("@/pages/AnsemPage"));
-const ReferenceScalperPage = lazy(() => import("@/pages/ReferenceScalperPage"));
-
 const MarketingLayout = lazy(() =>
   import("@/components/marketing/MarketingLayout").then((m) => ({ default: m.MarketingLayout })),
 );
@@ -62,16 +60,11 @@ const InfoPage = lazy(() => import("@/pages/InfoPage"));
 
 const LpAgentExperiment = lazy(() => import("@/pages/LpAgentExperiment"));
 const LpAgentExperimentAgentProfile = lazy(() => import("@/pages/LpAgentExperimentAgentProfile"));
-const RobinhoodLpExperiment = lazy(() => import("@/pages/RobinhoodLpExperiment"));
-const BtcQuantExperiment = lazy(() => import("@/pages/BtcQuantExperiment"));
-const Btc2QuantAgentExperiment = lazy(() => import("@/pages/Btc2QuantAgentExperiment"));
-const Btc3MacroAgentExperiment = lazy(() => import("@/pages/Btc3MacroAgentExperiment"));
 const StocksNewsExperiment = lazy(() => import("@/pages/StocksNewsExperiment"));
 const MomentumRotatorExperiment = lazy(() => import("@/pages/MomentumRotatorExperiment"));
 const LstLoopExperiment = lazy(() => import("@/pages/LstLoopExperiment"));
 const SniperExperiment = lazy(() => import("@/pages/SniperExperiment"));
-const ScalperExperiment = lazy(() => import("@/pages/ScalperExperiment"));
-const MmExperiment = lazy(() => import("@/pages/MmExperiment"));
+const MeridianExperiment = lazy(() => import("@/pages/MeridianExperiment"));
 const LabsPage = lazy(() => import("@/pages/labs/LabsPage"));
 const LlmPage = lazy(() => import("@/pages/llm/LlmPage"));
 const OrganizePage = lazy(() => import("@/pages/organize/OrganizePage"));
@@ -93,6 +86,7 @@ const PostStudioLayout = lazy(() =>
 const PostPage = lazy(() => import("@/pages/PostPage"));
 const PostVideoPage = lazy(() => import("@/pages/PostVideoPage"));
 const PostPhotoPage = lazy(() => import("@/pages/PostPhotoPage"));
+const XLayerAnnouncePage = lazy(() => import("@/pages/XLayerAnnouncePage"));
 
 function LegacyPumpfunPageRedirect() {
   const { search } = useLocation();
@@ -155,7 +149,6 @@ function AppRoutes() {
       <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/metrics" element={<Navigate to="/" replace />} />
       <Route path="/ansem" element={<AnsemPage />} />
-      <Route path="/reference/scalper" element={<ReferenceScalperPage />} />
       <Route path="/settings" element={<Index />} />
       <Route path="/wallet" element={<AgentWalletPage />} />
       <Route path="/swap" element={<SwapPage />} />
@@ -258,38 +251,6 @@ function AppRoutes() {
             </AdminExperimentRoute>
           }
         />
-        <Route
-          path="/lp-robinhood"
-          element={
-            <AdminExperimentRoute>
-              <RobinhoodLpExperiment />
-            </AdminExperimentRoute>
-          }
-        />
-        <Route
-          path="/btc-experiment"
-          element={
-            <AdminExperimentRoute>
-              <BtcQuantExperiment />
-            </AdminExperimentRoute>
-          }
-        />
-        <Route
-          path="/btc2-experiment"
-          element={
-            <AdminExperimentRoute>
-              <Btc2QuantAgentExperiment />
-            </AdminExperimentRoute>
-          }
-        />
-        <Route
-          path="/btc3-experiment"
-          element={
-            <AdminExperimentRoute>
-              <Btc3MacroAgentExperiment />
-            </AdminExperimentRoute>
-          }
-        />
         {/* Public paper watch: no Earn deposits. Real money via /equity or /earn?track=skills. */}
         <Route path="/stocks" element={<StocksNewsExperiment />} />
         <Route
@@ -317,18 +278,10 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/scalper"
+          path="/meridian"
           element={
             <AdminExperimentRoute>
-              <ScalperExperiment />
-            </AdminExperimentRoute>
-          }
-        />
-        <Route
-          path="/mm"
-          element={
-            <AdminExperimentRoute>
-              <MmExperiment />
+              <MeridianExperiment />
             </AdminExperimentRoute>
           }
         />
@@ -436,6 +389,7 @@ const App = () => (
             <Route path="/post" element={<PostPage />} />
             <Route path="/post/video/:updateNumber?" element={<PostVideoPage />} />
             <Route path="/post/photo/:updateNumber?" element={<PostPhotoPage />} />
+            <Route path="/post/announce" element={<XLayerAnnouncePage />} />
           </Route>
         </Route>
 

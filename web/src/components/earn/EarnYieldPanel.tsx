@@ -90,7 +90,12 @@ export function EarnYieldPanel({
         <>
           {openProducts.length > 0 ? (
             <section className="space-y-3" aria-label="Available strategies">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div
+                className={cn(
+                  "grid gap-3",
+                  openProducts.length === 1 ? "grid-cols-1" : "sm:grid-cols-2",
+                )}
+              >
                 {openProducts.map((product) => (
                   <StrategyBrowseCard
                     key={product.id}
@@ -110,7 +115,12 @@ export function EarnYieldPanel({
               >
                 Coming soon
               </h2>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div
+                className={cn(
+                  "grid gap-3",
+                  comingSoonProducts.length === 1 ? "grid-cols-1" : "sm:grid-cols-2",
+                )}
+              >
                 {comingSoonProducts.map((product) => (
                   <ComingSoonCard key={product.id} product={product} />
                 ))}
@@ -236,7 +246,7 @@ function StrategyBrowseCard({
 
       <span
         className={cn(
-          "mt-auto inline-flex h-10 w-full items-center justify-center rounded-md px-4 text-sm font-medium sm:w-auto",
+          "mt-auto inline-flex h-10 w-full items-center justify-center rounded-md px-4 text-sm font-medium",
           "bg-primary text-primary-foreground",
         )}
         aria-hidden

@@ -217,6 +217,7 @@ export const SYRA_HIDDEN_ROUTES = [
   { path: "/post", description: "Ship-log social post studio (video + photo)" },
   { path: "/post/video/:updateNumber", description: "Ship-log video slide deck for screen recording (numbered updates)" },
   { path: "/post/photo/:updateNumber", description: "Ship-log photo templates for X posts (numbered updates)" },
+  { path: "/post/announce", description: "Square X-Layer-style announcement cards (white canvas, monochrome)" },
 ];
 
 export const SYRA_INFO_SECTIONS = [

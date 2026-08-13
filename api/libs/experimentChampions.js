@@ -119,40 +119,6 @@ export async function promoteAllExperimentChampions() {
   }
 
   try {
-    const { getRobinhoodLpExperimentStats } = await import("./robinhoodLpExperimentService.js");
-    const rh = await getRobinhoodLpExperimentStats();
-    results.lp_robinhood = await promoteDeskChampion("lp_robinhood", rh.agents || [], {
-      metric: "usd",
-      minDecided: 5,
-    });
-  } catch (e) {
-    results.lp_robinhood = { error: e instanceof Error ? e.message : String(e) };
-  }
-
-  try {
-    const { getBtcQuantStats } = await import("./btcQuantExperimentService.js");
-    for (const lane of ["btc1", "btc2"]) {
-      const stats = await getBtcQuantStats(lane);
-      results[`btc_quant_${lane}`] = await promoteDeskChampion(
-        `btc_quant_${lane}`,
-        (stats.agents || []).map((a) => ({
-          strategyId: a.strategyId ?? a.agentId,
-          strategyName: a.strategyName ?? a.agentName,
-          sumPnlUsd: a.sumPnlUsd ?? a.realizedPnlUsd,
-          winRate: a.winRate,
-          decided: a.decided,
-          wins: a.wins,
-          losses: a.losses,
-          expired: a.expired,
-        })),
-        { metric: "usd", minDecided: 4 },
-      );
-    }
-  } catch (e) {
-    results.btc_quant = { error: e instanceof Error ? e.message : String(e) };
-  }
-
-  try {
     const { getStocksStats } = await import("./stocksExperimentService.js");
     const stocks = await getStocksStats();
     results.stocks = await promoteDeskChampion("stocks", stocks.agents || [], {
@@ -194,6 +160,17 @@ export async function promoteAllExperimentChampions() {
     });
   } catch (e) {
     results.sniper = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  try {
+    const { getMeridianStats } = await import("./meridianService.js");
+    const mer = await getMeridianStats();
+    results.meridian = await promoteDeskChampion("meridian", mer.agents || [], {
+      metric: "sol",
+      minDecided: 3,
+    });
+  } catch (e) {
+    results.meridian = { error: e instanceof Error ? e.message : String(e) };
   }
 
   return results;

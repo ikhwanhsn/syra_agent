@@ -5,8 +5,6 @@
  * Usage:
  *   node api/scripts/validate-earn-yield-launch.js
  *   node api/scripts/validate-earn-yield-launch.js --product=lp_meteora_dlmm
- *   node api/scripts/validate-earn-yield-launch.js --product=cbbtc_onchain_signal
- *   node api/scripts/validate-earn-yield-launch.js --product=btc3_macro
  *   node api/scripts/validate-earn-yield-launch.js --product=momentum_rotator
  *   node api/scripts/validate-earn-yield-launch.js --product=lst_loop
  *   node api/scripts/validate-earn-yield-launch.js --product=alpha_sniper

@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bitcoin, BrainCircuit, Droplets, Globe, Waves, Zap } from "lucide-react";
+import { Compass, Droplets } from "lucide-react";
 
 export type DashboardExperimentNavItem = {
   id: string;
@@ -23,59 +23,13 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     badge: { label: "Beta" },
   },
   {
-    id: "lp-robinhood",
-    label: "LP Robinhood",
-    description: "Robinhood Chain · Uniswap paper sim",
-    icon: Droplets,
-    to: "/lp-robinhood",
-    isActive: (p) => p.startsWith("/lp-robinhood"),
-    badge: { label: "Experimental" },
-  },
-  {
-    id: "btc",
-    label: "BTC quant",
-    description: "Onchain cbBTC quant agents",
-    icon: Bitcoin,
-    to: "/btc-experiment",
-    isActive: (p) => p.startsWith("/btc-experiment") && !p.startsWith("/btc2-experiment"),
-    badge: { label: "Beta" },
-  },
-  {
-    id: "btc2",
-    label: "BTC quant agent",
-    description: "Institutional AI quant desk · spot cbBTC via Jupiter",
-    icon: BrainCircuit,
-    to: "/btc2-experiment",
-    isActive: (p) => p.startsWith("/btc2-experiment"),
-    badge: { label: "Experimental" },
-  },
-  {
-    id: "btc3",
-    label: "Macro Intelligence",
-    description: "Global macro news → historical similarity → BTC spot allocation",
-    icon: Globe,
-    to: "/btc3-experiment",
-    isActive: (p) => p.startsWith("/btc3-experiment"),
-    badge: { label: "Experimental" },
-  },
-  // Stocks News Lab is public paper-watch under Market Intel (/stocks), not admin-only.
-  {
-    id: "scalper",
-    label: "Scalper agent",
-    description: "Hybrid scalp desk · cbBTC + xStocks · Jupiter-quote paper fills",
-    icon: Zap,
-    to: "/scalper",
-    isActive: (p) => p.startsWith("/scalper"),
-    badge: { label: "Experimental" },
-  },
-  {
-    id: "mm",
-    label: "SYRA MM",
-    description: "SYRA market maker · paper volume lab · Jupiter quotes · creator-fee projection",
-    icon: Waves,
-    to: "/mm",
-    isActive: (p) => p.startsWith("/mm"),
-    badge: { label: "Experimental" },
+    id: "meridian",
+    label: "Meridian",
+    description: "Fast-learn DLMM lab",
+    icon: Compass,
+    to: "/meridian",
+    isActive: (p) => p.startsWith("/meridian"),
+    badge: { label: "Lab" },
   },
 ];
 

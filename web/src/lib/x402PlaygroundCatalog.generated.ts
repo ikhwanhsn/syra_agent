@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-08-12T16:49:51.963Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-08-13T04:06:07.446Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -1080,6 +1080,21 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "name": "Chat Completions (OpenRouter)",
       "summary": "OpenAI-compatible agent chat via top OpenRouter models",
       "description": "OpenAI-compatible POST /chat/completions backed by 15 curated agentic OpenRouter text models. Use when an agent needs LLM reasoning, tool c…",
+      "priceUsd": "0.004",
+      "category": "ai"
+    }
+  },
+  {
+    "segment": "llm/route",
+    "id": "x402-llm-route",
+    "label": "LLM Exchange Smart Router: x402 smart router across marketplace LLM providers (cheapest / reliable / fastest / quality)",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "llm/route",
+      "name": "LLM Exchange Smart Router",
+      "summary": "x402 smart router across marketplace LLM providers (cheapest / reliable / fastest / quality)",
+      "description": "OpenAI-compatible POST /llm/route that smart-routes to community LLM providers listed on Earn → LLM. Use when an agent wants the cheapest o…",
       "priceUsd": "0.004",
       "category": "ai"
     }

@@ -23,6 +23,13 @@ import {
   WHAT_IS_SYRA_V_WIDTH,
 } from "@/video/compositions/WhatIsSyraVertical";
 import {
+  LlmExchangePromo,
+  LLM_EXCHANGE_PROMO_DURATION,
+  LLM_EXCHANGE_PROMO_HEIGHT,
+  LLM_EXCHANGE_PROMO_WIDTH,
+} from "@/video/compositions/LlmExchangePromo";
+import { LLM_EXCHANGE_PROMO_FPS } from "@/video/content/llmExchangePromo";
+import {
   POST_VIDEO_LAYOUT_HEIGHT,
   POST_VIDEO_LAYOUT_WIDTH,
 } from "@/video/constants";
@@ -74,6 +81,15 @@ export function RemotionRoot() {
         fps={WHAT_IS_SYRA_V_FPS}
         width={WHAT_IS_SYRA_V_WIDTH}
         height={WHAT_IS_SYRA_V_HEIGHT}
+      />
+      <Composition
+        id="LlmExchangePromo"
+        component={LlmExchangePromo}
+        durationInFrames={LLM_EXCHANGE_PROMO_DURATION}
+        fps={LLM_EXCHANGE_PROMO_FPS}
+        width={LLM_EXCHANGE_PROMO_WIDTH}
+        height={LLM_EXCHANGE_PROMO_HEIGHT}
+        defaultProps={{ bgm: true }}
       />
     </>
   );

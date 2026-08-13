@@ -36,7 +36,11 @@ export function PillarLayout({
       <div
         className={cn(
           DASHBOARD_CONTENT_SHELL,
-          embedded ? "space-y-6 py-4 sm:py-6" : PAGE_PADDING_TOP_MEDIUM,
+          embedded
+            ? hideHeader
+              ? "space-y-4 pt-2 sm:pt-3"
+              : "space-y-6 py-4 sm:py-6"
+            : PAGE_PADDING_TOP_MEDIUM,
           !embedded && PAGE_SAFE_AREA_BOTTOM,
           "relative z-10",
           embedded ? "pb-8" : "pb-16",

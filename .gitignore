@@ -1,6 +1,14 @@
 .env*
 .agent-wallet.json
 node_modules
+mobile/node_modules
+mobile/android/app/build
+mobile/android/.gradle
+mobile/android/build
+mobile/ios/Pods
+mobile/ios/build
+mobile/*.keystore
+mobile/dapp-store/**/*keypair*.json
 # B402 keys — keep registered public key only
 api/.keys/*
 !api/.keys/b402_public.pem
@@ -43,3 +51,4 @@ videos/syra-launch/node_modules/
 .impeccable/live/deferred-svelte-component-accepts.json
 .impeccable/live/*.png
 # impeccable-ignore-end
+reference/

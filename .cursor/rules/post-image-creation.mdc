@@ -1,0 +1,47 @@
+---
+description: Route Syra post/announce image creation through the studio-card reference library. Auto-pick matching archetype or invent new from all references.
+alwaysApply: true
+---
+
+# Post image creation (Syra) — always on
+
+Whenever the user asks to create, design, make, generate, or iterate a **post image**, **announce card**, **thread image**, **square promo still**, or **X/Twitter graphic** for Syra:
+
+1. Read [`web/src/content/announce/REFERENCE_LIBRARY.md`](web/src/content/announce/REFERENCE_LIBRARY.md).
+2. Match content to an archetype using the table there (and optionally `findBestReference()` in [`web/src/content/announce/referenceLibrary.ts`](web/src/content/announce/referenceLibrary.ts)).
+3. **Open the matching reference PNG with the Read tool** before designing (agents must see the image, not only the path).
+
+## Match vs invent
+
+| Situation | Action |
+|-----------|--------|
+| Clear match (metrics, flow, quote, checklist, etc.) | Reuse that archetype’s layout + chrome. Swap copy/modules. Prefer Satori (`xlayerCards.ts` + `templatesXLayer.tsx`) over AI-baked text. |
+| Several possible | Pick the one whose **primary module** fits. One job per card. |
+| No good match | Invent a **new** design. Keep system chrome. **Read all 7 reference PNGs** (+ bg plates) and compose a new layout in the same studio language. After user approval, register it in the library. |
+
+## System chrome (required)
+
+- White atmospheric bg plate + crisp Satori overlay
+- Top-left Syra mark + wordmark; top-right mono label
+- Boxed black headline stickers; glossy dark content modules
+- Mono disclaimer footer; black/white/gray only unless user asks otherwise
+- Default **1:1 / 1080×1080** for announce cards
+
+Gold reference: `web/public/images/threads/syra-xlayer-showcase.png` (Design 2).
+
+## Pipeline
+
+1. Classify content → pick or invent archetype.
+2. Read reference image(s).
+3. Update or add defs in `web/src/content/announce/xlayerCards.ts`.
+4. Layout in `web/src/components/post/photo/satori/templatesXLayer.tsx` (real wrapper components; no `<>` fragment body helpers — Satori layout bug).
+5. New bg plates → `web/public/images/threads/bg/bg-<id>.png` (no text/logos on the plate).
+6. Export: `npm run generate:xlayer` from `web/`.
+7. Deliver PNGs under `web/public/images/threads/syra-xlayer-<id>.png` and update `REFERENCE_LIBRARY.md` + `referenceLibrary.ts` when adding a new archetype.
+
+## Do not
+
+- Ship flat white cards with no atmospheric plate
+- Bake final body/headline text into AI images (use Satori for type)
+- Invent a different brand frame (colored gradients, purple AI look, gold chrome) unless the user explicitly overrides
+- Skip reading the reference PNG when a match exists

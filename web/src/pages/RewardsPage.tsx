@@ -50,7 +50,7 @@ function rewardsBase() {
 async function fetchRewardsMe(wallet: string, signal?: AbortSignal): Promise<RewardsMeResponse> {
   const url = `${rewardsBase()}/me?wallet=${encodeURIComponent(wallet)}`;
   const res = await fetch(url, {
-    headers: { Accept: "application/json", "x-connected-wallet": wallet },
+    headers: { Accept: "application/json" },
     signal,
   });
   if (!res.ok) throw new Error(`Rewards API ${res.status}`);
@@ -63,8 +63,8 @@ async function claimRewardsApi(wallet: string, amountSyra?: number) {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "x-connected-wallet": wallet,
     },
+    credentials: "include",
     body: JSON.stringify({ wallet, amountSyra }),
   });
   const json = await res.json();
@@ -218,9 +218,20 @@ export default function RewardsPage() {
           )}
 
           {wallet && isError && (
-            <p className="mt-6 text-sm text-muted-foreground" role="alert">
-              Could not load rewards for this wallet. Try again.
-            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3" role="alert">
+              <p className="text-sm text-muted-foreground">
+                Could not load rewards for this wallet. Try again.
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-9"
+                onClick={() => void refetch()}
+              >
+                Retry
+              </Button>
+            </div>
           )}
 
           {me && (

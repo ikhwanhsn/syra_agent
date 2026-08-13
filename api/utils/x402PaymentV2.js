@@ -2718,15 +2718,45 @@ export async function settlePaymentAndSetResponse(res, req) {
       });
   });
   const priceUsd = req.x402Payment?.priceUsd;
+  // LLM Exchange: only the platform fee portion queues for $SYRA buyback.
+  const buybackUsd =
+    typeof req.x402Payment?.buybackRevenueUsd === "number" &&
+    req.x402Payment.buybackRevenueUsd >= 0
+      ? req.x402Payment.buybackRevenueUsd
+      : priceUsd;
   if (
-    typeof priceUsd === "number" &&
-    priceUsd > 0 &&
+    typeof buybackUsd === "number" &&
+    buybackUsd > 0 &&
     process.env.NODE_ENV === "production" &&
     !isTesterAgentInternalProbeRequest(req) &&
     !req.x402Payment?.skipRevenueBuyback
   ) {
-    runAfterResponse(() => queueBuybackRevenue(priceUsd).catch(() => {}));
+    runAfterResponse(() => queueBuybackRevenue(buybackUsd).catch(() => {}));
   }
+  // LLM Exchange seller earnings ledger (all envs when Mongo is up).
+  runAfterResponse(() => {
+    const llm = req.x402Payment?.llmExchange;
+    if (!llm || llm.isSystemFallback || !llm.providerId || !llm.creatorAnonymousId) return;
+    if (isTesterAgentInternalProbeRequest(req)) return;
+    const tx =
+      (typeof settle?.transaction === "string" && settle.transaction.trim()) ||
+      `llm-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    import("../libs/llmService.js")
+      .then(({ recordLlmProviderEarning }) =>
+        recordLlmProviderEarning({
+          providerId: llm.providerId,
+          creatorAnonymousId: llm.creatorAnonymousId,
+          payoutWallet: llm.payoutWallet,
+          paidPath: req.path || "/llm/route",
+          priceUsd: typeof priceUsd === "number" ? priceUsd : 0,
+          feeBps: llm.feeBps,
+          callIdempotencyKey: tx,
+          modelId: llm.modelId,
+          routePolicy: llm.routePolicy,
+        }),
+      )
+      .catch(() => {});
+  });
   // Accrue usage → $SYRA rewards for the paying wallet (all envs when Mongo is up).
   runAfterResponse(() => {
     const payer =

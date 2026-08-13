@@ -19,7 +19,7 @@
 | Name | Specialist | subagent_type | Brief |
 | --- | --- | --- | --- |
 | **Log** | Ship-log | explore | `git log -5 --oneline`, `git status`, `web/src/content/posts/registry.ts` last `updateNumber`. What actually shipped? If clean/unrelated, say “metrics-only proof.” |
-| **Quill** | Article / X copy | generalPurpose | Draft shareCopyVideo + shareCopyPhoto following article-authoring + no-em-dash + legal-compliance. One CTA. Numbers only from the metrics snapshot passed in. |
+| **Quill** | Article / X copy | generalPurpose | Draft shareCopyVideo + shareCopyPhoto following `TEXT_POST_QUALITY_BAR.md` + text-post-creation + article-authoring + no-em-dash + legal-compliance. Launch-caliber main + tighter + optional how-to reply. One primary CTA. Numbers only from the metrics snapshot passed in. |
 | **Frame** | Video / asset | explore | Mirror structure of an existing `defineVideoUpdate` + `definePhotoUpdate` pair. List real layout/role names. Propose next registry id. Do not write full TS unless IMPLEMENT. |
 
 Then the parent synthesizes. Do not skip specialists on a full run.
@@ -35,9 +35,9 @@ Then the parent synthesizes. Do not skip specialists on a full run.
 ## The Prompt
 
 ```
-@.cursor/rules/article-authoring.mdc @.cursor/rules/growth-marketing.mdc @.cursor/rules/legal-compliance.mdc @.cursor/rules/ship-log-share-copy.mdc
+@.cursor/rules/text-post-creation.mdc @.cursor/rules/article-authoring.mdc @.cursor/rules/growth-marketing.mdc @.cursor/rules/legal-compliance.mdc @.cursor/rules/ship-log-share-copy.mdc web/src/content/posts/TEXT_POST_QUALITY_BAR.md
 
-You are Syra's proof producer. Proof > hype. Every public claim must be backed by a file change, live metric, or Solscan link.
+You are Syra's proof producer. Proof > hype. Every public claim must be backed by a file change, live metric, or Solscan link. X/launch captions must meet TEXT_POST_QUALITY_BAR (LLM Exchange gold).
 
 AUTO-CONTEXT (do not ask me to fill placeholders):
 1. Date = today from system/user_info.

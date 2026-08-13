@@ -59,7 +59,7 @@ github.com/solana-foundation/tokens`,
       body: "Assets hub, mint dossiers, MCP tokens tools, and paid /assets routes sit on Tokens.xyz. Open source upgrades the story: Foundation-canonical identity, Syra intelligence on top.",
       highlights: [
         "Full Tokens.xyz board on syraa.fun/assets",
-        "13 tokens-* agent and MCP tools",
+        "13 token agent and MCP tools",
         "x402 /assets and /assets/detail",
         "asset-research: resolve, risk, then Syra intel",
       ],
@@ -147,7 +147,7 @@ github.com/solana-foundation/tokens`,
         {
           icon: Zap,
           title: "Agent tools",
-          description: "tokens-* plus asset-research for one-shot decisions.",
+          description: "Token tools plus asset-research for one-shot decisions.",
         },
         {
           icon: Sparkles,
@@ -166,7 +166,7 @@ github.com/solana-foundation/tokens`,
       headline: "Already integrated. Now amplified.",
       stats: [
         { value: "OSS", label: "Tokens open source" },
-        { value: "13", label: "tokens-* tools" },
+        { value: "13", label: "token tools" },
         { value: "1", label: "Agent research path" },
       ],
       narrative:

@@ -120,17 +120,20 @@ function Headline({
 }) {
   const style: Record<string, string | number> = {
     display: "flex",
+    flexDirection: "column",
+    width: "100%",
     justifyContent: center ? "center" : "flex-start",
+    alignItems: center ? "center" : "flex-start",
     fontFamily: PHOTO_TYPE.display,
-    fontSize: large ? 56 : 42,
+    fontSize: large ? 52 : 40,
     fontWeight: 700,
     lineHeight: 1.12,
-    letterSpacing: "-0.02em",
+    letterSpacing: "-0.025em",
     color: PHOTO.fg,
     marginBottom: 16,
     textAlign: center ? "center" : "left",
   };
-  if (center) style.maxWidth = 960;
+  if (center) style.maxWidth = 920;
   return <div style={style}>{children}</div>;
 }
 
@@ -139,12 +142,15 @@ function Title({ children, center }: { children: ReactNode; center?: boolean }) 
     <div
       style={{
         display: "flex",
+        flexDirection: "column",
+        width: "100%",
         justifyContent: center ? "center" : "flex-start",
+        alignItems: center ? "center" : "flex-start",
         fontFamily: PHOTO_TYPE.display,
-        fontSize: 48,
+        fontSize: 52,
         fontWeight: 700,
-        lineHeight: 1.1,
-        letterSpacing: "-0.02em",
+        lineHeight: 1.08,
+        letterSpacing: "-0.03em",
         color: PHOTO.fg,
         textAlign: center ? "center" : "left",
       }}
@@ -253,47 +259,89 @@ function CardCell({
   subtitle,
   detail,
   gold,
-  flex = 1,
+  flex,
+  index,
 }: {
   title: string;
   subtitle?: string;
   detail?: string;
   gold?: boolean;
   flex?: number;
+  index?: number;
 }) {
+  const style: Record<string, string | number> = {
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    minWidth: 0,
+    flexShrink: 0,
+    padding: "16px 18px",
+    borderRadius: 14,
+    border: `1px solid ${gold ? PHOTO.accentLine : PHOTO.cardBorder}`,
+    background: gold ? PHOTO.accentDim : PHOTO.cardBg,
+  };
+  if (typeof flex === "number") style.flex = flex;
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        flex,
-        minWidth: 0,
-        padding: "18px 16px",
-        borderRadius: 14,
-        border: `1px solid ${gold ? PHOTO.accentLine : PHOTO.cardBorder}`,
-        background: gold ? PHOTO.accentDim : PHOTO.cardBg,
-      }}
-    >
+    <div style={style}>
       <div
         style={{
           display: "flex",
-          fontFamily: PHOTO_TYPE.display,
-          fontSize: 18,
-          fontWeight: 700,
-          color: gold ? PHOTO.accent : PHOTO.fg,
-          marginBottom: 6,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          width: "100%",
+          marginBottom: subtitle || detail ? 8 : 0,
         }}
       >
-        {title}
+        {typeof index === "number" ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: PHOTO.accentSoft,
+              border: `1px solid ${PHOTO.accentLine}`,
+              fontFamily: PHOTO_TYPE.mono,
+              fontSize: 11,
+              fontWeight: 600,
+              color: PHOTO.accent,
+              flexShrink: 0,
+            }}
+          >
+            {String(index + 1).padStart(2, "0")}
+          </div>
+        ) : null}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            fontFamily: PHOTO_TYPE.display,
+            fontSize: 20,
+            fontWeight: 700,
+            color: gold ? PHOTO.accent : PHOTO.fg,
+            lineHeight: 1.2,
+          }}
+        >
+          {title}
+        </div>
       </div>
       {subtitle ? (
         <div
           style={{
             display: "flex",
-            fontFamily: PHOTO_TYPE.body,
-            fontSize: 14,
-            color: PHOTO.muted,
-            lineHeight: 1.35,
+            flexDirection: "column",
+            width: "100%",
+            fontFamily: PHOTO_TYPE.mono,
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            color: PHOTO.faint,
             marginBottom: detail ? 6 : 0,
           }}
         >
@@ -304,9 +352,12 @@ function CardCell({
         <div
           style={{
             display: "flex",
-            fontFamily: PHOTO_TYPE.mono,
-            fontSize: 12,
-            color: PHOTO.faint,
+            flexDirection: "column",
+            width: "100%",
+            fontFamily: PHOTO_TYPE.body,
+            fontSize: 15,
+            color: PHOTO.muted,
+            lineHeight: 1.4,
           }}
         >
           {detail}
@@ -631,35 +682,26 @@ function CoverLayout({
         height: "100%",
       }}
     >
-      <Kicker>{content.eyebrow || "Ship log"}</Kicker>
       <Badge text={content.badge} />
       {hasPartner ? (
         <PartnershipExtras content={content} assets={assets} />
       ) : (
-        <div
+        <img
+          src={logoSrc}
+          width={88}
+          height={88}
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 20,
-            marginBottom: 18,
-            marginTop: 8,
+            borderRadius: 22,
+            objectFit: "cover",
+            marginBottom: 22,
+            border: `1px solid ${PHOTO.cardBorder}`,
           }}
-        >
-          <img
-            src={logoSrc}
-            width={72}
-            height={72}
-            style={{ borderRadius: 18, objectFit: "cover" }}
-          />
-          <Title center>{content.title}</Title>
-        </div>
+        />
       )}
-      {hasPartner ? (
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-          <Title center>{content.title}</Title>
-        </div>
-      ) : null}
+      <div style={{ display: "flex", marginBottom: 10 }}>
+        <Title center>{content.title}</Title>
+      </div>
+      <AccentRule width={56} />
       <Body center>{content.subtitle}</Body>
     </div>
   );
@@ -820,29 +862,44 @@ function TimelineLayout({ content }: { content: PostPhotoContent }) {
     <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
       <Kicker>{content.kicker || "Timeline"}</Kicker>
       <Headline>{content.headline}</Headline>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-        {steps.map((step) => (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 0,
+          marginTop: 8,
+          width: "100%",
+          borderRadius: 16,
+          border: `1px solid ${PHOTO.cardBorder}`,
+          background: PHOTO.cardBg,
+          overflow: "hidden",
+        }}
+      >
+        {steps.map((step, i) => (
           <div
             key={step.step}
             style={{
               display: "flex",
               flexDirection: "row",
               alignItems: "flex-start",
-              gap: 16,
+              gap: 18,
+              padding: "16px 20px",
+              borderBottom:
+                i < steps.length - 1 ? `1px solid ${PHOTO.line}` : "none",
             }}
           >
             <div
               style={{
-                width: 40,
-                height: 28,
-                borderRadius: 8,
+                width: 44,
+                height: 44,
+                borderRadius: 12,
                 background: PHOTO.accentSoft,
                 border: `1px solid ${PHOTO.accentLine}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontFamily: PHOTO_TYPE.mono,
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 600,
                 color: PHOTO.accent,
                 flexShrink: 0,
@@ -850,24 +907,39 @@ function TimelineLayout({ content }: { content: PostPhotoContent }) {
             >
               {step.step}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flex: 1,
+                width: "100%",
+                paddingTop: 2,
+              }}
+            >
               <div
                 style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
                   fontFamily: PHOTO_TYPE.display,
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: 700,
                   color: PHOTO.fg,
-                  marginBottom: 2,
+                  marginBottom: 4,
+                  lineHeight: 1.2,
                 }}
               >
                 {step.title}
               </div>
               <div
                 style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
                   fontFamily: PHOTO_TYPE.body,
-                  fontSize: 14,
+                  fontSize: 15,
                   color: PHOTO.muted,
-                  lineHeight: 1.35,
+                  lineHeight: 1.4,
                 }}
               >
                 {step.description}
@@ -894,6 +966,7 @@ function PillarsLayout({ content }: { content: PostPhotoContent }) {
             subtitle={card.subtitle}
             detail={card.detail}
             gold={card.accent === "gold"}
+            flex={1}
           />
         ))}
       </div>
@@ -1166,94 +1239,118 @@ function LaunchLayout({
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            marginBottom: 20,
+            width: "100%",
+            maxWidth: 880,
+            padding: "36px 40px",
+            borderRadius: 24,
+            border: `1px solid ${PHOTO.cardBorder}`,
+            background: PHOTO.cardBg,
+            marginBottom: 8,
           }}
         >
+          <img
+            src={logoSrc}
+            width={72}
+            height={72}
+            style={{
+              borderRadius: 18,
+              objectFit: "cover",
+              marginBottom: 22,
+              border: `1px solid ${PHOTO.cardBorder}`,
+            }}
+          />
+          <Badge text={content.badge} />
           <div
             style={{
               display: "flex",
+              flexDirection: "column",
+              width: "100%",
               alignItems: "center",
-              justifyContent: "center",
-              width: 80,
-              height: 80,
-              borderRadius: 20,
-              border: `1px solid ${PHOTO.accentLine}`,
-              background: PHOTO.accentSoft,
+              fontFamily: PHOTO_TYPE.display,
+              fontSize: 48,
+              fontWeight: 700,
+              lineHeight: 1.1,
+              letterSpacing: "-0.03em",
+              color: PHOTO.fg,
+              textAlign: "center",
+              marginBottom: 14,
             }}
           >
+            {content.headline}
+          </div>
+          {content.body || content.subtitle ? (
             <div
               style={{
                 display: "flex",
+                flexDirection: "column",
+                width: "100%",
                 alignItems: "center",
-                justifyContent: "center",
-                width: 60,
-                height: 60,
-                borderRadius: 14,
-                border: `1px solid ${PHOTO.cardBorder}`,
-                background: "rgba(0,0,0,0.55)",
+                fontFamily: PHOTO_TYPE.body,
+                fontSize: 18,
+                lineHeight: 1.45,
+                color: PHOTO.muted,
+                textAlign: "center",
+                maxWidth: 640,
               }}
             >
-              <img
-                src={logoSrc}
-                width={52}
-                height={52}
-                style={{
-                  borderRadius: 12,
-                  objectFit: "cover",
-                }}
-              />
+              {content.body || content.subtitle}
             </div>
-          </div>
+          ) : null}
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          width: "100%",
-          marginBottom: 16,
-        }}
-      >
-        <AccentRule width={48} />
-      </div>
+      {hasPartner ? (
+        <>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              width: "100%",
+              marginBottom: 16,
+            }}
+          >
+            <AccentRule width={48} />
+          </div>
 
-      <Badge text={content.badge} />
+          <Badge text={content.badge} />
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          fontFamily: PHOTO_TYPE.display,
-          fontSize: 42,
-          fontWeight: 700,
-          lineHeight: 1.12,
-          letterSpacing: "-0.025em",
-          color: PHOTO.fg,
-          textAlign: "center",
-          marginBottom: 14,
-          maxWidth: 880,
-        }}
-      >
-        {content.headline}
-      </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              width: "100%",
+              fontFamily: PHOTO_TYPE.display,
+              fontSize: 42,
+              fontWeight: 700,
+              lineHeight: 1.12,
+              letterSpacing: "-0.025em",
+              color: PHOTO.fg,
+              textAlign: "center",
+              marginBottom: 14,
+              maxWidth: 880,
+            }}
+          >
+            {content.headline}
+          </div>
 
-      {content.body || content.subtitle ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            fontFamily: PHOTO_TYPE.body,
-            fontSize: 17,
-            fontWeight: 400,
-            lineHeight: 1.45,
-            color: PHOTO.muted,
-            textAlign: "center",
-            maxWidth: 680,
-          }}
-        >
-          {content.body || content.subtitle}
-        </div>
+          {content.body || content.subtitle ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                fontFamily: PHOTO_TYPE.body,
+                fontSize: 17,
+                fontWeight: 400,
+                lineHeight: 1.45,
+                color: PHOTO.muted,
+                textAlign: "center",
+                maxWidth: 680,
+              }}
+            >
+              {content.body || content.subtitle}
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
@@ -1363,7 +1460,7 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
           flexDirection: "column",
           borderRadius: 16,
           border: `1px solid ${PHOTO.cardBorder}`,
-          background: PHOTO.black,
+          background: PHOTO.white,
           overflow: "hidden",
         }}
       >
@@ -1373,8 +1470,8 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
             alignItems: "center",
             gap: 8,
             padding: "12px 16px",
-            borderBottom: `1px solid rgba(255,255,255,0.12)`,
-            background: "rgba(255,255,255,0.06)",
+            borderBottom: `1px solid ${PHOTO.line}`,
+            background: PHOTO.cardBg,
           }}
         >
           <div style={{ width: 10, height: 10, borderRadius: 999, background: "#ff5f56" }} />
@@ -1385,7 +1482,7 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
               marginLeft: 12,
               fontFamily: PHOTO_TYPE.mono,
               fontSize: 12,
-              color: "rgba(255,255,255,0.45)",
+              color: PHOTO.faint,
               letterSpacing: "0.08em",
             }}
           >
@@ -1408,8 +1505,8 @@ function TerminalLayout({ content }: { content: PostPhotoContent }) {
                 fontSize: 16,
                 color:
                   line.startsWith("$") || line.startsWith(">")
-                    ? PHOTO.white
-                    : "rgba(255,255,255,0.85)",
+                    ? PHOTO.fg
+                    : PHOTO.muted,
                 lineHeight: 1.45,
               }}
             >

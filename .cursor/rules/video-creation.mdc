@@ -1,0 +1,45 @@
+---
+description: Route create/edit video through video-shotcraft + video-use. Enforce Syra QUALITY_BAR (LlmExchangePromo floor) for every new promo.
+alwaysApply: true
+---
+
+# Video creation (Syra) — always on
+
+Whenever the user asks to create, make, produce, polish, or edit a video / promo / launch film / ship-log video / demo reel:
+
+1. Read and follow the matching skill (`video-shotcraft` or `video-use`).
+2. Meet or beat [`web/src/video/QUALITY_BAR.md`](web/src/video/QUALITY_BAR.md). Gold reference: `LlmExchangePromo`. Reuse [`web/src/video/engine/promoKit.tsx`](web/src/video/engine/promoKit.tsx). Do not ship a flat slide deck with fades.
+
+## Skills (on this machine)
+
+| Skill | Path | Role |
+|-------|------|------|
+| **video-shotcraft** | `~/.cursor/skills/video-shotcraft` | Generate cinematic product videos from scratch (Remotion + shot cards + captures + SFX/BGM). |
+| **video-use** | `~/.cursor/skills/video-use` | Edit existing raw footage (cut, grade, subtitles, overlays). |
+
+## Routing
+
+1. **No footage / product update / promo / ship-log / feature launch** → `video-shotcraft` `SKILL.md` + `references/pipeline.md` (or Ink Press / guided as chosen).
+2. **Raw takes / screen recordings / talking-head folders** → `video-use` `SKILL.md` + `helpers/`.
+3. **Both** → shotcraft plates first, then video-use edit pass.
+
+## Syra quality floor (non-negotiable)
+
+Before coding a new promo, re-read `QUALITY_BAR.md`. Hard requirements:
+
+- **Scene shell:** header / body / caption zones via `PromoSceneShell`. Captions never collide with body.
+- **Caption safe area:** ~110px bottom. Mid-scene stills (~40–50%) must show the full layout (all N cards, not N−1).
+- **Motion density:** particles, drifting gold glows, enter/exit scale, scene wipes, title shimmer, spring cards, ≥1 Ken Burns/UI push, ≥1 sequential highlight, CTA hold ≥1s. One hero technique per scene.
+- **Theme:** `SYRA_VIDEO_THEME` (white / dark type / gold `#F3BA2F`) unless the brief says otherwise.
+- **Audio:** cue table with relative frames; `bgm` inputProp; deliver **BGM + no-BGM** mp4s.
+- **Assets:** captures + audio under `web/remotion-public/` (Remotion `publicDir`); deliverables under `web/public/videos/<slug>/`.
+- **Copy:** founder-plain, concrete facts, clear CTA URLs; no em dashes.
+
+Raise the bar each time: pull stronger shotcraft shot-card demos when a scene needs more polish.
+
+## Hosting
+
+- Compositions under `web/src/video/`, register in `web/src/video/Root.tsx`.
+- Scaffold: `content/<slug>Promo.ts`, `compositions/<Slug>Promo.tsx`, `*PromoAudio.tsx`, `<slug>/design-spec.md` + `storyboard.md`.
+- Format default: 1920×1080 @ 30fps.
+- Definition of done: Root registration, mid-scene still QA, shotcraft final-review, both mp4s in `public/videos/<slug>/`, density ≥ LlmExchangePromo.

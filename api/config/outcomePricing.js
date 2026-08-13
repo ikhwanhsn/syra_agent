@@ -23,12 +23,6 @@ export const OUTCOME_FLAT_CYCLE_FEE_USD = 0.25;
  * @type {Record<string, { performanceFeeBps?: number; aumFeeBpsMonthly?: number; flatCycleFeeUsd?: number; billingModel: 'performance' | 'aum' | 'flat' | 'hybrid' }>}
  */
 export const OUTCOME_PRODUCT_PRICING = Object.freeze({
-  robinhood_lp_autopilot: Object.freeze({
-    billingModel: "hybrid",
-    performanceFeeBps: 2000,
-    aumFeeBpsMonthly: 30,
-    flatCycleFeeUsd: 0.15,
-  }),
   lp_autopilot_solana: Object.freeze({
     billingModel: "performance",
     performanceFeeBps: 1500,

@@ -63,7 +63,7 @@ export const TOKENS_OSS_PHOTO = definePhotoUpdate(TOKENS_OSS_POST.meta, [
       headline: "From hosted API to open monorepo.",
       steps: [
         { step: "01", title: "Consume", description: "Syra calls hosted Tokens.xyz for identity." },
-        { step: "02", title: "Expose", description: "Board, dossier, and tokens-* tools for agents." },
+        { step: "02", title: "Expose", description: "Board, dossier, and token tools for agents." },
         { step: "03", title: "Stack", description: "Syra intelligence on every asset page." },
         { step: "04", title: "Point", description: "Builders track solana-foundation/tokens." },
       ],
@@ -111,7 +111,7 @@ export const TOKENS_OSS_PHOTO = definePhotoUpdate(TOKENS_OSS_POST.meta, [
       highlights: [
         "Browse the full board on syraa.fun/assets",
         "Open a mint dossier with risk and markets",
-        "Call tokens-* tools from MCP or chat",
+        "Call token tools from MCP or chat",
         "Use asset-research for one-shot decisions",
         "Read the Tokens monorepo on GitHub",
       ],
@@ -125,7 +125,7 @@ export const TOKENS_OSS_PHOTO = definePhotoUpdate(TOKENS_OSS_POST.meta, [
       headline: "Proof on Tokens OSS.",
       stats: [
         { value: "OSS", label: "Tokens open source" },
-        { value: "13", label: "tokens-* tools" },
+        { value: "13", label: "token tools" },
         { value: "1", label: "Research path" },
       ],
       narrative:
@@ -137,7 +137,7 @@ export const TOKENS_OSS_PHOTO = definePhotoUpdate(TOKENS_OSS_POST.meta, [
     layout: "photo-stat-monolith",
     shareCopy: copies.featured,
     content: photoContent({
-      headline: "tokens-* tools ready to call.",
+      headline: "Token tools ready to call.",
       stats: [{ value: "13", label: "Canonical asset tools on Syra" }],
       narrative: "Search, resolve, detail, markets, OHLCV, risk, curated lists, snapshots.",
     }),
@@ -210,9 +210,9 @@ export const TOKENS_OSS_PHOTO = definePhotoUpdate(TOKENS_OSS_POST.meta, [
       headline: "Mint to decision.",
       terminalLines: [
         "$ resolve ticker|mint",
-        "→ Tokens assetId",
+        "-> Tokens assetId",
         "$ risk summary",
-        "→ canonical grade",
+        "-> canonical grade",
         "$ syra intel",
         "< ready to act",
       ],

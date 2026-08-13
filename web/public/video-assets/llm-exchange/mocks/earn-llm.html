@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Syra Earn — LLM (fictional demo)</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: rgba(0, 0, 0, 0.92);
+        --muted: rgba(0, 0, 0, 0.55);
+        --border: rgba(0, 0, 0, 0.12);
+        --gold: #f3ba2f;
+        --card: #fafafa;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+        --sans: Inter, system-ui, sans-serif;
+        --display: "Space Grotesk", Inter, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--fg);
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+      .shell {
+        padding: 48px 64px;
+        height: 100%;
+        background:
+          radial-gradient(900px 500px at 80% -10%, rgba(243, 186, 47, 0.14), transparent 60%),
+          radial-gradient(700px 400px at 0% 100%, rgba(0, 0, 0, 0.04), transparent 55%),
+          #fff;
+      }
+      .eyebrow {
+        font-size: 14px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      h1 {
+        font-family: var(--display);
+        font-size: 56px;
+        margin: 10px 0 8px;
+        letter-spacing: -0.03em;
+      }
+      .sub { color: var(--muted); font-size: 20px; max-width: 820px; line-height: 1.45; }
+      .tabs {
+        display: flex; gap: 8px; margin: 28px 0 32px;
+        background: rgba(0,0,0,0.04); padding: 6px; border-radius: 16px; width: fit-content;
+      }
+      .tab {
+        padding: 12px 22px; border-radius: 12px; font-weight: 600; font-size: 15px; color: var(--muted);
+      }
+      .tab.active { background: #fff; color: var(--fg); box-shadow: 0 1px 0 var(--border); }
+      .grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; }
+      .card {
+        border: 1px solid var(--border); border-radius: 22px; background: #fff;
+        padding: 22px 24px; box-shadow: 0 24px 48px -36px rgba(0,0,0,0.35);
+      }
+      .badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px;
+        font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+        font-weight: 600;
+      }
+      .badge.gold { border-color: rgba(243,186,47,0.55); color: #8a6a00; background: rgba(243,186,47,0.12); }
+      .title { font-size: 22px; font-weight: 700; margin: 10px 0 4px; }
+      .meta { color: var(--muted); font-size: 14px; }
+      .price { font-family: var(--mono); font-size: 28px; font-weight: 700; margin-top: 18px; }
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+      .stat label { display: block; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.45); }
+      .stat b { font-size: 15px; }
+      .dialog {
+        border: 1px solid var(--border); border-radius: 24px; background: #fff; padding: 28px;
+        box-shadow: 0 40px 80px -40px rgba(0,0,0,0.4);
+      }
+      .dialog h2 { margin: 0 0 6px; font-family: var(--display); font-size: 28px; }
+      .dialog p { margin: 0 0 20px; color: var(--muted); font-size: 15px; line-height: 1.45; }
+      .field { margin-bottom: 16px; }
+      .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+      .field .control {
+        border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: #fafafa;
+        font-family: var(--mono); font-size: 14px;
+      }
+      .select {
+        display: flex; align-items: center; justify-content: space-between;
+        border: 1px solid rgba(243,186,47,0.55); background: rgba(243,186,47,0.08);
+      }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+      .chip {
+        border-radius: 999px; border: 1px solid var(--border); padding: 6px 12px; font-size: 12px; font-weight: 600;
+      }
+      .chip.on { background: #111; color: #fff; border-color: #111; }
+      .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+      .btn { border-radius: 12px; padding: 12px 18px; font-weight: 650; font-size: 14px; border: 1px solid var(--border); background: #fff; }
+      .btn.primary { background: linear-gradient(135deg, #111, #333); color: #fff; border-color: #111; }
+      .logo {
+        position: absolute; top: 40px; right: 64px; font-family: var(--display); font-weight: 700; letter-spacing: -0.04em; font-size: 22px;
+      }
+      .logo span { color: var(--gold); }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="logo">SYRA<span>.</span></div>
+      <div class="eyebrow">Earn · LLM Exchange</div>
+      <h1>Sell any LLM. Get paid in USDC.</h1>
+      <p class="sub">List Claude, Gemini, DeepSeek, or a custom gateway. Agents pay once via x402. Syra smart-routes the call.</p>
+      <div class="tabs">
+        <div class="tab">Skills</div>
+        <div class="tab">Agents</div>
+        <div class="tab">Bets</div>
+        <div class="tab">Rewards</div>
+        <div class="tab active">LLM</div>
+      </div>
+      <div class="grid">
+        <div class="dialog" id="list-dialog">
+          <h2>List an LLM</h2>
+          <p>Sell access to any LLM. Agents still call one OpenAI-shaped POST /llm/route.</p>
+          <div class="field">
+            <label>Provider type</label>
+            <div class="control select" id="provider-select">
+              <span>Anthropic (Claude)</span>
+              <span>▾</span>
+            </div>
+            <div class="chips">
+              <div class="chip">OpenAI-compatible</div>
+              <div class="chip on">Anthropic (Claude)</div>
+              <div class="chip">Google (Gemini)</div>
+              <div class="chip">Custom</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Model ids</label>
+            <div class="control">claude-3-5-sonnet-latest</div>
+          </div>
+          <div class="field">
+            <label>Pricing</label>
+            <div class="control">$3.00 / $15.00 per 1M tokens</div>
+          </div>
+          <div class="actions">
+            <div class="btn">Test connection</div>
+            <div class="btn primary">List LLM</div>
+          </div>
+        </div>
+        <div>
+          <div class="card" id="card-claude" style="margin-bottom: 18px;">
+            <span class="badge gold">Claude</span>
+            <div class="title">Claude Sonnet reseller</div>
+            <div class="meta">claude-3-5-sonnet-latest · fictional demo</div>
+            <div class="price">$3.60 / $18.00 per 1M</div>
+            <div class="stats">
+              <div class="stat"><label>Callability</label><b>98%</b></div>
+              <div class="stat"><label>p50</label><b>420ms</b></div>
+              <div class="stat"><label>Status</label><b>Live</b></div>
+            </div>
+          </div>
+          <div class="card" id="card-gemini">
+            <span class="badge">Gemini</span>
+            <div class="title">Gemini Flash lane</div>
+            <div class="meta">gemini-1.5-flash · fictional demo</div>
+            <div class="price">$0.12 / $0.48 per 1M</div>
+            <div class="stats">
+              <div class="stat"><label>Callability</label><b>96%</b></div>
+              <div class="stat"><label>p50</label><b>310ms</b></div>
+              <div class="stat"><label>Status</label><b>Live</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

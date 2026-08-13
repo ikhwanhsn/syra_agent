@@ -30,6 +30,13 @@ import { LpPoolsContentSkeleton } from "@/components/lp/LpPoolsContentSkeleton";
 import { OverviewPageSkeleton } from "@/components/dashboard/overview/OverviewPageSkeleton";
 import { BtcPageSkeleton } from "@/components/btc/BtcPageSkeleton";
 import { AgentSetupPageSkeleton } from "@/components/settings/AgentSetupPageSkeleton";
+import { StakingPageSkeleton } from "@/components/staking/StakingPageSkeleton";
+import { SwapPageSkeleton } from "@/components/swap/SwapPageSkeleton";
+import {
+  PostDeckPageSkeleton,
+  PostPhotoPageSkeleton,
+  PostStudioSkeleton,
+} from "@/components/post/PostStudioSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import {
@@ -41,6 +48,9 @@ import {
   isGrowthContentRoute,
 } from "@/lib/growthLayoutRoutes";
 import { cn } from "@/lib/utils";
+
+export { StakingPageSkeleton as StreamflowPageSkeleton };
+export { SwapPageSkeleton };
 
 export { LpPoolsContentSkeleton };
 
@@ -188,44 +198,6 @@ export function RewardsPageSkeleton() {
   );
 }
 
-export function StreamflowPageSkeleton() {
-  return (
-    <div
-      className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 animate-in fade-in duration-300 sm:px-6"
-      aria-busy="true"
-      aria-label="Loading staking"
-      role="status"
-    >
-      <div className="space-y-3">
-        <Skeleton className="h-9 w-48" />
-        <Skeleton className="h-4 w-72 max-w-full" />
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={cn(overviewCardShell, "space-y-2 p-4")}>
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-7 w-20" />
-          </div>
-        ))}
-      </div>
-      <div className={cn(overviewCardShell, "space-y-3 p-5")}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between gap-3 rounded-lg border border-border/40 p-3"
-          >
-            <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-4 w-40 max-w-full" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-            <Skeleton className="h-8 w-20 shrink-0 rounded-md" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function ProfileDetailSkeleton() {
   return (
     <div
@@ -251,43 +223,7 @@ export function ProfileDetailSkeleton() {
   );
 }
 
-export function PostStudioSkeleton() {
-  return (
-    <div
-      className="space-y-6 animate-in fade-in duration-300"
-      aria-busy="true"
-      aria-label="Loading ship log"
-      role="status"
-    >
-      <Skeleton className="h-24 w-full rounded-xl bg-white/10" />
-      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-        <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
-        <Skeleton className="h-32 w-full rounded-xl bg-white/10" />
-      </div>
-      <ul className="space-y-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <li
-            key={i}
-            className="flex flex-col gap-3 rounded-xl border border-white/8 bg-white/[0.02] p-3.5 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="flex min-w-0 items-start gap-2.5">
-              <Skeleton className="mt-0.5 h-5 w-5 shrink-0 rounded-sm bg-white/10" />
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <Skeleton className="h-4 w-56 max-w-full bg-white/10" />
-                <Skeleton className="h-3 w-24 bg-white/10" />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 pl-7 sm:pl-0">
-              <Skeleton className="h-4 w-12 bg-white/10" />
-              <Skeleton className="h-4 w-12 bg-white/10" />
-              <Skeleton className="h-7 w-7 rounded-md bg-white/10" />
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+export { PostStudioSkeleton };
 
 function parseEarnTrack(search: string): EarnSkeletonTrack {
   const track = new URLSearchParams(search).get("track");
@@ -329,7 +265,8 @@ function skeletonForPath(pathname: string, search = "") {
   if (root === "marketplace" || root === "playground") return <PlaygroundCatalogPageSkeleton />;
   if (root === "rewards") return <RewardsPageSkeleton />;
   if (root === "privacy" || root === "terms" || root === "cookies") return <LegalPageSkeleton />;
-  if (root === "staking") return <StreamflowPageSkeleton />;
+  if (root === "swap") return <SwapPageSkeleton />;
+  if (root === "staking") return <StakingPageSkeleton />;
   if (root === "organize") {
     return (
       <div className="space-y-6 animate-in fade-in duration-300" aria-busy="true" aria-label="Loading organize">
@@ -349,21 +286,19 @@ function skeletonForPath(pathname: string, search = "") {
   if (root === "llm") return <LlmPageSkeleton />;
   if (root === "lp-experiment" && parts[1] === "agent") return <ProfileDetailSkeleton />;
   if (root === "lp-experiment") return <ExperimentPageSkeleton accent="neutral" panelCount={3} />;
-  if (root === "lp-robinhood") return <ExperimentPageSkeleton accent="amber" panelCount={3} />;
-  if (root === "btc-experiment" || root === "btc2-experiment" || root === "btc3-experiment") {
-    return <ExperimentPageSkeleton accent="amber" panelCount={3} />;
-  }
   if (
     root === "stocks" ||
     root === "momentum-rotator" ||
     root === "lst-loop" ||
     root === "alpha-sniper" ||
-    root === "scalper" ||
-    root === "mm"
+    root === "meridian"
   ) {
     return <ExperimentPageSkeleton accent="neutral" panelCount={2} />;
   }
   if (root === "multiwallet") return <AgentSetupPageSkeleton />;
+  if (root === "post" && parts[1] === "video") return <PostDeckPageSkeleton />;
+  if (root === "post" && parts[1] === "photo") return <PostPhotoPageSkeleton />;
+  if (root === "post" && parts[1] === "announce") return <PostPhotoPageSkeleton />;
   if (root === "post") return <PostStudioSkeleton />;
   if (
     root === "brand" ||
@@ -381,7 +316,13 @@ function skeletonForPath(pathname: string, search = "") {
 
 function pathUsesSelfPaddedSkeleton(pathname: string) {
   const root = pathname.split("/").filter(Boolean)[0] ?? "";
-  return root === "marketplace" || root === "playground";
+  return (
+    root === "marketplace" ||
+    root === "playground" ||
+    root === "swap" ||
+    root === "staking" ||
+    root === "post"
+  );
 }
 
 /**

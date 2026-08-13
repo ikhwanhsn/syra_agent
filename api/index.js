@@ -46,6 +46,7 @@ import { createUserPromptsRouter } from "./routes/agent/userPrompts.js";
 import { createAgentSkillsRouter } from "./routes/agent/skills.js";
 import { createAnsemEngagementRouter } from "./routes/agent/ansemEngagement.js";
 import { createSkillsRouter, getPublishedSkillDiscoveryResources } from "./routes/skills.js";
+import { createLlmRouteRouter } from "./routes/llmRoute.js";
 import { createInfoRouter } from "./routes/info.js";
 import { createSyraDuneAnalyticsRouter } from "./routes/syraDuneAnalytics.js";
 import { createWalletSolanaBalanceRouter } from "./routes/walletSolanaBalance.js";
@@ -108,25 +109,22 @@ import { createAssetsDetailX402Router } from "./routes/assets/detail.js";
 import { createBitcoinX402Router } from "./routes/bitcoin/index.js";
 import { createLpAgentExperimentRouter } from "./routes/lpAgentExperiment.js";
 import { createLpAgentRealRouter } from "./routes/lpAgentReal.js";
-import { createRobinhoodLpExperimentRouter } from "./routes/robinhoodLpExperiment.js";
 import { createStocksExperimentRouter } from "./routes/stocksExperiment.js";
-import { createScalperExperimentRouter } from "./routes/scalperExperiment.js";
-import { createMmExperimentRouter } from "./routes/mmExperiment.js";
-import { createBtcQuantExperimentRouter } from "./routes/btcQuantExperiment.js";
-import { createBtcQuantRealRouter } from "./routes/btcQuantReal.js";
 import { createMomentumRotatorExperimentRouter } from "./routes/momentumRotatorExperiment.js";
 import { createMomentumRotatorRealRouter } from "./routes/momentumRotatorReal.js";
 import { createLstLoopExperimentRouter } from "./routes/lstLoopExperiment.js";
 import { createLstLoopRealRouter } from "./routes/lstLoopReal.js";
 import { createSniperExperimentRouter } from "./routes/sniperExperiment.js";
 import { createSniperRealRouter } from "./routes/sniperReal.js";
+import { createMeridianExperimentRouter } from "./routes/meridianExperiment.js";
+import { createMeridianRealRouter } from "./routes/meridianReal.js";
 import {
   MOMENTUM_CRON,
   LST_LOOP_CRON,
   SNIPER_CRON,
+  MERIDIAN_CRON,
+  MERIDIAN_ENGINE,
 } from "./config/onchainEarnExperiments.js";
-import { createBtc3MacroRouter } from "./routes/btc3Macro.js";
-import { createBtc3RealRouter } from "./routes/btc3Real.js";
 import { createOkxTradingRouter } from "./routes/okxTrading.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
 import { createHealthRouter } from "./routes/health.js";
@@ -367,6 +365,8 @@ const CORS_OPTIONS_X402 = {
     "x-admin-wallet",
     "X-Wallet-Address",
     "x-wallet-address",
+    "X-Connected-Wallet",
+    "x-connected-wallet",
     "X-Sf-Partner",
     "x-sf-partner",
     "X-Sf-Timestamp",
@@ -436,6 +436,8 @@ const CORS_OPTIONS_REGULAR = {
     "x-admin-wallet",
     "X-Wallet-Address",
     "x-wallet-address",
+    "X-Connected-Wallet",
+    "x-connected-wallet",
     "X-Sf-Partner",
     "x-sf-partner",
     "X-Sf-Timestamp",
@@ -505,6 +507,7 @@ function isX402Route(p) {
   if (p === "/skills" || p.startsWith("/skills/")) return true;
   // OpenRouter x402 family (agents pay; no Syra API key)
   if (p === "/chat/completions" || p.startsWith("/chat/completions/")) return true;
+  if (p === "/llm" || p.startsWith("/llm/")) return true;
   if (p === "/images/generations" || p.startsWith("/images/generations/")) return true;
   if (p === "/videos/generations" || p.startsWith("/videos/generations/")) return true;
   if (p === "/embeddings" || p.startsWith("/embeddings/")) return true;
@@ -1420,6 +1423,7 @@ app.use("/x-analyzer", await createXProjectAnalyzerRouter());
 app.use("/x-projects-analyze", createXProjectsBatchAnalyzerRouter());
 app.use("/brain", await createBrainRouter());
 app.use("/chat/completions", await createChatCompletionsRouter());
+app.use("/llm", await createLlmRouteRouter());
 app.use("/images/generations", await createImageGenerationsRouter());
 app.use("/videos/generations", await createVideoGenerationsRouter());
 app.use("/embeddings", await createEmbeddingsRouter());
@@ -1467,29 +1471,21 @@ app.use("/experiment/spcx", createSpcxExperimentRouter());
 app.use("/experiment/lp-agent", createLpAgentExperimentRouter());
 // LP real agent — on-chain Meteora DLMM from backend-custodied agent wallet
 app.use("/experiment/lp-agent-real", createLpAgentRealRouter());
-// Robinhood Chain LP experiment lab (Uniswap concentrated liquidity, paper sim only)
-app.use("/experiment/lp-robinhood", createRobinhoodLpExperimentRouter());
 // Completed-work outcomes: mandates, jobs, proof reports, outcome billing
 app.use("/outcomes", createOutcomesRouter());
-// BTC onchain quant lab (paper sim + real cbBTC via Jupiter)
-app.use("/experiment/btc-quant", createBtcQuantExperimentRouter());
-app.use("/experiment/btc-quant-real", createBtcQuantRealRouter());
 app.use("/experiment/momentum-rotator", createMomentumRotatorExperimentRouter());
 app.use("/experiment/momentum-rotator-real", createMomentumRotatorRealRouter());
 app.use("/experiment/lst-loop", createLstLoopExperimentRouter());
 app.use("/experiment/lst-loop-real", createLstLoopRealRouter());
 app.use("/experiment/sniper", createSniperExperimentRouter());
 app.use("/experiment/sniper-real", createSniperRealRouter());
-app.use("/experiment/btc3-macro", createBtc3MacroRouter());
-app.use("/experiment/btc3-real", createBtc3RealRouter());
+// Meridian — Meteora DLMM paper lab + capped real shadow (yunus-0x/meridian inspired)
+app.use("/experiment/meridian", createMeridianExperimentRouter());
+app.use("/experiment/meridian-real", createMeridianRealRouter());
 // OKX.AI Trading Hackathon — Syra Trading ASP (automated on-chain trading loop)
 app.use("/experiment/okx-trading", createOkxTradingRouter());
 // Stocks news experiment — paper xStocks trading via Jupiter + news signals
 app.use("/experiment/stocks", createStocksExperimentRouter());
-// Scalper agent — hybrid opportunity feed, Jupiter-quote paper fills
-app.use("/experiment/scalper", createScalperExperimentRouter());
-// SYRA market-making agent — paper MM via Jupiter quotes, volume + creator-fee projection
-app.use("/experiment/mm", createMmExperimentRouter());
 app.use("/post/studio", createShipLogStudioRouter());
 // Analytics: KPI (/analytics/kpi, /analytics/errors) and x402 summary (/analytics/summary)
 app.use("/analytics", await createAnalyticsRouter());
@@ -1940,54 +1936,6 @@ app.listen(PORT, () => {
     setInterval(runLpResolve, LP_AGENT_RESOLVE_INTERVAL_MS);
   }
 
-  const ROBINHOOD_LP_SIGNAL_INTERVAL_MS = (() => {
-    const raw = Number(process.env.ROBINHOOD_LP_EXPERIMENT_SIGNAL_MS);
-    const base = Number.isFinite(raw) && raw >= 60_000 ? Math.floor(raw) : 180_000;
-    return scalePaperMs(base, 60_000);
-  })();
-  const ROBINHOOD_LP_RESOLVE_INTERVAL_MS = (() => {
-    const raw = Number(process.env.ROBINHOOD_LP_EXPERIMENT_RESOLVE_MS);
-    const base = Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 120_000;
-    return scalePaperMs(base, 5_000);
-  })();
-
-  const runRobinhoodLpSignal = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/robinhoodLpExperimentService.js")
-        .then(({ runRobinhoodLpSignalCycle }) => runRobinhoodLpSignalCycle())
-        .then((out) => {
-          if (out.errors?.length) {
-            console.warn("[Robinhood LP experiment] signal errors:", out.errors.slice(0, 3));
-          }
-        })
-        .catch((err) =>
-          console.warn("[Robinhood LP experiment] signal failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  const runRobinhoodLpResolve = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/robinhoodLpExperimentService.js")
-        .then(({ resolveOpenRobinhoodLpRuns }) => resolveOpenRobinhoodLpRuns())
-        .then((out) => {
-          if (out.errors?.length) {
-            console.warn("[Robinhood LP experiment] resolve errors:", out.errors.slice(0, 3));
-          }
-        })
-        .catch((err) =>
-          console.warn("[Robinhood LP experiment] resolve failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  if (ROBINHOOD_LP_SIGNAL_INTERVAL_MS >= 60_000) {
-    setInterval(runRobinhoodLpSignal, ROBINHOOD_LP_SIGNAL_INTERVAL_MS);
-  }
-  if (ROBINHOOD_LP_RESOLVE_INTERVAL_MS >= 5_000) {
-    setInterval(runRobinhoodLpResolve, ROBINHOOD_LP_RESOLVE_INTERVAL_MS);
-  }
-
   const OUTCOME_SCHEDULER_INTERVAL_MS = (() => {
     const raw = Number(process.env.OUTCOME_SCHEDULER_INTERVAL_MS);
     return Number.isFinite(raw) && raw >= 60_000 ? raw : 15 * 60_000;
@@ -2061,12 +2009,17 @@ app.listen(PORT, () => {
   const LST_LOOP_RESOLVE_MS = scalePaperMs(LST_LOOP_CRON.paperResolveMs, 5_000);
   const SNIPER_SIGNAL_MS = scalePaperMs(SNIPER_CRON.paperSignalMs, 60_000);
   const SNIPER_RESOLVE_MS = scalePaperMs(SNIPER_CRON.paperResolveMs, 5_000);
+  const MERIDIAN_SIGNAL_MS = scalePaperMs(MERIDIAN_CRON.paperSignalMs, 60_000);
+  const MERIDIAN_RESOLVE_MS = scalePaperMs(MERIDIAN_CRON.paperResolveMs, 5_000);
   const MOMENTUM_REAL_SIGNAL_MS = MOMENTUM_CRON.realSignalMs;
   const MOMENTUM_REAL_RESOLVE_MS = MOMENTUM_CRON.realResolveMs;
   const LST_LOOP_REAL_SIGNAL_MS = LST_LOOP_CRON.realSignalMs;
   const LST_LOOP_REAL_RESOLVE_MS = LST_LOOP_CRON.realResolveMs;
   const SNIPER_REAL_SIGNAL_MS = SNIPER_CRON.realSignalMs;
   const SNIPER_REAL_RESOLVE_MS = SNIPER_CRON.realResolveMs;
+  const MERIDIAN_REAL_SIGNAL_MS = MERIDIAN_CRON.realSignalMs;
+  const MERIDIAN_REAL_RESOLVE_MS = MERIDIAN_CRON.realResolveMs;
+  const MERIDIAN_ENGINE_SYNC_MS = Number(MERIDIAN_ENGINE.syncMs || 30_000);
 
   const runMomentumSignal = runIfMongoConnected(
     withSingleFlight(() =>
@@ -2110,6 +2063,20 @@ app.listen(PORT, () => {
         .catch((err) => console.warn("[Sniper] resolve failed:", err?.message || err)),
     ),
   );
+  const runMeridianSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/meridianService.js")
+        .then(({ runMeridianSignalCycle }) => runMeridianSignalCycle())
+        .catch((err) => console.warn("[Meridian] signal failed:", err?.message || err)),
+    ),
+  );
+  const runMeridianResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/meridianService.js")
+        .then(({ resolveOpenMeridianRuns }) => resolveOpenMeridianRuns())
+        .catch((err) => console.warn("[Meridian] resolve failed:", err?.message || err)),
+    ),
+  );
 
   if (MOMENTUM_SIGNAL_MS >= 60_000) setInterval(runMomentumSignal, MOMENTUM_SIGNAL_MS);
   if (MOMENTUM_RESOLVE_MS >= 5_000) setInterval(runMomentumResolve, MOMENTUM_RESOLVE_MS);
@@ -2117,6 +2084,8 @@ app.listen(PORT, () => {
   if (LST_LOOP_RESOLVE_MS >= 5_000) setInterval(runLstLoopResolve, LST_LOOP_RESOLVE_MS);
   if (SNIPER_SIGNAL_MS >= 60_000) setInterval(runSniperSignal, SNIPER_SIGNAL_MS);
   if (SNIPER_RESOLVE_MS >= 5_000) setInterval(runSniperResolve, SNIPER_RESOLVE_MS);
+  if (MERIDIAN_SIGNAL_MS >= 60_000) setInterval(runMeridianSignal, MERIDIAN_SIGNAL_MS);
+  if (MERIDIAN_RESOLVE_MS >= 5_000) setInterval(runMeridianResolve, MERIDIAN_RESOLVE_MS);
 
   const runMomentumRealSignal = runIfMongoConnected(
     withSingleFlight(() =>
@@ -2178,6 +2147,36 @@ app.listen(PORT, () => {
         .catch((err) => console.warn("[Sniper real] resolve failed:", err?.message || err)),
     ),
   );
+  const runMeridianRealSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/meridianRealService.js")
+        .then(({ isMeridianRealCronEnabled, runMeridianRealSignalCycle }) => {
+          if (!isMeridianRealCronEnabled()) return null;
+          return runMeridianRealSignalCycle();
+        })
+        .catch((err) => console.warn("[Meridian real] signal failed:", err?.message || err)),
+    ),
+  );
+  const runMeridianRealResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/meridianRealService.js")
+        .then(({ isMeridianRealCronEnabled, resolveMeridianRealPositions }) => {
+          if (!isMeridianRealCronEnabled()) return null;
+          return resolveMeridianRealPositions();
+        })
+        .catch((err) => console.warn("[Meridian real] resolve failed:", err?.message || err)),
+    ),
+  );
+  const runMeridianEngineTick = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/meridianRealService.js")
+        .then((m) => {
+          if (!m.isMeridianRealCronEnabled()) return null;
+          return m.runMeridianEngineTick();
+        })
+        .catch((err) => console.warn("[Meridian engine] tick failed:", err?.message || err)),
+    ),
+  );
 
   if (MOMENTUM_REAL_SIGNAL_MS >= 60_000) setInterval(runMomentumRealSignal, MOMENTUM_REAL_SIGNAL_MS);
   if (MOMENTUM_REAL_RESOLVE_MS >= 5_000) setInterval(runMomentumRealResolve, MOMENTUM_REAL_RESOLVE_MS);
@@ -2185,101 +2184,14 @@ app.listen(PORT, () => {
   if (LST_LOOP_REAL_RESOLVE_MS >= 5_000) setInterval(runLstLoopRealResolve, LST_LOOP_REAL_RESOLVE_MS);
   if (SNIPER_REAL_SIGNAL_MS >= 60_000) setInterval(runSniperRealSignal, SNIPER_REAL_SIGNAL_MS);
   if (SNIPER_REAL_RESOLVE_MS >= 5_000) setInterval(runSniperRealResolve, SNIPER_REAL_RESOLVE_MS);
-
-  const SCALPER_SIGNAL_INTERVAL_MS = (() => {
-    const raw = Number(process.env.SCALPER_SIGNAL_MS);
-    return Number.isFinite(raw) && raw >= 15_000 ? Math.floor(raw) : 60_000;
-  })();
-  const SCALPER_RESOLVE_INTERVAL_MS = (() => {
-    const raw = Number(process.env.SCALPER_RESOLVE_MS);
-    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 30_000;
-  })();
-  const SCALPER_CRON_ENABLED = (() => {
-    const raw = process.env.SCALPER_CRON_ENABLED;
-    return raw == null ? true : raw === "1" || raw === "true";
-  })();
-
-  const runScalperSignal = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/scalper/scalperService.js")
-        .then(({ runScalperSignalCycle }) => runScalperSignalCycle())
-        .then((out) => {
-          if (out?.errors?.length) {
-            console.warn("[Scalper] signal errors:", out.errors.slice(0, 3));
-          }
-        })
-        .catch((err) => console.warn("[Scalper] signal failed:", err?.message || err)),
-    ),
-  );
-
-  const runScalperResolve = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/scalper/scalperService.js")
-        .then(({ resolveOpenScalperRuns }) => resolveOpenScalperRuns())
-        .then((out) => {
-          if (out?.errors?.length) {
-            console.warn("[Scalper] resolve errors:", out.errors.slice(0, 3));
-          }
-        })
-        .catch((err) => console.warn("[Scalper] resolve failed:", err?.message || err)),
-    ),
-  );
-
-  if (SCALPER_CRON_ENABLED) {
-    if (SCALPER_SIGNAL_INTERVAL_MS >= 15_000) {
-      setInterval(runScalperSignal, SCALPER_SIGNAL_INTERVAL_MS);
-    }
-    if (SCALPER_RESOLVE_INTERVAL_MS >= 5_000) {
-      setInterval(runScalperResolve, SCALPER_RESOLVE_INTERVAL_MS);
-    }
-  }
-
-  const MM_QUOTE_INTERVAL_MS = (() => {
-    const raw = Number(process.env.MM_QUOTE_MS);
-    return Number.isFinite(raw) && raw >= 15_000 ? Math.floor(raw) : 45_000;
-  })();
-  const MM_RESOLVE_INTERVAL_MS = (() => {
-    const raw = Number(process.env.MM_RESOLVE_MS);
-    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 20_000;
-  })();
-  const MM_CRON_ENABLED = (() => {
-    const raw = process.env.MM_CRON_ENABLED;
-    return raw == null ? true : raw === "1" || raw === "true";
-  })();
-
-  const runMmQuote = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/mm/mmService.js")
-        .then(({ runMmQuoteCycle }) => runMmQuoteCycle())
-        .then((out) => {
-          if (out?.errors?.length) {
-            console.warn("[MM] quote errors:", out.errors.slice(0, 3));
-          }
-        })
-        .catch((err) => console.warn("[MM] quote failed:", err?.message || err)),
-    ),
-  );
-
-  const runMmResolve = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/mm/mmService.js")
-        .then(({ resolveOpenMmOrders }) => resolveOpenMmOrders())
-        .then((out) => {
-          if (out?.errors?.length) {
-            console.warn("[MM] resolve errors:", out.errors.slice(0, 3));
-          }
-        })
-        .catch((err) => console.warn("[MM] resolve failed:", err?.message || err)),
-    ),
-  );
-
-  if (MM_CRON_ENABLED) {
-    if (MM_QUOTE_INTERVAL_MS >= 15_000) {
-      setInterval(runMmQuote, MM_QUOTE_INTERVAL_MS);
-    }
-    if (MM_RESOLVE_INTERVAL_MS >= 5_000) {
-      setInterval(runMmResolve, MM_RESOLVE_INTERVAL_MS);
-    }
+  // Live Meridian: engine owns trading; keep a light signal/resolve no-op + sync tick.
+  if (MERIDIAN_REAL_SIGNAL_MS >= 60_000) setInterval(runMeridianRealSignal, MERIDIAN_REAL_SIGNAL_MS);
+  if (MERIDIAN_REAL_RESOLVE_MS >= 5_000) setInterval(runMeridianRealResolve, MERIDIAN_REAL_RESOLVE_MS);
+  if (MERIDIAN_ENGINE.enabled && MERIDIAN_ENGINE_SYNC_MS >= 5_000) {
+    setInterval(runMeridianEngineTick, MERIDIAN_ENGINE_SYNC_MS);
+    import("./libs/meridianEngineSupervisor.js")
+      .then(({ registerMeridianEngineShutdownHook }) => registerMeridianEngineShutdownHook())
+      .catch(() => {});
   }
 
   const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
@@ -2352,129 +2264,6 @@ app.listen(PORT, () => {
   );
   setTimeout(bootLpRealCrons, 20_000);
 
-  const BTC_QUANT_SIGNAL_INTERVAL_MS = (() => {
-    const raw = Number(process.env.BTC_QUANT_SIGNAL_MS);
-    return Number.isFinite(raw) && raw >= 60_000 ? Math.floor(raw) : 180_000;
-  })();
-  const BTC_QUANT_RESOLVE_INTERVAL_MS = (() => {
-    const raw = Number(process.env.BTC_QUANT_RESOLVE_MS);
-    return Number.isFinite(raw) && raw >= 5_000 ? Math.floor(raw) : 90_000;
-  })();
-
-  const runBtcQuantSignal = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/btcQuantExperimentService.js")
-        .then(({ runAllBtcQuantSignalCycles }) => runAllBtcQuantSignalCycles())
-        .then((out) => {
-          for (const [lane, result] of Object.entries(out.lanes ?? {})) {
-            if (result.errors?.length) {
-              console.warn(`[BTC quant ${lane}] signal errors:`, result.errors.slice(0, 3));
-            }
-          }
-        })
-        .catch((err) =>
-          console.warn("[BTC quant] signal failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  const runBtcQuantResolve = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/btcQuantExperimentService.js")
-        .then(({ resolveAllOpenBtcQuantRuns }) => resolveAllOpenBtcQuantRuns())
-        .then((out) => {
-          for (const [lane, result] of Object.entries(out.lanes ?? {})) {
-            if (result.errors?.length) {
-              console.warn(`[BTC quant ${lane}] resolve errors:`, result.errors.slice(0, 3));
-            }
-          }
-        })
-        .catch((err) =>
-          console.warn("[BTC quant] resolve failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  if (BTC_QUANT_SIGNAL_INTERVAL_MS >= 60_000) {
-    setInterval(runBtcQuantSignal, BTC_QUANT_SIGNAL_INTERVAL_MS);
-  }
-  if (BTC_QUANT_RESOLVE_INTERVAL_MS >= 5_000) {
-    setInterval(runBtcQuantResolve, BTC_QUANT_RESOLVE_INTERVAL_MS);
-  }
-
-  const runBtcQuantRealSignal = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/btcQuantRealService.js")
-        .then(({ isBtcQuantRealCronEnabled, runAllBtcQuantRealSignalCycles }) => {
-          if (!isBtcQuantRealCronEnabled()) return null;
-          return runAllBtcQuantRealSignalCycles();
-        })
-        .then((out) => {
-          const lanes = out?.lanes || {};
-          for (const [lane, result] of Object.entries(lanes)) {
-            if (result?.error) {
-              console.warn(`[BTC quant real ${lane}] signal:`, result.error);
-            }
-          }
-        })
-        .catch((err) =>
-          console.warn("[BTC quant real] signal failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  const runBtcQuantRealResolve = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/btcQuantRealService.js")
-        .then(({ isBtcQuantRealCronEnabled, resolveAllBtcQuantRealPositions }) => {
-          if (!isBtcQuantRealCronEnabled()) return null;
-          return resolveAllBtcQuantRealPositions();
-        })
-        .then((out) => {
-          const lanes = out?.lanes || {};
-          for (const [lane, result] of Object.entries(lanes)) {
-            if (result?.errors?.length) {
-              console.warn(
-                `[BTC quant real ${lane}] resolve errors:`,
-                result.errors.slice(0, 3),
-              );
-            }
-          }
-        })
-        .catch((err) =>
-          console.warn("[BTC quant real] resolve failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  const runBtc3RealRebalance = runIfMongoConnected(
-    withSingleFlight(() =>
-      import("./libs/btc3/btc3RealService.js")
-        .then(({ isBtc3RealCronEnabled, runBtc3RealRebalanceCycle }) => {
-          if (!isBtc3RealCronEnabled()) return null;
-          return runBtc3RealRebalanceCycle();
-        })
-        .then((out) => {
-          if (out?.error) {
-            console.warn("[BTC3 real] rebalance:", out.error);
-          }
-        })
-        .catch((err) =>
-          console.warn("[BTC3 real] rebalance failed:", err?.message || err),
-        ),
-    ),
-  );
-
-  if (BTC_QUANT_SIGNAL_INTERVAL_MS >= 60_000) {
-    setInterval(runBtcQuantRealSignal, BTC_QUANT_SIGNAL_INTERVAL_MS);
-  }
-  if (BTC_QUANT_RESOLVE_INTERVAL_MS >= 5_000) {
-    setInterval(runBtcQuantRealResolve, BTC_QUANT_RESOLVE_INTERVAL_MS);
-  }
-  if (BTC_QUANT_SIGNAL_INTERVAL_MS >= 60_000) {
-    setInterval(runBtc3RealRebalance, BTC_QUANT_SIGNAL_INTERVAL_MS);
-  }
-
   // OKX.AI Trading Hackathon — automated trading loop (paper by default; live
   // when OKX_TRADING_LIVE=true and a funded Agentic Wallet is bound).
   const runOkxTradingTick = runIfMongoConnected(
@@ -2496,122 +2285,6 @@ app.listen(PORT, () => {
       setInterval(runOkxTradingTick, okxIntervalMs);
     }
   }
-
-  import("./libs/btc3/macroIntelligenceScheduler.js").then(({ startBtc3MacroScheduler }) => {
-    startBtc3MacroScheduler(withSingleFlight, runIfMongoConnected);
-  });
-
-  import("./libs/btcQuantExperimentEvolution.js")
-    .then(({ btcQuantEvolutionConfigFromEnv, runAllBtcQuantEvolutions }) => {
-      const evo = btcQuantEvolutionConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(
-        withSingleFlight(() =>
-          runAllBtcQuantEvolutions({
-            removeCount: evo.removeCount,
-            minDecided: evo.minDecided,
-            pinned: evo.pinned,
-          })
-            .then((out) => {
-              for (const [lane, result] of Object.entries(out.lanes ?? {})) {
-                if (!result.ok) continue;
-                if (result.skipped) {
-                  startupVerbose(`[BTC quant evolution ${lane}] skipped:`, result.skipped);
-                  continue;
-                }
-                startupVerbose(
-                  `[BTC quant evolution ${lane}]`,
-                  "culled",
-                  result.culled?.length ?? 0,
-                  "spawned",
-                  result.spawned?.length ?? 0,
-                );
-              }
-            })
-            .catch((err) =>
-              console.warn("[BTC quant evolution failed]", err?.message || err),
-            ),
-        ),
-      );
-      setInterval(tick, evo.ms);
-    })
-    .catch(() => {});
-
-  import("./libs/btcQuantExperimentEvolution.js")
-    .then(({ btcQuantRealEvolutionConfigFromEnv, runBtcQuantRealEvolution }) => {
-      const evo = btcQuantRealEvolutionConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(
-        withSingleFlight(() =>
-          import("./libs/btcQuantRealService.js")
-            .then(({ isBtcQuantRealCronEnabled }) => {
-              if (!isBtcQuantRealCronEnabled()) return null;
-              return runBtcQuantRealEvolution();
-            })
-            .then((out) => {
-              if (!out || out.skipped) return;
-              startupVerbose("[BTC quant real evolution]", out.summary || "completed");
-            })
-            .catch((err) => console.warn("[BTC quant real evolution failed]", err?.message || err)),
-        ),
-      );
-      setInterval(tick, evo.ms);
-    })
-    .catch(() => {});
-
-  import("./libs/btc3/btc3LearningService.js")
-    .then(({ btc3LearningConfigFromEnv, runBtc3Learning }) => {
-      const evo = btc3LearningConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(
-        withSingleFlight(() =>
-          runBtc3Learning()
-            .then((out) => {
-              if (!out || out.skipped) return;
-              startupVerbose("[BTC3 learning]", out.summary || "completed");
-            })
-            .catch((err) => console.warn("[BTC3 learning failed]", err?.message || err)),
-        ),
-      );
-      setInterval(tick, evo.ms);
-    })
-    .catch(() => {});
-
-  import("./libs/scalper/scalperLearningService.js")
-    .then(({ scalperLearningConfigFromEnv, runScalperLearning }) => {
-      const evo = scalperLearningConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(
-        withSingleFlight(() =>
-          runScalperLearning()
-            .then((out) => {
-              if (!out || out.skipped) return;
-              startupVerbose("[Scalper learning]", out.summary || "completed");
-            })
-            .catch((err) => console.warn("[Scalper learning failed]", err?.message || err)),
-        ),
-      );
-      setInterval(tick, evo.ms);
-    })
-    .catch(() => {});
-
-  import("./libs/mm/mmLearningService.js")
-    .then(({ mmLearningConfigFromEnv, runMmLearning }) => {
-      const evo = mmLearningConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(
-        withSingleFlight(() =>
-          runMmLearning({ force: true })
-            .then((out) => {
-              if (!out || out.skipped) return;
-              startupVerbose("[MM learning]", out.summary || "completed");
-            })
-            .catch((err) => console.warn("[MM learning failed]", err?.message || err)),
-        ),
-      );
-      setInterval(tick, evo.ms);
-    })
-    .catch(() => {});
 
   import("./libs/lpExperimentEvolution.js")
     .then(({ lpEvolutionConfigFromEnv, runLpExperimentEvolution }) => {
@@ -2647,44 +2320,6 @@ app.listen(PORT, () => {
                 "[LP experiment evolution failed]",
                 err?.message || err,
               ),
-            ),
-        ),
-      );
-      setInterval(tick, evo.ms);
-    })
-    .catch(() => {});
-
-  import("./libs/robinhoodLpEvolution.js")
-    .then(({ robinhoodLpEvolutionConfigFromEnv, runRobinhoodLpEvolution }) => {
-      const evo = robinhoodLpEvolutionConfigFromEnv();
-      if (!evo.enabled || evo.ms < 60_000) return;
-      const tick = runIfMongoConnected(
-        withSingleFlight(() =>
-          runRobinhoodLpEvolution({
-            removeCount: evo.removeCount,
-            minDecided: evo.minDecided,
-            dailySpawnCount: evo.dailySpawnCount,
-            maxStrategies: evo.maxStrategies,
-            pinned: evo.pinned,
-          })
-            .then((out) => {
-              if (!out.ok) return;
-              if (out.skipped) {
-                startupVerbose("[Robinhood LP experiment evolution] skipped:", out.skipped);
-                return;
-              }
-              startupVerbose(
-                "[Robinhood LP experiment evolution]",
-                "culled",
-                out.culled?.length ?? 0,
-                "spawned",
-                out.spawned?.length ?? 0,
-                "daily",
-                out.dailySpawned?.length ?? 0,
-              );
-            })
-            .catch((err) =>
-              console.warn("[Robinhood LP experiment evolution failed]", err?.message || err),
             ),
         ),
       );
@@ -2744,17 +2379,20 @@ app.listen(PORT, () => {
     ["./libs/momentumRotatorEvolution.js", "Momentum"],
     ["./libs/lstLoopEvolution.js", "LST loop"],
     ["./libs/sniperEvolution.js", "Sniper"],
+    ["./libs/meridianEvolution.js", "Meridian"],
   ]) {
     import(mod)
       .then((m) => {
         const cfgFn =
           m.momentumEvolutionConfigFromEnv ||
           m.lstLoopEvolutionConfigFromEnv ||
-          m.sniperEvolutionConfigFromEnv;
+          m.sniperEvolutionConfigFromEnv ||
+          m.meridianEvolutionConfigFromEnv;
         const runFn =
           m.runMomentumExperimentEvolution ||
           m.runLstLoopExperimentEvolution ||
-          m.runSniperExperimentEvolution;
+          m.runSniperExperimentEvolution ||
+          m.runMeridianExperimentEvolution;
         if (!cfgFn || !runFn) return;
         const evo = cfgFn();
         if (!evo.enabled || evo.ms < 60_000) return;
@@ -2911,6 +2549,22 @@ app.listen(PORT, () => {
     .catch((e) =>
       console.warn(
         "[buyback-scheduler] load failed:",
+        e instanceof Error ? e.message : e,
+      ),
+    );
+
+  import("./libs/llmProviderHealth.js")
+    .then(({ startLlmProviderHealthCron }) => {
+      const result = startLlmProviderHealthCron();
+      if (result?.started) {
+        console.log(
+          `[llm-exchange] health cron started (interval=${result.intervalMs}ms)`,
+        );
+      }
+    })
+    .catch((e) =>
+      console.warn(
+        "[llm-exchange] health cron load failed:",
         e instanceof Error ? e.message : e,
       ),
     );

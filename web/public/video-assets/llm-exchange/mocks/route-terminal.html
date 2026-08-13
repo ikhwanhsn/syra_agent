@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>POST /llm/route (fictional)</title>
+    <style>
+      body {
+        margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+        background: #0b0c0f; color: #e8e8ea;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+      }
+      .wrap { padding: 72px 96px; }
+      .bar { color: rgba(255,255,255,0.4); font-size: 16px; margin-bottom: 28px; letter-spacing: 0.04em; }
+      .bar b { color: #f3ba2f; font-weight: 600; }
+      pre {
+        margin: 0; font-size: 28px; line-height: 1.55; white-space: pre-wrap;
+      }
+      .g { color: #3ee0b8; }
+      .y { color: #f3ba2f; }
+      .m { color: rgba(255,255,255,0.45); }
+      .pill {
+        display: inline-block; margin-top: 36px; padding: 10px 16px; border-radius: 999px;
+        border: 1px solid rgba(243,186,47,0.45); color: #f3ba2f; font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="bar">syra · <b>POST /llm/route</b> · X-Syra-Route: cheapest</div>
+      <pre id="term"><span class="m">$</span> curl -X POST https://api.syraa.fun/llm/route \
+  -H <span class="y">"Content-Type: application/json"</span> \
+  -H <span class="y">"X-Syra-Route: cheapest"</span> \
+  -d <span class="g">'{
+    "messages": [{"role":"user","content":"Hello from Syra"}],
+    "max_tokens": 64
+  }'</span>
+
+<span class="m"># HTTP 402 → settle x402 → retry</span>
+<span class="m"># Syra picks Claude / Gemini / DeepSeek / fallback</span>
+<span class="g">{ "object": "chat.completion", "syra_route": {
+  "policy": "cheapest",
+  "provider_slug": "claude-sonnet-reseller",
+  "price_usd": 0.0048
+}}</span></pre>
+      <div class="pill">One OpenAI-shaped body. Any upstream protocol.</div>
+    </div>
+  </body>
+</html>

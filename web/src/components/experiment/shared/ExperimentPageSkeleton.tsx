@@ -1,6 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { BtcExperimentHeroSkeleton } from "@/components/experiment/btc/BtcExperimentSkeletons";
 import { cn } from "@/lib/utils";
 
 /** Suspense shell matching ExperimentTabShell: hero + 3 tabs + active panel. */
@@ -25,7 +24,24 @@ export function ExperimentPageSkeleton({
       aria-label="Loading experiment"
       role="status"
     >
-      <BtcExperimentHeroSkeleton ringClass={ringClass} />
+      <div className={cn(overviewCardShell, "rounded-2xl p-5 ring-1 sm:p-6", ringClass)} aria-hidden>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1 space-y-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-8 w-64 max-w-full" />
+            <Skeleton className="h-4 w-80 max-w-full" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-xl" />
+          ))}
+        </div>
+      </div>
 
       <div
         className={cn(

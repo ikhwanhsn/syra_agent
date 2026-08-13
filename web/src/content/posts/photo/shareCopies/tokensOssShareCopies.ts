@@ -33,7 +33,7 @@ syraa.fun/assets`,
   timeline: `How Syra sits on Tokens after open source.
 
 1. Consume the hosted Tokens.xyz API for identity and markets
-2. Expose board, dossier, and tokens-* tools to agents
+2. Expose board, dossier, and token tools to agents
 3. Stack Syra intelligence on every asset page
 4. Point builders at the open solana-foundation/tokens monorepo
 
@@ -50,7 +50,7 @@ syraa.fun/assets`,
 
 1. Browse the full board on syraa.fun/assets
 2. Open a mint dossier with risk and markets
-3. Call tokens-* tools from MCP or chat
+3. Call token tools from MCP or chat
 4. Use asset-research for resolve, risk, and Syra intel in one shot
 5. Read the Tokens monorepo on GitHub
 
@@ -59,11 +59,11 @@ github.com/solana-foundation/tokens`,
 
   metrics: `The Tokens OSS proof points for Syra.
 
-Tokens is open source. Syra ships 13 tokens-* tools. One agent research path: resolve, risk, intel, action.
+Tokens is open source. Syra ships 13 token tools. One agent research path: resolve, risk, intel, action.
 
 syraa.fun/assets`,
 
-  featured: `13 tokens-* tools are ready for agents.
+  featured: `13 token tools are ready for agents.
 
 Search, resolve, detail, markets, OHLCV, risk, curated lists, and snapshots. Syra wraps them with pay-per-call MCP and x402.
 

@@ -26,11 +26,32 @@ export const PHOTO_SIZE = {
   footerH: 36,
 } as const;
 
+/** Square X-Layer-style announcement cards (1:1). */
+export const PHOTO_SQUARE = {
+  width: 1080,
+  height: 1080,
+  padX: 64,
+  padY: 64,
+  brandH: 48,
+  footerH: 48,
+} as const;
+
+export type PhotoCanvasSize = {
+  width: number;
+  height: number;
+  padX?: number;
+  padY?: number;
+};
+
 export const PHOTO_TYPE = {
   display: "Space Grotesk",
   body: "Inter",
   mono: "JetBrains Mono",
 } as const;
+
+/** Legal-style footer used on X-Layer announcement cards (reference language). */
+export const PHOTO_XLAYER_DISCLAIMER =
+  "THIS IS NOT AN OFFER OR SOLICITATION TO BUY, SELL OR HOLD DIGITAL ASSETS, WHICH ARE SUBJECT TO VOLATILITY. NOT ALL PRODUCTS ARE OFFERED IN ALL REGIONS.";
 
 /** Per-role ambient tint, soft ink so the 15-card deck stays distinct on white. */
 const ROLE_TINT: Record<PostPhotoCardRole, string> = {

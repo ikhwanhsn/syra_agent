@@ -14,11 +14,6 @@ export function isGatewayOpenApiFreeRoute(p) {
   if (path === '/llms.txt') return true;
   if (path === '/skill.md') return true;
   if (path.startsWith('/reference/')) return true;
-  if (path === '/experiment/scalper/overview') return true;
-  if (path === '/experiment/scalper/equity-history') return true;
-  if (path === '/experiment/scalper/runs') return true;
-  if (path === '/experiment/scalper/learning') return true;
-  if (path === '/experiment/scalper/reference') return true;
   // Outcomes discovery / EV gate (mutations stay session-protected on the router).
   if (path === '/outcomes/catalog' || path.startsWith('/outcomes/catalog/')) return true;
   if (path === '/outcomes/ev-gate' || path.startsWith('/outcomes/ev-gate/')) return true;

@@ -14,6 +14,7 @@ import { buildSettlementHealthSnapshot } from './settlementHealthService.js';
 import { buildPublicBuybackSnapshot } from './publicBuybackMetrics.js';
 import { buildPublicHolderFunnelSnapshot } from './holderFunnelService.js';
 import { buildPublicRewardsSnapshot } from './syraUsageRewards.js';
+import { buildLlmExchangeMetricsSnapshot } from './llmService.js';
 
 const PAID_MATCH = { outcome: 'paid', direction: 'inbound' };
 
@@ -105,6 +106,7 @@ export async function buildPublicMetricsSnapshot() {
     buyback,
     holders,
     rewards,
+    llmExchange,
   ] = await Promise.all([
     PaidApiCall.countDocuments(),
     PaidApiCall.countDocuments({ createdAt: { $gte: oneDayAgo } }),
@@ -164,6 +166,7 @@ export async function buildPublicMetricsSnapshot() {
     withBudget(buildPublicBuybackSnapshot(), ENRICHMENT_BUDGET_MS, null),
     withBudget(buildPublicHolderFunnelSnapshot(), ENRICHMENT_BUDGET_MS, null),
     withBudget(buildPublicRewardsSnapshot(), ENRICHMENT_BUDGET_MS, null),
+    withBudget(buildLlmExchangeMetricsSnapshot(), ENRICHMENT_BUDGET_MS, null),
   ]);
 
   const totalUsd = totalUsdAgg[0]?.total ?? 0;
@@ -226,6 +229,7 @@ export async function buildPublicMetricsSnapshot() {
     buyback: buyback ?? null,
     holders: holders ?? null,
     rewards: rewards ?? null,
+    llmExchange: llmExchange ?? null,
   };
 }
 

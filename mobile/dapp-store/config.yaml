@@ -1,0 +1,58 @@
+# Solana dApp Store publisher config for Syra Scout.
+# See: https://docs.solanamobile.com/dapp-publishing/intro
+# Publish with: npx @solana-mobile/dapp-store-cli publish create ...
+#
+# Fill publisher/keypair paths locally. Do not commit private keys.
+
+publisher:
+  name: Syra
+  website: https://syraa.fun
+  email: hello@syraa.fun
+  # local path to publisher keypair json (gitignored)
+  # address: <publisher-pubkey>
+
+app:
+  name: Syra Scout
+  address: # created on first publish
+  android_package: com.syrascout
+  urls:
+    license_url: https://syraa.fun
+    copyright_url: https://syraa.fun
+    privacy_policy_url: https://syraa.fun
+  icon: ./assets/icon.png
+  # banner / screenshots relative to this folder
+  media:
+    - ./assets/screenshot-home.png
+    - ./assets/screenshot-token.png
+    - ./assets/screenshot-scout.png
+
+release:
+  # path to signed release APK or AAB built via ./gradlew assembleRelease
+  apk: ../android/app/build/outputs/apk/release/app-release.apk
+  catalog:
+    en-US:
+      short_description: Crypto research in your pocket. Browse free. Pay per alpha in USDC.
+      full_description: |
+        Syra Scout brings Syra pay-per-call crypto intelligence to Solana Mobile.
+
+        Browse live prices, news previews, sentiment, and signals with no wallet.
+        Unlock full alpha with USDC micropayments via Mobile Wallet Adapter.
+        Gas is sponsored by x402 facilitators, so you only need USDC.
+
+        Features:
+        - Free market home and preview intelligence
+        - Token detail: news, sentiment, signal, rugcheck
+        - Scout alpha segments from pump.fun
+        - $SYRA holder discount status
+        - On-device spend history
+
+        Not financial advice. Outputs are probabilistic analysis.
+      new_in_version: Initial Solana dApp Store release.
+      keywords:
+        - syra
+        - crypto
+        - solana
+        - x402
+        - research
+        - signals
+        - scout

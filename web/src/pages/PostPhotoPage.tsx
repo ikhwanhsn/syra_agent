@@ -1,7 +1,6 @@
 import { Navigate, useParams } from "react-router-dom";
-import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostPhotoDeck } from "@/components/post/photo/PostPhotoDeck";
-import { PostStudioSkeleton } from "@/components/RouteFallback";
+import { PostPhotoPageSkeleton } from "@/components/post/PostStudioSkeleton";
 import { getPhotoPostByNumber } from "@/content/posts";
 import { usePostStudioQuery } from "@/hooks/usePostStudio";
 import {
@@ -22,16 +21,7 @@ export default function PostPhotoPage() {
   const updateNumber = parseUpdateNumber(raw);
 
   if (isLoading) {
-    return (
-      <div className="post-root relative flex min-h-[100dvh] w-full flex-col overflow-x-hidden bg-[#030303] text-white">
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-          <div className="mb-4">
-            <PostBackLink />
-          </div>
-          <PostStudioSkeleton />
-        </div>
-      </div>
-    );
+    return <PostPhotoPageSkeleton />;
   }
 
   if (updateNumber == null) {

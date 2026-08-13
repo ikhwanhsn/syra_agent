@@ -135,6 +135,20 @@ export interface PublicMetricsSnapshot {
     totalPendingPoints?: number;
     pointsToSyraRate: number;
   } | null;
+  llmExchange?: {
+    activeProviders: number;
+    totalCalls: number;
+    totalVolumeUsd: number;
+    topProviders: Array<{
+      id: string;
+      title: string;
+      slug: string;
+      useCount: number;
+      volumeUsd: number;
+      callabilityScore: number;
+      featured: boolean;
+    }>;
+  } | null;
 }
 
 const metricsBase = () => `${getApiBaseUrl().replace(/\/$/, "")}/api/metrics`;

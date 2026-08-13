@@ -25,6 +25,7 @@ import {
 import { EARN_PRODUCT_LP, getEarnProduct } from '../config/earnProducts.js';
 import { isAdminWalletAddress } from '../libs/adminWallet.js';
 import { resolveLpViewerAnonymousId } from '../libs/agentWalletPurpose.js';
+import { createEarnLlmRouter } from './earn/llm.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -33,6 +34,9 @@ const upload = multer({
 
 export function createEarnRouter() {
   const router = express.Router();
+
+  // LLM Exchange seller marketplace (CRUD, claim, public catalog)
+  router.use('/llm', createEarnLlmRouter());
 
   router.get('/summary', async (req, res) => {
     try {

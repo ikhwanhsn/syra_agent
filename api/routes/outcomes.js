@@ -30,15 +30,8 @@ import {
 } from "../libs/outcomeBillingService.js";
 import {
   getEvGateDashboard,
-  getRobinhoodLpEvGateStatus,
   getSolanaLpEvGateStatus,
-  validateRobinhoodPoolUniverse,
 } from "../libs/outcomeEvGateService.js";
-import {
-  disableRobinhoodLpAutopilot,
-  enableRobinhoodLpAutopilot,
-  getRobinhoodLpAutopilotStatus,
-} from "../libs/robinhoodLpRealService.js";
 import { evaluateTreasuryPolicy } from "../libs/treasuryAutopilotService.js";
 import { evaluateYieldOpportunity, listYieldVenues } from "../libs/yieldAutopilotService.js";
 import { runOutcomeSchedulerTick } from "../libs/outcomeJobScheduler.js";
@@ -49,7 +42,7 @@ function isProduction() {
 }
 
 function requireCronSecret(req, res, next) {
-  const secret = (process.env.OUTCOME_CRON_SECRET || process.env.ROBINHOOD_LP_EXPERIMENT_CRON_SECRET || "").trim();
+  const secret = (process.env.OUTCOME_CRON_SECRET || "").trim();
   // SECURITY: fail closed in production when secret is unset
   if (!secret) {
     if (isProduction()) {
@@ -57,7 +50,7 @@ function requireCronSecret(req, res, next) {
     }
     return next();
   }
-  const got = (req.get("x-outcome-cron-secret") || req.get("x-lp-robinhood-experiment-secret") || "").trim();
+  const got = (req.get("x-outcome-cron-secret") || "").trim();
   if (got !== secret) {
     return res.status(403).json({ success: false, error: "Invalid or missing cron secret" });
   }
@@ -118,27 +111,9 @@ export function createOutcomesRouter() {
     }
   });
 
-  router.get("/ev-gate/robinhood-lp", async (_req, res) => {
-    try {
-      const data = await getRobinhoodLpEvGateStatus();
-      res.json({ success: true, data });
-    } catch (e) {
-      res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
-    }
-  });
-
   router.get("/ev-gate/solana-lp", async (_req, res) => {
     try {
       const data = await getSolanaLpEvGateStatus();
-      res.json({ success: true, data });
-    } catch (e) {
-      res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
-    }
-  });
-
-  router.get("/ev-gate/pool-universe", async (_req, res) => {
-    try {
-      const data = await validateRobinhoodPoolUniverse();
       res.json({ success: true, data });
     } catch (e) {
       res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
@@ -247,10 +222,6 @@ export function createOutcomesRouter() {
     try {
       const mandate = await requireMandateOwner(req, res);
       if (!mandate) return;
-      if (mandate.productId === "robinhood_lp_autopilot") {
-        const config = await enableRobinhoodLpAutopilot(req.params.mandateId);
-        return res.json({ success: true, data: { mandate, config } });
-      }
       res.json({
         success: true,
         data: {
@@ -267,10 +238,6 @@ export function createOutcomesRouter() {
     try {
       const mandate = await requireMandateOwner(req, res);
       if (!mandate) return;
-      if (mandate.productId === "robinhood_lp_autopilot") {
-        const config = await disableRobinhoodLpAutopilot(req.params.mandateId);
-        return res.json({ success: true, data: { mandate, config } });
-      }
       res.json({
         success: true,
         data: {
@@ -287,11 +254,7 @@ export function createOutcomesRouter() {
     try {
       const mandate = await requireMandateOwner(req, res);
       if (!mandate) return;
-      let productStatus = null;
-      if (mandate.productId === "robinhood_lp_autopilot") {
-        productStatus = await getRobinhoodLpAutopilotStatus(req.params.mandateId);
-      }
-      res.json({ success: true, data: { mandate, productStatus } });
+      res.json({ success: true, data: { mandate, productStatus: null } });
     } catch (e) {
       res.status(500).json({ success: false, error: e instanceof Error ? e.message : String(e) });
     }

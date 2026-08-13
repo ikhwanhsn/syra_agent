@@ -9,3 +9,6 @@ Full roster: `.cursor/agents/ORG.md`
 - Daily growth: `/growth`
 - Board review: `/growth week`
 - Hire on gap: `.cursor/agents/hire.md` (Bench)
+- Video / promo: always-on rule `.cursor/rules/video-creation.mdc` → skills `video-shotcraft` / `video-use`; quality floor `web/src/video/QUALITY_BAR.md` + `web/src/video/engine/promoKit.tsx`
+- Post / announce images: always-on rule `.cursor/rules/post-image-creation.mdc` → studio reference library `web/src/content/announce/REFERENCE_LIBRARY.md` + `referenceLibrary.ts`; gold still `web/public/images/threads/syra-xlayer-showcase.png`
+- Text posts / captions / launch copy: always-on rule `.cursor/rules/text-post-creation.mdc` → quality floor `web/src/content/posts/TEXT_POST_QUALITY_BAR.md` (LLM Exchange gold)

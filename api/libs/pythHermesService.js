@@ -3,7 +3,11 @@
  * Free upstream; no API key required.
  */
 import { createBoundedTtlCache } from '../utils/boundedTtlCache.js';
-import { PYTH_BTC_USD_FEED_ID } from '../config/scalperConfig.js';
+
+/** Pyth price feed id — Crypto.BTC/USD on Hermes. */
+export const PYTH_BTC_USD_FEED_ID =
+  process.env.PYTH_BTC_USD_FEED_ID ||
+  '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43';
 
 const HERMES_BASE = process.env.PYTH_HERMES_URL || 'https://hermes.pyth.network';
 const FETCH_TIMEOUT_MS = 10_000;

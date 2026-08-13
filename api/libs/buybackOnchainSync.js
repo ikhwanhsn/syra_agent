@@ -15,6 +15,7 @@ import {
 import BuybackEvent from "../models/BuybackEvent.js";
 import BuybackAccumulator from "../models/BuybackAccumulator.js";
 import { BUYBACK_ACCUMULATOR_ID } from "../config/buybackSchedulerConfig.js";
+import { resolveBuybackTotalsWallets } from "../config/buybackTotalsWallets.js";
 
 const RPC_URL =
   process.env.SOLANA_RPC_URL ||
@@ -352,29 +353,19 @@ export async function backfillZeroBuybackUsd(opts = {}) {
 }
 
 /**
- * Scan recent treasury signatures and record new on-chain SYRA buys.
+ * Scan recent signatures for one wallet and record new on-chain SYRA buys.
+ * @param {import("@solana/web3.js").Connection} connection
+ * @param {string} wallet
  * @param {{
- *   limit?: number;
- *   minSyra?: number;
- *   requireUsdcSpend?: boolean;
- *   backfillZeroUsd?: boolean;
- * }} [opts]
+ *   limit: number;
+ *   minSyra: number;
+ *   requireUsdcSpend: boolean;
+ *   prices: { solUsd?: number | null; syraUsd?: number | null };
+ * }} opts
  */
-export async function syncOnchainBuybacks(opts = {}) {
-  const treasuryWallet = resolveTreasuryWallet();
-  if (!treasuryWallet) {
-    return { success: false, error: "treasury_wallet_unavailable", recorded: 0, scanned: 0 };
-  }
-
-  const limit = Math.min(200, Math.max(1, Number(opts.limit) || DEFAULT_SCAN_LIMIT));
-  const minSyra = Number(opts.minSyra) > 0 ? Number(opts.minSyra) : 0;
-  // Default: count every SYRA increase (USDC, SOL, transfers valued by price).
-  const requireUsdcSpend = opts.requireUsdcSpend === true;
-  const backfillZeroUsd = opts.backfillZeroUsd !== false;
-
-  const prices = await fetchBuybackSpotPrices();
-  const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
-  const pubkey = new PublicKey(treasuryWallet);
+async function syncOnchainBuybacksForWallet(connection, wallet, opts) {
+  const { limit, minSyra, requireUsdcSpend, prices } = opts;
+  const pubkey = new PublicKey(wallet);
 
   const sigInfos = await connection.getSignaturesForAddress(pubkey, { limit });
   const signatures = (sigInfos || []).map((s) => s.signature).filter(Boolean);
@@ -405,15 +396,11 @@ export async function syncOnchainBuybacks(opts = {}) {
     scanned += 1;
     let parsed;
     try {
-      parsed = await parseBuybackFromSignature(
-        connection,
-        signature,
-        treasuryWallet,
-        prices,
-      );
+      parsed = await parseBuybackFromSignature(connection, signature, wallet, prices);
     } catch (err) {
       console.warn(
         "[buyback-onchain] parse failed",
+        wallet.slice(0, 8),
         signature.slice(0, 8),
         err?.message ?? err,
       );
@@ -444,6 +431,7 @@ export async function syncOnchainBuybacks(opts = {}) {
               revenueUsd: parsed.buybackUsd,
               outAmountHuman: parsed.syraAcquired,
               outAmountRaw: parsed.outAmountRaw,
+              treasuryWallet: wallet,
             },
           },
         );
@@ -478,7 +466,7 @@ export async function syncOnchainBuybacks(opts = {}) {
       outAmountRaw: parsed.outAmountRaw,
       outAmountHuman: parsed.syraAcquired,
       source: "manual_onchain",
-      treasuryWallet,
+      treasuryWallet: wallet,
       at: parsed.at,
     });
 
@@ -497,6 +485,116 @@ export async function syncOnchainBuybacks(opts = {}) {
     }
   }
 
+  return {
+    wallet,
+    scanned,
+    recorded,
+    duplicates,
+    skipped,
+    revalued,
+    signaturesConsidered: signatures.length,
+    recordedSigs,
+  };
+}
+
+/**
+ * Wallets to scan for on-chain buybacks: primary treasury + silent totals wallets.
+ * @param {string | null} [primaryWallet]
+ * @param {Parameters<typeof resolveBuybackTotalsWallets>[0]} [totalsOpts]
+ * @returns {string[]}
+ */
+export function resolveBuybackScanWallets(primaryWallet, totalsOpts = {}) {
+  const primary =
+    primaryWallet !== undefined ? primaryWallet : resolveTreasuryWallet();
+  const silent = resolveBuybackTotalsWallets({
+    ...totalsOpts,
+    primaryWallet: primary,
+  });
+  if (!primary) return silent;
+  return [primary, ...silent];
+}
+
+/**
+ * Scan recent treasury (+ silent totals) signatures and record new on-chain SYRA buys.
+ * @param {{
+ *   limit?: number;
+ *   minSyra?: number;
+ *   requireUsdcSpend?: boolean;
+ *   backfillZeroUsd?: boolean;
+ * }} [opts]
+ */
+export async function syncOnchainBuybacks(opts = {}) {
+  const treasuryWallet = resolveTreasuryWallet();
+  const wallets = resolveBuybackScanWallets(treasuryWallet);
+  if (!wallets.length) {
+    return { success: false, error: "treasury_wallet_unavailable", recorded: 0, scanned: 0 };
+  }
+
+  const limit = Math.min(200, Math.max(1, Number(opts.limit) || DEFAULT_SCAN_LIMIT));
+  const minSyra = Number(opts.minSyra) > 0 ? Number(opts.minSyra) : 0;
+  // Default: count every SYRA increase (USDC, SOL, transfers valued by price).
+  const requireUsdcSpend = opts.requireUsdcSpend === true;
+  const backfillZeroUsd = opts.backfillZeroUsd !== false;
+
+  const prices = await fetchBuybackSpotPrices();
+  const connection = new Connection(RPC_URL, { fetch: fetchWithTimeout });
+
+  let scanned = 0;
+  let recorded = 0;
+  let duplicates = 0;
+  let skipped = 0;
+  let revalued = 0;
+  let signaturesConsidered = 0;
+  /** @type {string[]} */
+  const recordedSigs = [];
+  /** @type {Array<{ wallet: string; scanned: number; recorded: number; duplicates: number; skipped: number; revalued: number; signaturesConsidered: number }>} */
+  const byWallet = [];
+
+  for (const wallet of wallets) {
+    let walletResult;
+    try {
+      walletResult = await syncOnchainBuybacksForWallet(connection, wallet, {
+        limit,
+        minSyra,
+        requireUsdcSpend,
+        prices,
+      });
+    } catch (err) {
+      console.warn(
+        "[buyback-onchain] wallet sync failed",
+        wallet.slice(0, 8),
+        err?.message ?? err,
+      );
+      byWallet.push({
+        wallet,
+        scanned: 0,
+        recorded: 0,
+        duplicates: 0,
+        skipped: 0,
+        revalued: 0,
+        signaturesConsidered: 0,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      continue;
+    }
+    scanned += walletResult.scanned;
+    recorded += walletResult.recorded;
+    duplicates += walletResult.duplicates;
+    skipped += walletResult.skipped;
+    revalued += walletResult.revalued;
+    signaturesConsidered += walletResult.signaturesConsidered;
+    recordedSigs.push(...walletResult.recordedSigs);
+    byWallet.push({
+      wallet,
+      scanned: walletResult.scanned,
+      recorded: walletResult.recorded,
+      duplicates: walletResult.duplicates,
+      skipped: walletResult.skipped,
+      revalued: walletResult.revalued,
+      signaturesConsidered: walletResult.signaturesConsidered,
+    });
+  }
+
   let backfill = null;
   if (backfillZeroUsd) {
     backfill = await backfillZeroBuybackUsd({ syraUsd: prices.syraUsd }).catch((err) => ({
@@ -510,13 +608,15 @@ export async function syncOnchainBuybacks(opts = {}) {
   return {
     success: true,
     treasuryWallet,
+    wallets,
     scanned,
     recorded,
     duplicates,
     skipped,
     revalued,
-    signaturesConsidered: signatures.length,
+    signaturesConsidered,
     recordedSigs,
+    byWallet,
     prices,
     backfill,
   };

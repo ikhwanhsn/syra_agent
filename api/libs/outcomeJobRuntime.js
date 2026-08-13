@@ -8,7 +8,6 @@ import { getOutcomeProduct } from "../config/outcomeProducts.js";
 import { getOutcomeMandate, isMandateExecutable, recordMandateSpend } from "./outcomeMandateService.js";
 import { generateOutcomeReport } from "./outcomeProofService.js";
 import { prepareOutcomeSettlement } from "./outcomeBillingService.js";
-import { runRobinhoodLpAutopilotTick } from "./robinhoodLpRealService.js";
 import { runTreasuryAutopilotTick } from "./treasuryAutopilotService.js";
 import { runYieldAutopilotTick } from "./yieldAutopilotService.js";
 
@@ -27,7 +26,6 @@ import { runYieldAutopilotTick } from "./yieldAutopilotService.js";
 
 /** @type {Record<string, (ctx: RuntimeContext) => Promise<RuntimeHandlerResult>>} */
 const HANDLERS = {
-  robinhoodLpAutopilot: runRobinhoodLpAutopilotTick,
   solanaLpAutopilot: async (ctx) => ({
     decision: { action: "delegate_solana_lp_real", mandateId: ctx.mandate.mandateId },
     summary: "Solana LP Autopilot delegates to existing lp-agent-real cron infrastructure.",

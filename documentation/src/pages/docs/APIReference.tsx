@@ -33,8 +33,8 @@ const API_CATEGORIES: { title: string; description: string; slugs: string[] }[] 
   },
   {
     title: "AI / OpenRouter",
-    description: "Chat, image, and video generation via OpenRouter",
-    slugs: ["chat-completions", "images-generations", "videos-generations"],
+    description: "Chat, LLM Exchange router, image, and video generation",
+    slugs: ["chat-completions", "llm-route", "images-generations", "videos-generations"],
   },
   {
     title: "Market Intelligence",

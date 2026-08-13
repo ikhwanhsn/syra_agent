@@ -21,12 +21,8 @@ export function dashboardPageTitle(pathname: string, _search = ""): string {
   if (parts[0] === "analyzer" || parts[0] === "pumpfun") return "Token Analyzer";
   if (parts[0] === "multiwallet" && parts[1] === "recover") return "Recover farm wallets";
   if (parts[0] === "lp-experiment") return "LP agent experiment";
-  if (parts[0] === "lp-robinhood") return "LP Robinhood experiment";
-  if (parts[0] === "btc2-experiment") return "BTC quant agent";
-  if (parts[0] === "btc3-experiment") return "Macro Intelligence";
-  if (parts[0] === "btc-experiment") return "BTC quant experiment";
+  if (parts[0] === "meridian") return "Meridian DLMM lab";
   if (parts[0] === "stocks") return "Stocks news lab (paper)";
-  if (parts[0] === "scalper") return "Scalper agent";
   if (parts[0] === "btc") return "Bitcoin";
   if (parts[0] === "labs") return "Labs";
   if (parts[0] === "llm") return "LLM";

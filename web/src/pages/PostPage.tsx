@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { ImageIcon, Lock, Video } from "lucide-react";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostShipLogUpdateList } from "@/components/post/PostShipLogUpdateList";
-import { PostStudioSkeleton } from "@/components/RouteFallback";
+import { PostStudioContentSkeleton } from "@/components/post/PostStudioSkeleton";
 import {
   POST_VIDEO_SLIDE_COUNT,
   POST_VIDEO_SLIDE_SLOTS,
@@ -88,7 +88,7 @@ export default function PostPage() {
         </header>
 
         {isLoading ? (
-          <PostStudioSkeleton />
+          <PostStudioContentSkeleton />
         ) : (
           <>
             <div className="mb-6 rounded-xl border border-white/20 bg-white/[0.04] px-4 py-3 text-left sm:mb-8 sm:px-5 sm:py-4">
@@ -122,6 +122,12 @@ export default function PostPage() {
                   className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
                 >
                   Open photo template
+                </Link>
+                <Link
+                  to="/post/announce"
+                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
+                >
+                  Open X-Layer announce
                 </Link>
               </div>
             </div>

@@ -4,11 +4,6 @@
 import crypto from "node:crypto";
 import OutcomeMandate from "../models/OutcomeMandate.js";
 import { getOutcomeProduct } from "../config/outcomeProducts.js";
-import {
-  getRobinhoodLpRealMaxBankUsd,
-  getRobinhoodLpRealMaxPositionUsd,
-  getRobinhoodLpRealPilotEnabled,
-} from "../config/robinhoodLpRealAccess.js";
 import { isRealExecutionUnlocked } from "./outcomeEvGateService.js";
 
 function newMandateId() {
@@ -46,7 +41,7 @@ export async function createOutcomeMandate(input) {
 
   if (product.requiresEvGate) {
     const unlocked = await isRealExecutionUnlocked(product.id);
-    if (!unlocked && input.productId === "robinhood_lp_autopilot" && !getRobinhoodLpRealPilotEnabled()) {
+    if (!unlocked) {
       throw new Error(
         `EV gate not passed for ${product.id}. Paper sim must prove positive EV before real mandates.`,
       );
@@ -58,15 +53,8 @@ export async function createOutcomeMandate(input) {
       ? input.allowedTools.filter((t) => product.mandateToolIds.includes(t))
       : [...product.mandateToolIds];
 
-  const maxCap =
-    input.productId === "robinhood_lp_autopilot"
-      ? Math.min(input.maxManagedCapitalUsd ?? getRobinhoodLpRealMaxBankUsd(), getRobinhoodLpRealMaxBankUsd())
-      : (input.maxManagedCapitalUsd ?? 200);
-
-  const perTx =
-    input.productId === "robinhood_lp_autopilot"
-      ? Math.min(input.perTxCapUsd ?? getRobinhoodLpRealMaxPositionUsd(), getRobinhoodLpRealMaxPositionUsd())
-      : (input.perTxCapUsd ?? 25);
+  const maxCap = input.maxManagedCapitalUsd ?? 200;
+  const perTx = input.perTxCapUsd ?? 25;
 
   const mandateId = newMandateId();
   const doc = await OutcomeMandate.create({

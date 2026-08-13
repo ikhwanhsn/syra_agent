@@ -6,11 +6,11 @@ function EarnTabListSkeleton() {
   return (
     <div
       className={cn(
-        "grid h-auto w-full max-w-2xl grid-cols-4 gap-1 rounded-full border border-border/40 bg-muted/15 p-1",
+        "grid h-auto w-full grid-cols-5 gap-1 rounded-full border border-border/40 bg-muted/15 p-1",
       )}
       aria-hidden
     >
-      {Array.from({ length: 4 }).map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <Skeleton key={i} className="h-10 rounded-full" />
       ))}
     </div>
@@ -62,7 +62,7 @@ export function EarnStatsGridSkeleton({ cols = 2 }: { cols?: 2 | 3 }) {
 export function EarnYieldPanelSkeleton({ count = 4 }: { count?: number } = {}) {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading yield">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className={cn("grid gap-3", count === 1 ? "grid-cols-1" : "sm:grid-cols-2")}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className={cn(overviewCardShell, "space-y-4 p-5")}>
             <div className="flex items-start gap-3">
@@ -74,7 +74,7 @@ export function EarnYieldPanelSkeleton({ count = 4 }: { count?: number } = {}) {
             </div>
             <Skeleton className="h-4 w-full max-w-sm" />
             <Skeleton className="h-3 w-48" />
-            <Skeleton className="h-10 w-full rounded-md sm:w-36" />
+            <Skeleton className="h-10 w-full rounded-md" />
           </div>
         ))}
       </div>
@@ -149,7 +149,7 @@ export function EarnCardGridSkeleton({
   );
 }
 
-export type EarnSkeletonTrack = "yield" | "token" | "prompts" | "skills";
+export type EarnSkeletonTrack = "yield" | "token" | "prompts" | "skills" | "llm";
 
 function EarnTrackPanelSkeleton({ track }: { track: EarnSkeletonTrack }) {
   if (track === "token") {
@@ -160,6 +160,9 @@ function EarnTrackPanelSkeleton({ track }: { track: EarnSkeletonTrack }) {
   }
   if (track === "skills") {
     return <EarnCardGridSkeleton count={6} heightClass="h-[16rem]" />;
+  }
+  if (track === "llm") {
+    return <EarnCardGridSkeleton count={6} heightClass="h-[17rem]" />;
   }
   return <EarnYieldPanelSkeleton />;
 }
@@ -178,7 +181,7 @@ export function EarnPageSkeleton({
       aria-busy="true"
       aria-label="Loading earn page"
     >
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-5">
         {includeTabs ? <EarnTabListSkeleton /> : null}
         <EarnTrackPanelSkeleton track={track} />
       </div>

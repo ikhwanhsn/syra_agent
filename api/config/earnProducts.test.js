@@ -11,16 +11,13 @@ import {
 } from "./earnProducts.js";
 
 describe("earnProducts blocked paper desks", () => {
-  it("keeps Stocks / Scalper / MM out of the Earn Yield registry", () => {
+  it("keeps Stocks out of the Earn Yield registry", () => {
     assert.equal(getEarnYieldBlockReason("stocks")?.blocked, true);
     assert.equal(getEarnYieldBlockReason("stocks_xstocks_news")?.blocked, true);
-    assert.equal(getEarnYieldBlockReason("scalper_desk")?.blocked, true);
-    assert.equal(getEarnYieldBlockReason("mm")?.blocked, true);
-    assert.equal(getEarnYieldBlockReason("syra_mm_lab")?.blocked, true);
     // Must not false-positive live products
     assert.equal(getEarnYieldBlockReason("lp_meteora_dlmm"), null);
     assert.equal(getEarnYieldBlockReason("momentum_rotator"), null);
-    assert.equal(getEarnYieldBlockReason("cbbtc_onchain_signal"), null);
+    assert.equal(getEarnYieldBlockReason("lst_loop"), null);
   });
 
   it("current registry passes the blocked-experiment assert", () => {

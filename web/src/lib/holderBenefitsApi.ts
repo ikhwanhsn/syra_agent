@@ -45,7 +45,7 @@ export async function fetchHolderBenefits(
   const base = getApiBaseUrl().replace(/\/$/, "");
   const url = `${base}/rewards/holder-benefits?wallet=${encodeURIComponent(wallet)}`;
   const res = await fetch(url, {
-    headers: { Accept: "application/json", "x-connected-wallet": wallet },
+    headers: { Accept: "application/json" },
     signal,
   });
   if (!res.ok) throw new Error(`Holder benefits API ${res.status}`);

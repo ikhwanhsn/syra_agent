@@ -26,6 +26,7 @@ function isDashboardRoute(pathname: string): boolean {
       "/overview",
       "/agent-setup",
       "/lp-experiment",
+      "/meridian",
       "/assets",
       "/analyzer",
       "/pumpfun",

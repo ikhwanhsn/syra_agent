@@ -1,0 +1,45 @@
+---
+description: Route X/Threads/launch caption requests through Chronicle Quill standards. Enforce TEXT_POST_QUALITY_BAR (LLM Exchange gold).
+alwaysApply: true
+---
+
+# Text post creation (Syra) — always on
+
+Whenever the user asks for **post text**, **caption**, **X/Twitter copy**, **Threads copy**, **launch copy**, **announce text**, or **what to write with this video/image**:
+
+1. Read and follow [`web/src/content/posts/TEXT_POST_QUALITY_BAR.md`](web/src/content/posts/TEXT_POST_QUALITY_BAR.md).
+2. Meet or beat the **LLM Exchange** gold reference in that file. Do not ship soft announce fluff.
+3. Route mentally as Helix → **Chronicle** (Quill). Pull facts from the shipped surface, video copy, docs, or live metrics. Never invent.
+
+## Deliver by default
+
+Unless the user asks for one length only, return:
+
+1. **Main post** (launch-caliber, paste-ready)
+2. **Tighter cut** (crowded feed)
+3. **Optional reply** (how-to / docs only, not a second pitch)
+
+If they attach or name a video/image, the caption must match what that asset actually shows.
+
+## Hard floor (non-negotiable)
+
+- **Line 1 names the ship** (`X is live.` / `New on Syra: X.`). No “excited to announce.”
+- **Who + outcome**, then **real mechanism** (path, surface, x402, fee split).
+- **One depth beat**, not five pillars.
+- **CTAs with real URLs** (`https://syraa.fun/...`, docs). Never lead with “buy $SYRA.”
+- **Voice:** founder-plain, short paragraphs, commas/periods/colons. **No em dashes.**
+- Claims must be repo-true or metrics-true (`GET /api/metrics` / Solscan when the post is proof-shaped).
+
+## Related rules
+
+- Photo per-card captions in registry posts: also [`.cursor/rules/ship-log-share-copy.mdc`](ship-log-share-copy.mdc)
+- Articles / longform: [`.cursor/rules/article-authoring.mdc`](article-authoring.mdc)
+- Legal flags: [`.cursor/rules/legal-compliance.mdc`](legal-compliance.mdc)
+- Post images (visual): [`.cursor/rules/post-image-creation.mdc`](post-image-creation.mdc)
+
+## Do not
+
+- Dump a feature list with no launch spine
+- Bury the product name under throat-clearing
+- Invent endpoints, percentages, or “live” status
+- Open holder-moon angles on a builder product launch

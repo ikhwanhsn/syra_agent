@@ -171,7 +171,7 @@ Paper only. No wallet risk.
         {
           icon: FlaskConical,
           title: "Experiment desk",
-          description: "Same sim-first pattern as LP and BTC quant labs. Learn before you deploy.",
+          description: "Same sim-first pattern as the LP agent lab. Learn before you deploy.",
           href: "https://www.syraa.fun/overview",
         },
       ],

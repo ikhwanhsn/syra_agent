@@ -88,6 +88,7 @@ export const navigation: NavItem[] = [
               { title: "X (Twitter) API", href: api("x-api") },
               { title: "X Project Analyzer", href: api("x-analyzer") },
               { title: "Chat Completions", href: api("chat-completions") },
+              { title: "LLM Exchange Router", href: api("llm-route") },
               { title: "Image Generations", href: api("images-generations") },
               { title: "Video Generations", href: api("videos-generations") },
               { title: "Quicknode (Solana & Base)", href: api("quicknode") },

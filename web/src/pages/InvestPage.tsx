@@ -151,14 +151,7 @@ export default function InvestPage() {
               title="Connect to fund and invest"
               description="Browse freely. Connect when you're ready to deposit from your invest agent wallet."
             />
-          ) : (
-            <PillarConnectCTA
-              title="Fund your invest treasury to deposit"
-              description="Keep SOL in your invest agent wallet, then deposit into Marinade or Jito in-app."
-              fundHref="/wallet"
-              fundLabel="Fund wallet"
-            />
-          )}
+          ) : null}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             <OverviewStatCard

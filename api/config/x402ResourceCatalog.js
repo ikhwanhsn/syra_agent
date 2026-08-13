@@ -422,6 +422,26 @@ export const X402_RESOURCE_CATALOG = {
       'OpenAI-compatible POST /chat/completions backed by 15 curated agentic OpenRouter text models. Use when an agent needs LLM reasoning, tool calling (tools/tool_choice), or structured output (response_format) with x402 pay-per-call. Inputs: messages (required), optional model, max_tokens, temperature, tools, response_format, seed. Price is dynamic per request from live token rates (prompt + max completion budget) with margin — GET /chat/completions/models for allowlist and rates. Returns standard OpenAI chat.completion JSON with usage.',
     suggestedPriceStx: 0.004,
   },
+  'llm/route': {
+    slug: 'llm-route',
+    name: 'LLM Exchange Smart Router',
+    category: 'ai',
+    methods: ['POST'],
+    summary: 'x402 smart router across marketplace LLM providers (cheapest / reliable / fastest / quality)',
+    description:
+      'OpenAI-compatible POST /llm/route that smart-routes to community LLM providers listed on Earn → LLM. Use when an agent wants the cheapest or most callable completion without picking a vendor. Inputs: messages (required), optional model, max_tokens, temperature, tools, response_format, seed, route_policy. Headers: X-Syra-Route (cheapest|reliable|fastest|quality), optional X-Syra-Provider. Price is dynamic from the selected provider quote × platform margin. Failover tries the next-best provider. Returns chat.completion plus syra_route metadata. GET /llm/models for discovery. Sellers list endpoints on /earn?track=llm.',
+    suggestedPriceStx: 0.004,
+  },
+  'llm/models': {
+    slug: 'llm-models',
+    name: 'LLM Exchange Model Catalog',
+    category: 'ai',
+    methods: ['GET'],
+    summary: 'Discover routable marketplace LLM models with live price and callability hints',
+    description:
+      'Free discovery catalog for POST /llm/route. Returns model ids, provider slug/title, price hints, callability scores, and latency. Use before routing to pick a model or inspect marketplace supply. No payment required.',
+    suggestedPriceStx: 0,
+  },
   'images/generations': {
     slug: 'images-generations',
     name: 'Image Generations (OpenRouter)',

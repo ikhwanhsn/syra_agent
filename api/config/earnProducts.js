@@ -6,7 +6,7 @@
  */
 
 /** @typedef {'SOL' | 'USDC'} EarnDenom */
-/** @typedef {'lp' | 'btcQuant' | 'btc3' | 'momentumRotator' | 'lstLoop' | 'alphaSniper'} EarnAdapterKey */
+/** @typedef {'lp' | 'momentumRotator' | 'lstLoop' | 'alphaSniper'} EarnAdapterKey */
 /** @typedef {'beta' | 'coming_soon' | 'lab'} EarnProductStatus */
 /** @typedef {'lower' | 'moderate' | 'higher' | 'extreme'} EarnRiskLevel */
 
@@ -37,8 +37,6 @@
  */
 
 export const EARN_PRODUCT_LP = "lp_meteora_dlmm";
-export const EARN_PRODUCT_CBBTC = "cbbtc_onchain_signal";
-export const EARN_PRODUCT_BTC3 = "btc3_macro";
 export const EARN_PRODUCT_MOMENTUM = "momentum_rotator";
 export const EARN_PRODUCT_LST_LOOP = "lst_loop";
 export const EARN_PRODUCT_SNIPER = "alpha_sniper";
@@ -85,85 +83,6 @@ export const EARN_PRODUCTS = [
       "Past lab performance is not a guarantee of future returns. You can lose capital from IL, fees, slippage, sidecar swaps, and bad exits.",
       "Paper cohort sim PnL (LP Lab) is not comparable to Earn wallet results. Strategy opens pause when no strategy passes the real track-record gate; open positions are still managed.",
       "Beta is capped (0.25–5 SOL) with small per-position sizing. Kill switch auto-pauses new deposits if error rate or PnL guardrails trip.",
-    ],
-  },
-  {
-    id: EARN_PRODUCT_CBBTC,
-    label: "cbBTC Onchain Signal",
-    status: "coming_soon",
-    chain: "solana",
-    description:
-      "BTC onchain signal agent — mirrors paper BUY signals into real USDC↔cbBTC Jupiter swaps on your invest wallet. Graduates to beta after lab track record passes readiness guards.",
-    summary: "Follow BTC onchain BUY signals into spot USDC↔cbBTC swaps on your invest wallet.",
-    howItWorks: [
-      "You deposit USDC into your invest agent wallet.",
-      "A paper signal lane scores BTC onchain conditions and emits BUY / hold decisions.",
-      "When a BUY qualifies, Syra swaps USDC → cbBTC via Jupiter on your wallet.",
-      "Exits reverse the swap back to USDC when the signal invalidates or risk limits hit.",
-      "The product stays gated until real lab PnL and error rates clear readiness guards.",
-    ],
-    rails: ["Jupiter", "cbBTC"],
-    riskLevel: "higher",
-    adapterKey: "btcQuant",
-    denom: "USDC",
-    walletPurpose: "invest",
-    walletQuery: "invest",
-    minDeposit: 25,
-    maxDeposit: 200,
-    performanceFeeBps: 1000,
-    maxErrorRate: 0.05,
-    killErrorRate: 0.1,
-    minSettleSuccessRate: 0.95,
-    minSample: 10,
-    evidence: {
-      paperWinRateHint: "~76%",
-      paperNetUsd: 441,
-      sample: 51,
-    },
-    disclosures: [
-      "Non-custodial: you deposit USDC into your invest agent wallet. Syra does not take custody of your principal.",
-      "Spot-long cbBTC only — you can lose capital from adverse moves, slippage, and failed exits.",
-      "Product stays coming-soon until real lab PnL is net-positive with error rate under guardrails.",
-      "Beta deposit caps apply (25–200 USDC). Kill switch auto-pauses new deposits on guardrail breach.",
-    ],
-  },
-  {
-    id: EARN_PRODUCT_BTC3,
-    label: "BTC3 Macro Allocation",
-    status: "coming_soon",
-    chain: "solana",
-    description:
-      "Macro-driven USDC↔cbBTC allocation on your invest wallet. Equity/drawdown based — graduates to beta after lab track record passes readiness guards.",
-    summary: "Macro-driven USDC↔cbBTC allocation that rebalances on equity and drawdown.",
-    howItWorks: [
-      "You deposit USDC into your invest agent wallet.",
-      "BTC3 tracks equity vs a baseline and current drawdown from peak.",
-      "When allocation rules fire, Syra rebalances between USDC and cbBTC via Jupiter.",
-      "Success is measured by equity and drawdown — not classic win rate.",
-      "Deposits unlock only after lab equity and error-rate guards pass.",
-    ],
-    rails: ["Jupiter", "cbBTC"],
-    riskLevel: "moderate",
-    adapterKey: "btc3",
-    denom: "USDC",
-    walletPurpose: "invest",
-    walletQuery: "invest",
-    minDeposit: 50,
-    maxDeposit: 500,
-    performanceFeeBps: 1000,
-    maxErrorRate: 0.05,
-    killErrorRate: 0.1,
-    minSettleSuccessRate: 0.95,
-    minSample: 10,
-    evidence: {
-      style: "allocation / rebalance",
-      metric: "equity + drawdown (not win rate)",
-    },
-    disclosures: [
-      "Non-custodial: you deposit USDC into your invest agent wallet. Syra does not take custody of your principal.",
-      "Macro rebalancing can underperform buy-and-hold; drawdowns and failed swaps are possible.",
-      "Readiness uses net equity vs baseline and rebalance error rate (no classic win rate).",
-      "Beta deposit caps apply (50–500 USDC). Kill switch auto-pauses new deposits on guardrail breach.",
     ],
   },
   {
@@ -299,21 +218,6 @@ export const EARN_YIELD_BLOCKED_EXPERIMENTS = Object.freeze([
     label: "Stocks (xStocks news lab)",
     reason:
       "Paper-only via Jupiter price feeds. Needs real swap executor + equity-token compliance review before any Earn Yield listing.",
-  },
-  {
-    id: "scalper",
-    label: "Scalper",
-    reason: "Paper-only. Wire real executor before Earn.",
-  },
-  {
-    id: "mm",
-    label: "Market Maker",
-    reason: "Paper Jupiter-quote fills. Needs real inventory + risk limits before Earn.",
-  },
-  {
-    id: "syra_mm",
-    label: "SYRA MM",
-    reason: "Paper Jupiter-quote fills. Needs real inventory + risk limits before Earn.",
   },
 ]);
 

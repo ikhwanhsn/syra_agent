@@ -30,10 +30,6 @@ export async function fetchEvGateStatus() {
   return fetchJson("/ev-gate");
 }
 
-export async function fetchRobinhoodLpEvGateStatus() {
-  return fetchJson("/ev-gate/robinhood-lp");
-}
-
 export async function createOutcomeMandate(payload: {
   anonymousId: string;
   productId: string;
@@ -92,39 +88,3 @@ export async function fetchOutcomeReport(reportId: string) {
 export async function verifyOutcomeReport(reportId: string) {
   return fetchJson(`/reports/${reportId}/verify`);
 }
-
-export type RobinhoodLpEvGate = {
-  productId?: string;
-  qualified?: boolean;
-  realExecutionUnlocked?: boolean;
-  error?: string;
-  poolCheck?: { ok?: boolean; eligibleCount?: number; reason?: string };
-  simLeader?: {
-    strategyId?: number;
-    decided?: number;
-    winRate?: number;
-    sumNetPnlUsd?: number;
-  } | null;
-  gate?: {
-    minDecided?: number;
-    minWinRate?: number;
-    minSumNetPnlUsd?: number;
-  };
-};
-
-export type RobinhoodLpLivePosition = {
-  positionId: string;
-  poolName?: string;
-  poolAddress?: string;
-  status?: string;
-  depositUsd?: number;
-  realizedPnlUsd?: number;
-  feesEarnedUsd?: number;
-  dryRun?: boolean;
-  openTxHash?: string | null;
-  closeTxHash?: string | null;
-  openExplorerUrl?: string | null;
-  closeExplorerUrl?: string | null;
-  tokenId?: string | null;
-  error?: string | null;
-};

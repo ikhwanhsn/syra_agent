@@ -45,6 +45,7 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "assets/detail",
   "bitcoin",
   "chat/completions",
+  "llm/route",
   "images/generations",
   "videos/generations",
   "embeddings",

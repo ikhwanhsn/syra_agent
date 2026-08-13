@@ -134,8 +134,6 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       !p.startsWith("/pumpfun") &&
       !p.startsWith("/btc") &&
       !p.startsWith("/stocks") &&
-      !p.startsWith("/scalper") &&
-      !p.startsWith("/mm") &&
       !p.startsWith("/labs") &&
       !p.startsWith("/llm") &&
       !p.startsWith("/organize"),
@@ -162,9 +160,7 @@ export const SITE_NAV_GROUPS: NavGroup[] = [
       p.startsWith("/llm") ||
       p.startsWith("/organize") ||
       p === "/btc" ||
-      p.startsWith("/stocks") ||
-      p.startsWith("/scalper") ||
-      p.startsWith("/mm"),
+      p.startsWith("/stocks"),
     items: [
       {
         href: "/overview",

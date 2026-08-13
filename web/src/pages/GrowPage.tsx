@@ -264,15 +264,7 @@ export default function GrowPage() {
                   hideWhenConnected={false}
                 />
               </div>
-            ) : (
-              <div className="sm:col-span-1 lg:col-span-4">
-                <PillarConnectCTA
-                  title="Fund to act on suggestions"
-                  fundHref="/wallet"
-                  fundLabel="Fund wallet"
-                />
-              </div>
-            )}
+            ) : null}
           </div>
         ) : null}
 
@@ -306,13 +298,7 @@ export default function GrowPage() {
           <>
             {!connected ? (
               <PillarConnectCTA title="Connect to track live" />
-            ) : (
-              <PillarConnectCTA
-                title="Fund to act on suggestions"
-                fundHref="/wallet"
-                fundLabel="Fund wallet"
-              />
-            )}
+            ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
               <article

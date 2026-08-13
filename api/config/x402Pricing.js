@@ -65,6 +65,19 @@ export const X402_CHAT_PRICE_FLOOR_USD = 0.004;
 /** Default max_tokens budget used when client omits max_tokens (pricing + upstream call). */
 export const X402_CHAT_DEFAULT_MAX_TOKENS = 1024;
 
+/**
+ * LLM Exchange (POST /llm/route): caller pays seller base × margin.
+ * Platform fee share of settled USD feeds $SYRA buyback; remainder accrues to seller ledger.
+ */
+export const LLM_EXCHANGE_MARGIN = PASSTHROUGH_MARGIN; // 1.2 = seller price + 20%
+export const LLM_EXCHANGE_FLOOR_USD = X402_CHAT_PRICE_FLOOR_USD;
+export const LLM_EXCHANGE_DEFAULT_MAX_TOKENS = X402_CHAT_DEFAULT_MAX_TOKENS;
+/** Platform fee as basis points of settled charge (2000 = 20%). */
+export const LLM_EXCHANGE_SELLER_FEE_BPS = 2000;
+/** Reduced platform fee for sellers holding/staking ≥ LLM_EXCHANGE_STAKER_MIN_SYRA. */
+export const LLM_EXCHANGE_STAKER_FEE_BPS = 1000;
+export const LLM_EXCHANGE_STAKER_MIN_SYRA = 100_000;
+
 /** Margin over OpenRouter upstream cost for POST /images/generations (1.4 = cost + 40%). */
 export const X402_IMAGE_PRICE_MARGIN = 1.4;
 

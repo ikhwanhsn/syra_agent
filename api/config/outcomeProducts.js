@@ -22,20 +22,6 @@
 
 /** @type {Record<string, OutcomeProductDef>} */
 export const OUTCOME_PRODUCTS = Object.freeze({
-  robinhood_lp_autopilot: Object.freeze({
-    id: "robinhood_lp_autopilot",
-    label: "LP Autopilot (Robinhood Chain)",
-    tagline: "Your liquidity is managed for you",
-    description:
-      "Autonomous Uniswap concentrated-liquidity management on Robinhood Chain: deploy, keep in range, collect fees, rebalance.",
-    status: "pilot",
-    pillar: "invest",
-    allowedChains: ["robinhood"],
-    mandateToolIds: ["outcome_lp_open", "outcome_lp_close", "outcome_lp_rebalance"],
-    requiresEvGate: true,
-    evGateProductId: "robinhood_lp_autopilot",
-    runtimeHandler: "robinhoodLpAutopilot",
-  }),
   lp_autopilot_solana: Object.freeze({
     id: "lp_autopilot_solana",
     label: "LP Autopilot (Solana Meteora)",
@@ -81,7 +67,6 @@ export const OUTCOME_PRODUCTS = Object.freeze({
 });
 
 export const OUTCOME_PRODUCT_ORDER = Object.freeze([
-  "robinhood_lp_autopilot",
   "lp_autopilot_solana",
   "treasury_autopilot",
   "yield_autopilot",

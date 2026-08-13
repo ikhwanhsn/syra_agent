@@ -8,6 +8,8 @@ alwaysApply: false
 
 Per-card X captions live in `web/src/content/posts/photo/shareCopies/*ShareCopies.ts`. They paste after attaching the exported PNG. Do **not** rewrite on-image fields in `*Photo.ts` when only the post caption needs work.
 
+For single launch/announce captions (video, one image, or “text to post”), also follow [`text-post-creation.mdc`](text-post-creation.mdc) and [`web/src/content/posts/TEXT_POST_QUALITY_BAR.md`](../../web/src/content/posts/TEXT_POST_QUALITY_BAR.md).
+
 ## Structure (each of 15 roles)
 
 1. Opening paragraph: lead with the **subject of the image** (the ship fact, problem, promise, numbers, or steps). Never name the layout role or refer to the PNG as an object.

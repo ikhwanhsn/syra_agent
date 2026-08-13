@@ -104,6 +104,7 @@ Telegram bot is a **secondary** consumer surface (maintenance mode until settlem
 |---------|-------------|
 | **`web`** | Unified Syra app — agent chat, marketplace, marketing, dashboard |
 | **`api`** | Backend — x402 APIs, agent wallets, policy engine |
+| **`mobile`** | **Syra Scout** — Solana Mobile (Android) consumer app; free browse + x402 USDC unlocks via MWA |
 | **`syra-sdk`** | Typed `@syra-ai/sdk` client |
 | **`mcp-server`** | `@syra-ai/mcp-server` |
 | **`packages/syra-x402-payer`** | MIT `@syra-ai/x402-payer` |

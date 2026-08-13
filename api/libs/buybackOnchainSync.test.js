@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { DEFAULT_BUYBACK_TOTALS_WALLETS } from "../config/buybackTotalsWallets.js";
 import {
   extractTreasurySyraBuy,
   nativeSolSpentUi,
+  resolveBuybackScanWallets,
   tokenBalancesByMint,
 } from "./buybackOnchainSync.js";
 
@@ -12,6 +14,16 @@ const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const WSOL = "So11111111111111111111111111111111111111112";
 
 describe("buybackOnchainSync", () => {
+  it("resolveBuybackScanWallets puts primary first then silent totals", () => {
+    const wallets = resolveBuybackScanWallets(TREASURY, { envValue: null });
+    assert.equal(wallets[0], TREASURY);
+    assert.equal(wallets.length, 1 + DEFAULT_BUYBACK_TOTALS_WALLETS.length);
+    for (const silent of DEFAULT_BUYBACK_TOTALS_WALLETS) {
+      assert.ok(wallets.includes(silent), `missing silent ${silent}`);
+    }
+    assert.equal(new Set(wallets).size, wallets.length);
+  });
+
   it("sums treasury token balances by mint", () => {
     const map = tokenBalancesByMint(
       [

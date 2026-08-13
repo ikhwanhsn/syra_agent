@@ -36,6 +36,7 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
   const { data, isPending, isError } = usePublicMetrics();
   const buyback = data?.buyback;
   const rewards = data?.rewards;
+  const llmExchange = data?.llmExchange;
 
   return (
     <div className={cn(growthPanelClass, "p-6 sm:p-8", className)} aria-labelledby="buyback-proof-heading">
@@ -171,6 +172,69 @@ export function GrowthBuybackProofPanel({ className }: { className?: string }) {
             </p>
           )}
         </>
+      )}
+
+      {llmExchange && (
+        <div className="mt-8 border-t border-border/35 pt-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className={growthKickerClass}>LLM Exchange</p>
+              <h4 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
+                Marketplace volume
+              </h4>
+              <p className={cn(growthProseClass, "mt-1 max-w-xl text-sm")}>
+                Platform fees from POST /llm/route feed the same $SYRA buyback queue. Sellers list
+                models on Earn → LLM.
+              </p>
+            </div>
+            <Link
+              to="/earn?track=llm"
+              className="text-sm font-medium text-foreground/85 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            >
+              Open Earn LLM
+            </Link>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-4">
+            <div>
+              <p className={growthKickerClass}>Active providers</p>
+              <p className={cn(growthStatValueClass, "mt-1 text-xl")}>
+                {llmExchange.activeProviders.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className={growthKickerClass}>Routed calls</p>
+              <p className={cn(growthStatValueClass, "mt-1 text-xl")}>
+                {llmExchange.totalCalls.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className={growthKickerClass}>Volume</p>
+              <p className={cn(growthStatValueClass, "mt-1 text-xl")}>
+                {formatUsd(llmExchange.totalVolumeUsd)}
+              </p>
+            </div>
+          </div>
+          {llmExchange.topProviders?.length > 0 ? (
+            <ul className="mt-4 space-y-2" aria-label="Top LLM providers">
+              {llmExchange.topProviders.slice(0, 5).map((p) => (
+                <li
+                  key={p.id}
+                  className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                >
+                  <span className="text-foreground/90">
+                    {p.title}
+                    {p.featured ? (
+                      <span className="ml-1.5 text-xs text-muted-foreground">(featured)</span>
+                    ) : null}
+                  </span>
+                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                    {formatUsd(p.volumeUsd)} · {p.useCount.toLocaleString()} calls
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       )}
     </div>
   );
