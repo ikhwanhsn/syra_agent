@@ -177,12 +177,10 @@ describe('scheduler treasury circuit-breaker contracts', () => {
     );
   });
 
-  test('random batch delay stays in 3-7 min', async () => {
+  test('jittered delay never drops below 60s', async () => {
     const { __test } = await import('./labX402Scheduler.js');
-    for (let i = 0; i < 40; i++) {
-      const d = __test.computeRandomBatchDelay();
-      assert.ok(d >= __test.AUTO_BATCH_DELAY_MIN_MS, `delay ${d} < 3 min`);
-      assert.ok(d <= __test.AUTO_BATCH_DELAY_MAX_MS, `delay ${d} > 7 min`);
+    for (let i = 0; i < 20; i++) {
+      const d = __test.computeJitteredDelay(60_000, 50);
       assert.ok(d >= 60_000, `delay ${d} < 60s`);
     }
   });

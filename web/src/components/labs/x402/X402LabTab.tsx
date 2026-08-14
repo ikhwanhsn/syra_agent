@@ -49,6 +49,8 @@ export function X402LabTab({ chain }: X402LabTabProps) {
   const [lastDistributeResult, setLastDistributeResult] =
     useState<LabDepositDistributeResult | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<{
+    intervalMin: number;
+    jitterPct: number;
     refundEnabled: boolean;
     autoCallEnabled: boolean;
     maxDailyCallsMin: number;
