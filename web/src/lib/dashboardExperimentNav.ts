@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Compass, Droplets } from "lucide-react";
+import { Compass, Droplets, Radar } from "lucide-react";
 
 export type DashboardExperimentNavItem = {
   id: string;
@@ -29,6 +29,15 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     icon: Compass,
     to: "/meridian",
     isActive: (p) => p.startsWith("/meridian"),
+    badge: { label: "Lab" },
+  },
+  {
+    id: "ayelabs",
+    label: "AyeLabs",
+    description: "GMGN V/L DLMM lab",
+    icon: Radar,
+    to: "/ayelabs",
+    isActive: (p) => p.startsWith("/ayelabs"),
     badge: { label: "Lab" },
   },
 ];

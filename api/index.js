@@ -119,12 +119,15 @@ import { createSniperExperimentRouter } from "./routes/sniperExperiment.js";
 import { createSniperRealRouter } from "./routes/sniperReal.js";
 import { createMeridianExperimentRouter } from "./routes/meridianExperiment.js";
 import { createMeridianRealRouter } from "./routes/meridianReal.js";
+import { createAyeLabsExperimentRouter } from "./routes/ayeLabsExperiment.js";
+import { createAyeLabsRealRouter } from "./routes/ayeLabsReal.js";
 import {
   MOMENTUM_CRON,
   LST_LOOP_CRON,
   SNIPER_CRON,
   MERIDIAN_CRON,
   MERIDIAN_ENGINE,
+  AYE_LABS_CRON,
 } from "./config/onchainEarnExperiments.js";
 import { createOkxTradingRouter } from "./routes/okxTrading.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
@@ -1484,6 +1487,9 @@ app.use("/experiment/sniper-real", createSniperRealRouter());
 // Meridian — Meteora DLMM paper lab + capped real shadow (yunus-0x/meridian inspired)
 app.use("/experiment/meridian", createMeridianExperimentRouter());
 app.use("/experiment/meridian-real", createMeridianRealRouter());
+// AyeLabs — GMGN V/L radar + DLMM paper lab (ayehuasca/gmgn-vl-radar)
+app.use("/experiment/ayelabs", createAyeLabsExperimentRouter());
+app.use("/experiment/ayelabs-real", createAyeLabsRealRouter());
 // OKX.AI Trading Hackathon — Syra Trading ASP (automated on-chain trading loop)
 app.use("/experiment/okx-trading", createOkxTradingRouter());
 // Stocks news experiment — paper xStocks trading via Jupiter + news signals
@@ -2013,6 +2019,8 @@ app.listen(PORT, () => {
   const SNIPER_RESOLVE_MS = scalePaperMs(SNIPER_CRON.paperResolveMs, 5_000);
   const MERIDIAN_SIGNAL_MS = scalePaperMs(MERIDIAN_CRON.paperSignalMs, 60_000);
   const MERIDIAN_RESOLVE_MS = scalePaperMs(MERIDIAN_CRON.paperResolveMs, 5_000);
+  const AYE_LABS_SIGNAL_MS = scalePaperMs(AYE_LABS_CRON.paperSignalMs, 60_000);
+  const AYE_LABS_RESOLVE_MS = scalePaperMs(AYE_LABS_CRON.paperResolveMs, 5_000);
   const MOMENTUM_REAL_SIGNAL_MS = MOMENTUM_CRON.realSignalMs;
   const MOMENTUM_REAL_RESOLVE_MS = MOMENTUM_CRON.realResolveMs;
   const LST_LOOP_REAL_SIGNAL_MS = LST_LOOP_CRON.realSignalMs;
@@ -2021,6 +2029,8 @@ app.listen(PORT, () => {
   const SNIPER_REAL_RESOLVE_MS = SNIPER_CRON.realResolveMs;
   const MERIDIAN_REAL_SIGNAL_MS = MERIDIAN_CRON.realSignalMs;
   const MERIDIAN_REAL_RESOLVE_MS = MERIDIAN_CRON.realResolveMs;
+  const AYE_LABS_REAL_SIGNAL_MS = AYE_LABS_CRON.realSignalMs;
+  const AYE_LABS_REAL_RESOLVE_MS = AYE_LABS_CRON.realResolveMs;
   const MERIDIAN_ENGINE_SYNC_MS = Number(MERIDIAN_ENGINE.syncMs || 30_000);
 
   const runMomentumSignal = runIfMongoConnected(
@@ -2088,6 +2098,23 @@ app.listen(PORT, () => {
   if (SNIPER_RESOLVE_MS >= 5_000) setInterval(runSniperResolve, SNIPER_RESOLVE_MS);
   if (MERIDIAN_SIGNAL_MS >= 60_000) setInterval(runMeridianSignal, MERIDIAN_SIGNAL_MS);
   if (MERIDIAN_RESOLVE_MS >= 5_000) setInterval(runMeridianResolve, MERIDIAN_RESOLVE_MS);
+
+  const runAyeLabsSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/ayeLabsService.js")
+        .then(({ runAyeLabsSignalCycle }) => runAyeLabsSignalCycle())
+        .catch((err) => console.warn("[AyeLabs] signal failed:", err?.message || err)),
+    ),
+  );
+  const runAyeLabsResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/ayeLabsService.js")
+        .then(({ resolveOpenAyeLabsRuns }) => resolveOpenAyeLabsRuns())
+        .catch((err) => console.warn("[AyeLabs] resolve failed:", err?.message || err)),
+    ),
+  );
+  if (AYE_LABS_SIGNAL_MS >= 60_000) setInterval(runAyeLabsSignal, AYE_LABS_SIGNAL_MS);
+  if (AYE_LABS_RESOLVE_MS >= 5_000) setInterval(runAyeLabsResolve, AYE_LABS_RESOLVE_MS);
 
   const runMomentumRealSignal = runIfMongoConnected(
     withSingleFlight(() =>
@@ -2195,6 +2222,29 @@ app.listen(PORT, () => {
       .then(({ registerMeridianEngineShutdownHook }) => registerMeridianEngineShutdownHook())
       .catch(() => {});
   }
+
+  const runAyeLabsRealSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/ayeLabsRealService.js")
+        .then(({ isAyeLabsRealCronEnabled, runAyeLabsRealSignalCycle }) => {
+          if (!isAyeLabsRealCronEnabled()) return null;
+          return runAyeLabsRealSignalCycle();
+        })
+        .catch((err) => console.warn("[AyeLabs real] signal failed:", err?.message || err)),
+    ),
+  );
+  const runAyeLabsRealResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/ayeLabsRealService.js")
+        .then(({ isAyeLabsRealCronEnabled, resolveAyeLabsRealPositions }) => {
+          if (!isAyeLabsRealCronEnabled()) return null;
+          return resolveAyeLabsRealPositions();
+        })
+        .catch((err) => console.warn("[AyeLabs real] resolve failed:", err?.message || err)),
+    ),
+  );
+  if (AYE_LABS_REAL_SIGNAL_MS >= 60_000) setInterval(runAyeLabsRealSignal, AYE_LABS_REAL_SIGNAL_MS);
+  if (AYE_LABS_REAL_RESOLVE_MS >= 5_000) setInterval(runAyeLabsRealResolve, AYE_LABS_REAL_RESOLVE_MS);
 
   const LP_AGENT_REAL_SIGNAL_INTERVAL_MS = 120_000;
   const LP_AGENT_REAL_RESOLVE_INTERVAL_MS = 30_000;
@@ -2382,6 +2432,7 @@ app.listen(PORT, () => {
     ["./libs/lstLoopEvolution.js", "LST loop"],
     ["./libs/sniperEvolution.js", "Sniper"],
     ["./libs/meridianEvolution.js", "Meridian"],
+    ["./libs/ayeLabsEvolution.js", "AyeLabs"],
   ]) {
     import(mod)
       .then((m) => {
@@ -2389,12 +2440,14 @@ app.listen(PORT, () => {
           m.momentumEvolutionConfigFromEnv ||
           m.lstLoopEvolutionConfigFromEnv ||
           m.sniperEvolutionConfigFromEnv ||
-          m.meridianEvolutionConfigFromEnv;
+          m.meridianEvolutionConfigFromEnv ||
+          m.ayeLabsEvolutionConfigFromEnv;
         const runFn =
           m.runMomentumExperimentEvolution ||
           m.runLstLoopExperimentEvolution ||
           m.runSniperExperimentEvolution ||
-          m.runMeridianExperimentEvolution;
+          m.runMeridianExperimentEvolution ||
+          m.runAyeLabsExperimentEvolution;
         if (!cfgFn || !runFn) return;
         const evo = cfgFn();
         if (!evo.enabled || evo.ms < 60_000) return;

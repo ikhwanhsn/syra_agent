@@ -180,6 +180,19 @@ export async function runGmgnAgentTool(toolId, p) {
         if (filters.length) extra.filters = filters;
         const plats = splitList(params.platforms);
         if (plats.length) extra.platforms = plats;
+        // Radar / rank query gates (ayehuasca/gmgn-vl-radar TREND_CMD)
+        for (const key of [
+          "min_liquidity",
+          "min_holder_count",
+          "min_created",
+          "min_gas_fee",
+          "min_smart_degen_count",
+          "min_swaps",
+          "min_marketcap",
+        ]) {
+          const v = params[key];
+          if (v != null && String(v).trim() !== "") extra[key] = String(v).trim();
+        }
         const data = await client.getTrendingSwaps(String(params.chain), String(params.interval), extra);
         return { ok: true, data };
       }

@@ -1,0 +1,100 @@
+import mongoose from "mongoose";
+
+/**
+ * Live on-chain Meteora DLMM position opened by the AyeLabs real agent.
+ * Same shape as LpRealPosition but scoped to the `ayelabs_real_positions` collection so
+ * AyeLabs's live PnL and lifecycle never mix with the LP agent's positions.
+ */
+const ayelabsRealPositionSchema = new mongoose.Schema(
+  {
+    experimentId: { type: String, required: true, index: true },
+    /** Agent wallet that owns this position — preferred scope key for per-user PnL. */
+    agentAddress: { type: String, default: null, index: true },
+    /**
+     * Set when a public Earn session starts while this position is still open.
+     * Lets the eventual close count toward Earn "Your PnL" without importing lab history.
+     */
+    earnSessionStartedAt: { type: Date, default: null, index: true },
+    strategyId: { type: Number, required: true, min: 0, max: 99, index: true },
+    strategyName: { type: String, required: true },
+    lpShape: { type: String, required: true, enum: ["spot", "bid_ask", "curve", "mixed"] },
+
+    poolAddress: { type: String, required: true, index: true },
+    poolName: { type: String, default: null },
+    baseSymbol: { type: String, default: null },
+    quoteSymbol: { type: String, default: null },
+    baseMint: { type: String, default: null },
+    quoteMint: { type: String, default: null },
+    binStep: { type: Number, default: null },
+    binsBelow: { type: Number, required: true, min: 0 },
+    binsAbove: { type: Number, required: true, min: 0 },
+    activeBinAtOpen: { type: Number, default: null },
+    entryPriceUsd: { type: Number, default: null },
+
+    /** Meteora position account pubkey (base58). */
+    positionPubkey: { type: String, required: true, index: true },
+    /** Encrypted position keypair secret (enc:v1:...) — required for open tx co-sign. */
+    positionSecretEnc: { type: String, required: true, select: false },
+
+    depositSol: { type: Number, required: true, min: 0 },
+    depositUsd: { type: Number, required: true, min: 0 },
+
+    /** Frozen exit rules from strategy at open. */
+    exitRules: { type: mongoose.Schema.Types.Mixed, default: null },
+    signalSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+    screeningSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+
+    status: {
+      type: String,
+      required: true,
+      enum: [
+        "opening",
+        "open",
+        "closing",
+        "closed_win",
+        "closed_loss",
+        "claim_only",
+        "error",
+        "expired",
+      ],
+      index: true,
+    },
+    resolution: { type: String, default: null },
+    errorMessage: { type: String, default: null },
+    /** True only after open tx is confirmed on-chain and Meteora position exists. */
+    depositLocked: { type: Boolean, default: false },
+    /** Wallet policy reasons when broker denied or required confirmation. */
+    policyReasons: { type: [String], default: [] },
+
+    openTxSig: { type: String, default: null },
+    closeTxSig: { type: String, default: null },
+    claimTxSigs: { type: [String], default: [] },
+
+    /** Highest modeled net PnL % seen while open — drives the trailing stop. */
+    peakPnlPct: { type: Number, default: 0 },
+
+    realFeesClaimedSol: { type: Number, default: 0 },
+    realFinalSolOut: { type: Number, default: null },
+    realNetPnlSol: { type: Number, default: null },
+    realNetPnlUsd: { type: Number, default: null },
+
+    /** Prevent concurrent resolve ticks from double-closing. */
+    processing: { type: Boolean, default: false },
+
+    openedAt: { type: Date, required: true, default: Date.now, index: true },
+    lastEvaluatedAt: { type: Date, default: null },
+    resolvedAt: { type: Date, default: null },
+  },
+  { timestamps: true, collection: "ayelabs_real_positions" },
+);
+
+ayelabsRealPositionSchema.index({ status: 1, openedAt: -1 });
+ayelabsRealPositionSchema.index({ experimentId: 1, strategyId: 1, status: 1 });
+ayelabsRealPositionSchema.index({ experimentId: 1, poolAddress: 1, status: 1, createdAt: -1 });
+ayelabsRealPositionSchema.index({ agentAddress: 1, status: 1, openedAt: -1 });
+
+const AyeLabsRealPosition =
+  mongoose.models.AyeLabsRealPosition ||
+  mongoose.model("AyeLabsRealPosition", ayelabsRealPositionSchema);
+
+export default AyeLabsRealPosition;

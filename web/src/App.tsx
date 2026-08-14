@@ -65,6 +65,7 @@ const MomentumRotatorExperiment = lazy(() => import("@/pages/MomentumRotatorExpe
 const LstLoopExperiment = lazy(() => import("@/pages/LstLoopExperiment"));
 const SniperExperiment = lazy(() => import("@/pages/SniperExperiment"));
 const MeridianExperiment = lazy(() => import("@/pages/MeridianExperiment"));
+const AyeLabsExperiment = lazy(() => import("@/pages/AyeLabsExperiment"));
 const LabsPage = lazy(() => import("@/pages/labs/LabsPage"));
 const LlmPage = lazy(() => import("@/pages/llm/LlmPage"));
 const OrganizePage = lazy(() => import("@/pages/organize/OrganizePage"));
@@ -282,6 +283,14 @@ function AppRoutes() {
           element={
             <AdminExperimentRoute>
               <MeridianExperiment />
+            </AdminExperimentRoute>
+          }
+        />
+        <Route
+          path="/ayelabs"
+          element={
+            <AdminExperimentRoute>
+              <AyeLabsExperiment />
             </AdminExperimentRoute>
           }
         />

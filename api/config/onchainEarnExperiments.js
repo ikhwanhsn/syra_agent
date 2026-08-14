@@ -94,6 +94,33 @@ export const MERIDIAN_ENGINE = Object.freeze({
 });
 
 /**
+ * AyeLabs — GMGN V/L radar desk (paper + gated real, no external engine child).
+ * Paper signal interval matches gmgn-vl-radar cron (every 5 minutes).
+ */
+export const AYE_LABS_CRON = Object.freeze({
+  paperSignalMs: 300_000,
+  paperResolveMs: 45_000,
+  realSignalMs: 300_000,
+  realResolveMs: 45_000,
+  /** Cron loop may run; agents start disabled until enable. */
+  realEnabled: true,
+  evolution: Object.freeze({
+    enabled: true,
+    intervalMs: 45 * 60_000,
+    removeCount: 3,
+    minDecided: 3,
+  }),
+  /** Hard caps for the real layer (no AYE_LABS_ENGINE child process). */
+  caps: Object.freeze({
+    capSol: 1,
+    maxPositions: 2,
+    deployAmountSol: 0.3,
+    maxDeployAmount: 0.5,
+    dailyMaxLossSol: 0.5,
+  }),
+});
+
+/**
  * Shared cron-secret middleware factory for the three experiments.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -108,6 +135,7 @@ export function requireEarnExperimentCronSecret(req, res, next) {
       req.get('x-lst-loop-experiment-secret') ||
       req.get('x-sniper-experiment-secret') ||
       req.get('x-meridian-experiment-secret') ||
+      req.get('x-ayelabs-experiment-secret') ||
       '',
   ).trim();
   if (got !== secret) {
