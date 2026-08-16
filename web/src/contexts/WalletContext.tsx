@@ -5,7 +5,6 @@ import {
   useContext,
   useState,
   useCallback,
-  lazy,
   Suspense,
 } from "react";
 import {
@@ -15,6 +14,7 @@ import {
 } from "@solana/web3.js";
 import { Connection } from "@solana/web3.js";
 import { env } from "@/lib/env";
+import { lazyWithChunkReload } from "@/lib/lazyWithChunkReload";
 import { createSolanaConnection, getPrimarySolanaRpcUrl } from "@/lib/solanaRpc";
 
 /** Curated Privy Solana wallet options only. */
@@ -270,7 +270,7 @@ const FALLBACK_WALLET_STATE: WalletContextState = {
   refreshSolanaBalances: async () => {},
 };
 
-const PrivyWalletTree = lazy(() => import("./WalletContextPrivy"));
+const PrivyWalletTree = lazyWithChunkReload(() => import("./WalletContextPrivy"));
 
 export type PrivyWalletTreeProps = {
   children: ReactNode;

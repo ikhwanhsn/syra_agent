@@ -1,12 +1,12 @@
 import {
   Component,
-  lazy,
   Suspense,
   useState,
   type CSSProperties,
   type ErrorInfo,
   type ReactNode,
 } from "react";
+import { lazyWithChunkReload } from "@/lib/lazyWithChunkReload";
 import type { PostSlide } from "@/content/posts/types";
 import { PostDeckVideo } from "@/video/compositions/PostDeckVideo";
 import {
@@ -15,7 +15,7 @@ import {
 } from "@/video/constants";
 import { getDeckDurationInFrames, POST_VIDEO_FPS } from "@/video/engine/timing";
 
-const RemotionPlayer = lazy(() =>
+const RemotionPlayer = lazyWithChunkReload(() =>
   import("@remotion/player").then((m) => ({ default: m.Player })),
 );
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { AdminDashboardGate } from "@/components/dashboard/AdminDashboardGate";
@@ -12,6 +12,7 @@ import GrowthHomePage from "@/pages/GrowthHomePage";
 import DashboardLayout from "@/pages/DashboardLayout";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { RouteFallback } from "@/components/RouteFallback";
+import { lazyWithChunkReload as lazy } from "@/lib/lazyWithChunkReload";
 
 const DashboardOverview = lazy(() => import("@/pages/DashboardOverview"));
 const DashboardSettings = lazy(() => import("@/pages/DashboardSettings"));
