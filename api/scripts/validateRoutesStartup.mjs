@@ -33,10 +33,6 @@ import { createSolanaAgentRouter } from "../agents/solana-agent.js";
 import { createAgentSignalRouter } from "../agents/create-signal.js";
 import { createLeaderboardRouter } from "../routes/leaderboard.js";
 import { createAnalyticsRouter } from "../routes/analytics.js";
-import { createInternalResearchRouter } from "../routes/internalResearch.js";
-import { createInternalPartnershipScoutRouter } from "../routes/internalPartnershipScout.js";
-import { createInternalToolsRouter } from "../routes/internalTools.js";
-import { createInternalAgentWalletsRouter } from "../routes/internalAgentWallets.js";
 import { createInternalTesterAgentRouter } from "../routes/internalTesterAgent.js";
 import { createSpcxRouter, createEquityRouter } from "../routes/spcx.js";
 import { createIndicatorRouter } from "../routes/indicator.js";
@@ -100,7 +96,6 @@ import { createPillarsRouter } from "../routes/pillars.js";
 import { createInvestRouter } from "../routes/invest.js";
 import { createGrowRouter } from "../routes/grow.js";
 import { createEarnRouter } from "../routes/earn.js";
-import { createBtc3MacroRouter } from "../routes/btc3Macro.js";
 
 /** @type {Array<[string, () => unknown | Promise<unknown>]>} */
 const factories = [
@@ -135,10 +130,6 @@ const factories = [
   ["createAgentSignalRouter", createAgentSignalRouter],
   ["createLeaderboardRouter", createLeaderboardRouter],
   ["createAnalyticsRouter", createAnalyticsRouter],
-  ["createInternalResearchRouter", createInternalResearchRouter],
-  ["createInternalPartnershipScoutRouter", createInternalPartnershipScoutRouter],
-  ["createInternalToolsRouter", createInternalToolsRouter],
-  ["createInternalAgentWalletsRouter", createInternalAgentWalletsRouter],
   ["createInternalTesterAgentRouter", createInternalTesterAgentRouter],
   ["createSpcxRouter", createSpcxRouter],
   ["createEquityRouter", createEquityRouter],
@@ -199,7 +190,6 @@ const factories = [
   ["createInvestRouter", createInvestRouter],
   ["createGrowRouter", createGrowRouter],
   ["createEarnRouter", createEarnRouter],
-  ["createBtc3MacroRouter", createBtc3MacroRouter],
 ];
 
 let failed = 0;

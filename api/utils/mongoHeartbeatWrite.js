@@ -138,15 +138,3 @@ export function shouldTouchRealConfigMeta(cfg, nextError, kind = "signal", optio
         : cfg?.lastSignalAt;
   return isHeartbeatDue(tsField, heartbeatMinMs);
 }
-
-/**
- * Whether to insert a BTC3 skip rebalance row (throttled — avoids spam docs).
- * @param {Date | string | null | undefined} lastRebalanceAt
- * @param {{ heartbeatMinMs?: number }} [options]
- * @returns {boolean}
- */
-export function shouldWriteBtc3SkipRebalance(lastRebalanceAt, options = {}) {
-  const heartbeatMinMs =
-    options.heartbeatMinMs ?? getHeartbeatMinMs("BTC3_SKIP_REBALANCE_MIN_MS", 30 * 60_000);
-  return isHeartbeatDue(lastRebalanceAt, heartbeatMinMs);
-}
