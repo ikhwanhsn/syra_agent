@@ -3,6 +3,7 @@
 import { ArrowUpRight } from "lucide-react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Link } from "@/lib/navigation";
+import { Magnetic } from "@/components/motion/magnetic";
 import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,7 @@ export function SyraBuyButton({
   const showLogo = variant === "nav";
 
   return (
+    <Magnetic className={cn("max-w-full", (fullWidth || className?.includes("w-full")) && "w-full")}>
     <Link
       to={SYRA_BUY_SWAP_URL}
       className={cn(syraBuyVariants({ variant, fullWidth }), className)}
@@ -94,5 +96,6 @@ export function SyraBuyButton({
         />
       ) : null}
     </Link>
+    </Magnetic>
   );
 }

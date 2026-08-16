@@ -7,10 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BottomSheet } from "@/components/motion/bottom-sheet";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   searchJupiterTokens,
   formatSwapAmount,
@@ -266,6 +268,7 @@ export function TokenSelectDialog({
   excludeMint,
   balances = {},
 }: TokenSelectDialogProps) {
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -367,31 +370,8 @@ export function TokenSelectDialog({
   const showPasteMint =
     debouncedSearch.trim().length >= 32 && isValidBase58Mint(debouncedSearch.trim());
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={cn(
-          "flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))]",
-          "h-[min(540px,70dvh)] max-w-md flex-col gap-0 overflow-hidden rounded-2xl p-0",
-        )}
-      >
-        <DialogHeader className="shrink-0 border-b border-border/50 px-4 py-4">
-          <DialogTitle className="text-base font-semibold">Select token</DialogTitle>
-        </DialogHeader>
-        <div className="shrink-0 border-b border-border/50 px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search name, symbol, or paste mint"
-              className="h-10 rounded-xl pl-9"
-              autoFocus
-            />
-          </div>
-        </div>
-        <ScrollArea className="min-h-0 flex-1">
-          <div className={cn("space-y-1 p-2", TOKEN_LIST_MIN_H)}>
+  const list = (
+    <div className={cn("space-y-1 p-2", TOKEN_LIST_MIN_H)}>
             {tokensQ.isError ? (
               <div className="mx-2 my-4 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-5 text-center">
                 <p className="text-sm font-medium text-destructive">Could not load tokens</p>
@@ -461,7 +441,54 @@ export function TokenSelectDialog({
                 No tokens found
               </p>
             ) : null}
-          </div>
+    </div>
+  );
+
+  const searchField = (
+        <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name, symbol, or paste mint"
+              className="h-10 rounded-xl pl-9"
+              autoFocus={!isMobile}
+            />
+        </div>
+  );
+
+  if (isMobile) {
+    return (
+      <BottomSheet
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Select token"
+        snapPoints={[0.92]}
+      >
+        <div className="space-y-3">
+          {searchField}
+          {list}
+        </div>
+      </BottomSheet>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          "flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem))]",
+          "h-[min(540px,70dvh)] max-w-md flex-col gap-0 overflow-hidden rounded-2xl p-0",
+        )}
+      >
+        <DialogHeader className="shrink-0 border-b border-border/50 px-4 py-4">
+          <DialogTitle className="text-base font-semibold">Select token</DialogTitle>
+        </DialogHeader>
+        <div className="shrink-0 border-b border-border/50 px-4 py-3">
+          {searchField}
+        </div>
+        <ScrollArea className="min-h-0 flex-1">
+          {list}
         </ScrollArea>
       </DialogContent>
     </Dialog>

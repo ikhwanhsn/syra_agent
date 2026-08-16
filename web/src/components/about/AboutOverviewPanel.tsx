@@ -2,11 +2,10 @@
 
 import { Layers } from "lucide-react";
 import { AboutSectionHeader } from "@/components/about/AboutSectionHeader";
+import { BouncyAccordion } from "@/components/motion/bouncy-accordion";
 import {
   aboutCardClass,
-  aboutCardQuietClass,
   aboutKickerClass,
-  aboutProseClass,
   aboutStatValueClass,
 } from "@/components/about/aboutStyles";
 import {
@@ -74,51 +73,27 @@ export function AboutOverviewPanel() {
         </div>
       </section>
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <section className={cn(aboutCardClass, "about-problem-tint about-narrative-panel rounded-[1.2rem] px-6 py-7 sm:px-7")}>
-          <p className={aboutKickerClass}>The problem</p>
-          <h3 className="mt-3 font-display text-lg font-semibold tracking-[-0.03em] text-foreground sm:text-xl">
-            {SYRA_PROBLEM.title}
-          </h3>
-          <div className="mt-5 space-y-3.5 border-t border-border/30 pt-5">
-            {SYRA_PROBLEM.body.map((paragraph) => (
-              <p key={paragraph.slice(0, 32)} className={aboutProseClass}>
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </section>
-
-        <section
-          className={cn(
-            aboutCardClass,
-            "about-solution-tint about-narrative-panel about-narrative-panel-accent rounded-[1.2rem] border-foreground/12 px-6 py-7 sm:px-7",
-          )}
-        >
-          <p className={aboutKickerClass}>How we solve it</p>
-          <h3 className="mt-3 font-display text-lg font-semibold tracking-[-0.03em] text-foreground sm:text-xl">
-            {SYRA_SOLUTION.title}
-          </h3>
-          <div className="mt-5 space-y-3.5 border-t border-border/30 pt-5">
-            {SYRA_SOLUTION.body.map((paragraph) => (
-              <p key={paragraph.slice(0, 32)} className="text-[14px] leading-[1.72] text-foreground/86 sm:text-[15px]">
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      <section className={cn(aboutCardQuietClass, "rounded-[1.2rem] px-6 py-7 sm:px-8")}>
-        <AboutSectionHeader kicker="Infrastructure" title={SYRA_WHY_SOLANA.title} className="mb-0" />
-        <div className="mt-5 space-y-3.5 border-t border-border/30 pt-5">
-          {SYRA_WHY_SOLANA.body.map((paragraph) => (
-            <p key={paragraph.slice(0, 32)} className={cn(aboutProseClass, "max-w-3xl")}>
-              {paragraph}
-            </p>
-          ))}
-        </div>
-      </section>
+      <BouncyAccordion
+        defaultValue="problem"
+        className="overflow-hidden rounded-[1.2rem]"
+        items={[
+          {
+            id: "problem",
+            title: SYRA_PROBLEM.title,
+            description: SYRA_PROBLEM.body.join(" "),
+          },
+          {
+            id: "solution",
+            title: SYRA_SOLUTION.title,
+            description: SYRA_SOLUTION.body.join(" "),
+          },
+          {
+            id: "solana",
+            title: SYRA_WHY_SOLANA.title,
+            description: SYRA_WHY_SOLANA.body.join(" "),
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, Quote } from "lucide-react";
 import { SYRA_TESTIMONIALS } from "@/content/syraAbout";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { cn } from "@/lib/utils";
 import {
   growthEyebrowClass,
@@ -39,6 +40,7 @@ export function GrowthTestimonials({ className }: { className?: string }) {
       >
         {SYRA_TESTIMONIALS.map((testimonial) => (
           <li key={testimonial.id} className="min-h-0">
+            <TiltCard className="h-full rounded-none" max={8}>
             <a
               href={testimonial.href}
               target="_blank"
@@ -106,6 +108,7 @@ export function GrowthTestimonials({ className }: { className?: string }) {
               </div>
               </div>
             </a>
+            </TiltCard>
           </li>
         ))}
       </ul>

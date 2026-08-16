@@ -15,6 +15,8 @@ import MeridianState from "../models/MeridianState.js";
 import { MERIDIAN_CRON, MERIDIAN_ENGINE } from "../config/onchainEarnExperiments.js";
 import { ensureMeridianBootstrapped, getMeridianStats } from "./meridianService.js";
 import { selectMeridianBanditLeader } from "./meridianEvolution.js";
+import { isProduction } from "../config/runtime.js";
+import { enforceMeridianLossBreaker } from "./meridianLossBreaker.js";
 import { lpAgentAnonymousIdFrom } from "./agentWalletPurpose.js";
 import { findOrEnsurePurposeWallet } from "./agentWalletProvision.js";
 import { clamp } from "./earnExperimentKit.js";
@@ -42,7 +44,12 @@ const DEFAULT_MAX_CONCURRENT = MERIDIAN_ENGINE.maxPositions || 2;
 const DEFAULT_DAILY_MAX_LOSS_SOL = 0.5;
 
 const PAPER_GRAD_MIN_DECIDED = 20;
+/** Paper is fee-calibrated but still optimistic — require a SOL margin, not a hair above zero. */
+const PAPER_GRAD_MIN_NET_PNL_SOL = 0.5;
+const PAPER_GRAD_MIN_WIN_RATE = 0.5;
 const LEADER_MIN_DECIDED = 3;
+const REAL_SCALE_MIN_CLOSED = 5;
+const REAL_SCALE_MIN_WIN_RATE = 0.55;
 
 const OPEN_STATUSES = Object.freeze(["opening", "open", "closing"]);
 const CLOSED_STATUSES = Object.freeze(["closed_win", "closed_loss", "expired"]);
@@ -99,22 +106,57 @@ export async function getOrCreateConfig(wallet) {
   return cfg;
 }
 
+/** Graduation bypass is never allowed in production. Dev must set MERIDIAN_ALLOW_GRADUATION_BYPASS=1. */
+export function isMeridianGraduationBypassAllowed() {
+  if (isProduction()) return false;
+  const raw = String(process.env.MERIDIAN_ALLOW_GRADUATION_BYPASS || "").trim().toLowerCase();
+  return raw === "true" || raw === "1";
+}
+
+/**
+ * Caps stay at the conservative default until a real closed track record exists.
+ * @param {{ closed?: number; winRate?: number | null; sumNetPnlSol?: number }} row
+ */
+export function meridianRealCapsMayScale(row = {}) {
+  const closed = toNum(row.closed);
+  const winRate = toNum(row.winRate);
+  const sumNetPnlSol = toNum(row.sumNetPnlSol);
+  return closed >= REAL_SCALE_MIN_CLOSED && winRate >= REAL_SCALE_MIN_WIN_RATE && sumNetPnlSol > 0;
+}
+
 export async function checkMeridianPaperGraduation() {
   const stats = await getMeridianStats();
   const totals = (stats.agents || []).reduce(
     (acc, a) => ({
       decided: acc.decided + toNum(a.decided),
+      wins: acc.wins + toNum(a.wins),
+      losses: acc.losses + toNum(a.losses),
       sumNetPnlSol: acc.sumNetPnlSol + toNum(a.sumNetPnlSol),
     }),
-    { decided: 0, sumNetPnlSol: 0 },
+    { decided: 0, wins: 0, losses: 0, sumNetPnlSol: 0 },
   );
-  const pass = totals.decided >= PAPER_GRAD_MIN_DECIDED && totals.sumNetPnlSol > 0;
+  const winRate = totals.decided > 0 ? totals.wins / totals.decided : 0;
+  const decidedOk = totals.decided >= PAPER_GRAD_MIN_DECIDED;
+  const pnlOk = totals.sumNetPnlSol >= PAPER_GRAD_MIN_NET_PNL_SOL;
+  const wrOk = winRate >= PAPER_GRAD_MIN_WIN_RATE;
+  const pass = decidedOk && pnlOk && wrOk;
+  let reason = null;
+  if (!pass) {
+    if (!decidedOk) reason = `need_${PAPER_GRAD_MIN_DECIDED}_decided_positive_net_pnl`;
+    else if (!pnlOk) reason = `need_net_pnl_margin_${PAPER_GRAD_MIN_NET_PNL_SOL}_sol`;
+    else reason = `need_win_rate_${PAPER_GRAD_MIN_WIN_RATE}`;
+  }
   return {
     pass,
     decided: totals.decided,
+    wins: totals.wins,
+    losses: totals.losses,
+    winRate,
     sumNetPnlSol: totals.sumNetPnlSol,
     minDecided: PAPER_GRAD_MIN_DECIDED,
-    reason: pass ? null : `need_${PAPER_GRAD_MIN_DECIDED}_decided_positive_net_pnl`,
+    minNetPnlSol: PAPER_GRAD_MIN_NET_PNL_SOL,
+    minWinRate: PAPER_GRAD_MIN_WIN_RATE,
+    reason,
   };
 }
 
@@ -227,7 +269,8 @@ export async function listMeridianRealPositions({ limit, offset, status, agentAd
 
 /**
  * Enable Meridian live engine. Starts the supervised child process (DRY_RUN=false).
- * Graduation can be skipped with requireGraduation:false for immediate live ops.
+ * Graduation is required unless MERIDIAN_ALLOW_GRADUATION_BYPASS is set in non-production.
+ * A negative-PnL paper leader can never take live capital.
  */
 export async function enableMeridianReal({
   anonymousId,
@@ -241,8 +284,9 @@ export async function enableMeridianReal({
     throw new Error("MERIDIAN_ENGINE.enabled is false — cannot start live engine");
   }
 
+  const mustGraduate = requireGraduation !== false || !isMeridianGraduationBypassAllowed();
   const graduation = await checkMeridianPaperGraduation();
-  if (requireGraduation && !graduation.pass) {
+  if (mustGraduate && !graduation.pass) {
     throw new Error(`paper_graduation_blocked:${graduation.reason}`);
   }
 
@@ -252,19 +296,46 @@ export async function enableMeridianReal({
   const earnAid = lpAgentAnonymousIdFrom(anonymousId);
   const cfg = await getOrCreateConfig(wallet);
   const stats = await getMeridianStats();
-  const leader = selectMeridianBanditLeader(stats.agents, { minDecided: LEADER_MIN_DECIDED });
+  const leader = selectMeridianBanditLeader(stats.agents, {
+    minDecided: LEADER_MIN_DECIDED,
+    requirePositivePnl: true,
+  });
+  if (!leader) {
+    throw new Error("no_profitable_leader: refuse live capital until a strategy has decided>0 net PnL");
+  }
+
+  const closedAgg = await MeridianRealPosition.aggregate([
+    { $match: { agentAddress: wallet.agentAddress, status: { $in: [...CLOSED_STATUSES] } } },
+    {
+      $group: {
+        _id: null,
+        closed: { $sum: 1 },
+        wins: { $sum: { $cond: [{ $eq: ["$status", "closed_win"] }, 1, 0] } },
+        sumNetPnlSol: { $sum: { $ifNull: ["$realNetPnlSol", 0] } },
+      },
+    },
+  ]);
+  const realClosed = toNum(closedAgg[0]?.closed);
+  const realWins = toNum(closedAgg[0]?.wins);
+  const realSumPnl = toNum(closedAgg[0]?.sumNetPnlSol);
+  const mayScale = meridianRealCapsMayScale({
+    closed: realClosed,
+    winRate: realClosed > 0 ? realWins / realClosed : 0,
+    sumNetPnlSol: realSumPnl,
+  });
+  const positionCap = mayScale ? MAX_POSITION_SOL_CAP : DEFAULT_MAX_POSITION_SOL;
 
   cfg.enabled = true;
   cfg.startedAt = cfg.startedAt ?? new Date();
   cfg.anonymousId = earnAid;
-  cfg.currentStrategyId = leader?.strategyId ?? cfg.currentStrategyId ?? 0;
+  cfg.currentStrategyId = leader.strategyId;
   if (maxPositionSol != null && Number.isFinite(Number(maxPositionSol))) {
-    cfg.maxPositionSol = clamp(Number(maxPositionSol), 0, MAX_POSITION_SOL_CAP);
+    cfg.maxPositionSol = clamp(Number(maxPositionSol), 0, positionCap);
   } else {
     cfg.maxPositionSol = clamp(
       toNum(cfg.maxPositionSol, DEFAULT_MAX_POSITION_SOL),
       0,
-      MAX_POSITION_SOL_CAP,
+      positionCap,
     );
   }
   cfg.maxConcurrentPositions = clamp(
@@ -285,7 +356,7 @@ export async function enableMeridianReal({
   await syncMeridianEngineState({ agentAddress: wallet.agentAddress }).catch(() => null);
 
   const state = await getMeridianRealState({ viewerAnonymousId: anonymousId });
-  return { ...state, engineStart: engineHealth };
+  return { ...state, engineStart: engineHealth, capsMayScale: mayScale };
 }
 
 export async function disableMeridianReal({ anonymousId, closeAll = true }) {
@@ -342,10 +413,13 @@ export async function resolveMeridianRealPositions(opts = {}) {
   return { skipped: true, reason: "shadow_disabled_use_engine" };
 }
 
-/** Cron tick: keep engine alive for enabled configs + sync state. */
+/** Cron tick: keep engine alive for enabled configs + sync state + enforce loss breaker. */
 export async function runMeridianEngineTick() {
   const { tickMeridianEngineSupervisor } = await import("./meridianEngineSupervisor.js");
   const tick = await tickMeridianEngineSupervisor();
   const sync = await syncMeridianEngineState();
-  return { tick, sync };
+  const breaker = await enforceMeridianLossBreaker({
+    agentAddress: sync?.agentAddress || tick?.agentAddress || null,
+  }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+  return { tick, sync, breaker };
 }

@@ -1,5 +1,7 @@
-import { ArrowDownToLine, ArrowUpFromLine, Copy, Loader2 } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Check, Copy, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ActionSwapBlurIcon } from "@/components/motion/action-swap-blur";
 import { CoinLogo } from "@/components/crypto/CoinLogo";
 import {
   AGENT_WALLET_ACCENT,
@@ -43,6 +45,13 @@ export function AgentTreasuryNavCard({
   const accent = AGENT_WALLET_ACCENT[purpose];
   const Icon = slot.icon;
   const hasUsdc = usdc != null && usdc > 0;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    onCopy();
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
 
   return (
     <div
@@ -80,13 +89,15 @@ export function AgentTreasuryNavCard({
           <>
             <button
               type="button"
-              onClick={onCopy}
+              onClick={handleCopy}
               className="group flex min-h-[40px] w-full items-center justify-between gap-2 rounded-xl border border-border/40 bg-muted/15 px-2.5 py-2 text-left transition-colors hover:bg-muted/30"
             >
               <span className="min-w-0 truncate font-mono text-[13px] text-foreground" title={address}>
                 {shortAddress ?? shortenAgentAddress(address)}
               </span>
-              <Copy className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
+              <ActionSwapBlurIcon value={copied ? "copied" : "copy"} className="h-3.5 w-3.5 text-muted-foreground opacity-70 group-hover:opacity-100">
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              </ActionSwapBlurIcon>
             </button>
 
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-border/40 bg-muted/10 p-2.5 font-mono text-xs tabular-nums">

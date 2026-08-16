@@ -34,7 +34,7 @@ import {
 import { getAyeLabsStats, rankAyeLabsStrategiesByNetPnl } from "./ayeLabsService.js";
 import { clamp } from "./earnExperimentKit.js";
 
-const SHAPES = Object.freeze(["spot", "bid_ask", "curve"]);
+const SHAPES = Object.freeze(["spot", "spot", "curve", "bid_ask"]);
 
 function toNum(value, fallback = 0) {
   const n = Number(value);
@@ -110,19 +110,25 @@ export function thompsonSampleStrategy(agents) {
  * so underwater strategies rarely win live capital, while still exploring promising new agents.
  *
  * @param {Array<object>} agents  Rows from getAyeLabsStats().agents
- * @param {{ minDecided?: number }} [opts]
+ * @param {{ minDecided?: number, requirePositiveNet?: boolean }} [opts]
  * @returns {{ strategyId: number; score: number; stats: object } | null}
  */
-export function selectAyeLabsBanditLeader(agents, { minDecided = 3 } = {}) {
+export function selectAyeLabsBanditLeader(
+  agents,
+  { minDecided = 3, requirePositiveNet = true } = {},
+) {
   const rows = (agents || []).filter(
     (a) => a && Number(a.strategyId) !== AYE_LABS_REAL_MIRROR_STRATEGY_ID,
   );
   if (rows.length === 0) return null;
-  const eligible = rows.filter((a) => toNum(a.decided) >= minDecided);
-  const pool = eligible.length > 0 ? eligible : rows;
+  let eligible = rows.filter((a) => toNum(a.decided) >= minDecided);
+  if (requirePositiveNet) {
+    eligible = eligible.filter((a) => toNum(a.sumNetPnlSol) > 0);
+  }
+  if (eligible.length === 0) return null;
   let best = null;
   let bestScore = -Infinity;
-  for (const a of pool) {
+  for (const a of eligible) {
     const wins = toNum(a.wins);
     const losses = toNum(a.losses) + toNum(a.expired);
     const decided = wins + losses;
@@ -163,13 +169,15 @@ export function mutateAyeLabsFromElite(parent, newId, meta = {}) {
     const factor = 1 + (Math.random() * 0.3 - 0.15); // ±15%
     return clamp(Math.round(base * factor), min, max);
   };
-  let binsBelow = jitterBin(p.binsBelow, 0, 92);
-  let binsAbove = jitterBin(p.binsAbove, 0, 60);
-  if (lpShape === "bid_ask" && Math.random() < 0.25) {
-    binsAbove = 0;
-    binsBelow = Math.max(45, binsBelow);
+  let binsBelow = jitterBin(p.binsBelow, 12, 70);
+  let binsAbove = jitterBin(p.binsAbove, 12, 70);
+  // Keep two-sided ranges so mutations do not recreate single-sided IL traps.
+  if (binsAbove < 12) binsAbove = Math.max(18, Math.round(binsBelow * 0.8));
+  if (binsBelow < 12) binsBelow = Math.max(18, Math.round(binsAbove * 0.8));
+  if (binsBelow + binsAbove < 24) {
+    binsBelow = Math.max(binsBelow, 18);
+    binsAbove = Math.max(binsAbove, 18);
   }
-  if (binsBelow + binsAbove < 10) binsBelow = Math.max(binsBelow, 20);
 
   // Exit: nudge halfway toward the elite mean (fallback to parent), then jitter ±8%.
   const parentExit = p.exit && typeof p.exit === "object" ? p.exit : {};
@@ -198,13 +206,13 @@ export function mutateAyeLabsFromElite(parent, newId, meta = {}) {
     ...parentExit,
     stopLossPct,
     takeProfitPct,
-    oorWaitMin: clamp(Math.round(toNum(parentExit.oorWaitMin, 30) + (Math.random() * 10 - 5)), 15, 60),
+    oorWaitMin: clamp(Math.round(toNum(parentExit.oorWaitMin, 30) + (Math.random() * 10 - 5)), 20, 60),
     trailingTriggerPct:
       Math.round(toNum(parentExit.trailingTriggerPct, 3) * (0.9 + Math.random() * 0.2) * 10) / 10,
     trailingDropPct:
       Math.round(toNum(parentExit.trailingDropPct, 1.5) * (0.9 + Math.random() * 0.2) * 10) / 10,
-    minHoldMin: clamp(Math.round(toNum(parentExit.minHoldMin, 5) + (Math.random() * 6 - 3)), 2, 45),
-    maxHoldMin: 60,
+    minHoldMin: clamp(Math.round(toNum(parentExit.minHoldMin, 30) + (Math.random() * 10 - 5)), 20, 90),
+    maxHoldMin: 720,
   };
 
   // Signal weights: inherit parent, then boost two winning signals by +5–15%.
@@ -364,9 +372,9 @@ export async function runAyeLabsExperimentEvolution(opts = {}) {
   }
   if (culled.length) invalidateAyeLabsStrategyCache();
 
-  // ---- Elites: profitable + decided; bootstrap from best-ranked if none are yet green. ----
+  // ---- Elites: profitable + decided. Do not clone underwater parents. ----
   const decidedFloor = Math.max(1, Math.min(minDecided, 3));
-  let elites = ranked
+  const elites = ranked
     .filter(
       (r) =>
         Number(r.strategyId) !== AYE_LABS_REAL_MIRROR_STRATEGY_ID &&
@@ -375,12 +383,6 @@ export async function runAyeLabsExperimentEvolution(opts = {}) {
     )
     .sort((a, b) => toNum(b.rankScore) - toNum(a.rankScore))
     .slice(0, 5);
-  if (elites.length === 0) {
-    elites = ranked
-      .filter((r) => Number(r.strategyId) !== AYE_LABS_REAL_MIRROR_STRATEGY_ID)
-      .sort((a, b) => toNum(b.rankScore) - toNum(a.rankScore))
-      .slice(0, 3);
-  }
 
   const eliteExitMean = computeEliteExitMean(elites, byId);
 

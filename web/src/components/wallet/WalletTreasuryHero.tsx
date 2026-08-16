@@ -1,5 +1,7 @@
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatedNumber } from "@/components/motion/animated-number";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { overviewAccentBackground, overviewCardGlow } from "@/components/dashboard/overview/overviewStyles";
 import { formatTreasuryUsd } from "@/lib/agentWalletBalanceDisplay";
 import { formatSol } from "@/lib/dashboardOverviewAggregates";
@@ -72,7 +74,8 @@ export function WalletTreasuryHero({
         : null;
 
   return (
-    <section className={walletHeroCard} aria-label="Treasury summary">
+    <section aria-label="Treasury summary">
+    <TiltCard className={walletHeroCard} max={6}>
       <div
         className={overviewCardGlow}
         style={{ background: overviewAccentBackground("neutral") }}
@@ -81,7 +84,13 @@ export function WalletTreasuryHero({
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className={walletHeroValue}>{formatTreasuryUsd(heroUsd)}</p>
+            <p className={walletHeroValue}>
+              {heroUsd != null && Number.isFinite(heroUsd) ? (
+                <AnimatedNumber value={heroUsd} format={formatTreasuryUsd} />
+              ) : (
+                formatTreasuryUsd(heroUsd)
+              )}
+            </p>
             <p className={walletStatHint}>
               {formatTreasuryUsd(totalUsdc)} USDC
               {solLine ? ` · ${solLine}` : ""}
@@ -117,7 +126,13 @@ export function WalletTreasuryHero({
             {breakdowns.map((item) => (
               <div key={item.label} className={walletStatTile}>
                 <p className="text-xs font-medium text-muted-foreground">{item.label}</p>
-                <p className={walletStatValue}>{formatTreasuryUsd(item.usdc)}</p>
+                <p className={walletStatValue}>
+                  {item.usdc != null && Number.isFinite(item.usdc) ? (
+                    <AnimatedNumber value={item.usdc} format={formatTreasuryUsd} />
+                  ) : (
+                    formatTreasuryUsd(item.usdc)
+                  )}
+                </p>
                 <p className={walletStatHint}>
                   {item.sol != null ? `${formatSol(item.sol)} SOL` : ", SOL"}
                 </p>
@@ -126,6 +141,7 @@ export function WalletTreasuryHero({
           </div>
         ) : null}
       </div>
+    </TiltCard>
     </section>
   );
 }

@@ -12,6 +12,8 @@ import AyeLabsLesson from "../models/AyeLabsLesson.js";
 import AyeLabsPoolMemory from "../models/AyeLabsPoolMemory.js";
 import {
   AYE_LABS_DEFAULTS,
+  AYE_LABS_EV_HOLD_HOURS,
+  AYE_LABS_MIN_FEE_TO_COST_RATIO,
   AYE_LABS_REAL_MIRROR_STRATEGY_ID,
   AYE_LABS_SCREENING_BASE,
 } from "../config/ayeLabsStrategies.js";
@@ -45,9 +47,9 @@ import {
   strategyLikelyNeedsSidecarSwap,
 } from "./lpEconomicsModel.js";
 
-const OPEN_POSITION_COOLDOWN_MS = 45 * 60 * 1000;
+const OPEN_POSITION_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 /** After a losing/expired close, skip re-opening the same pool for this long. */
-const POOL_MEMORY_LOSS_COOLDOWN_MS = 60 * 60 * 1000;
+const POOL_MEMORY_LOSS_COOLDOWN_MS = 4 * 60 * 60 * 1000;
 const REAL_MIRROR_VIRTUAL_BANK_SOL = 1000;
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
@@ -63,6 +65,52 @@ function normalizeLimit(limit) {
   const n = Number(limit);
   if (!Number.isFinite(n) || n <= 0) return DEFAULT_LIST_LIMIT;
   return Math.min(MAX_LIST_LIMIT, Math.floor(n));
+}
+
+/**
+ * Paper open EV gate: calibrated expected fees over the fee-farm hold must beat
+ * round-trip tx+slippage by AYE_LABS_MIN_FEE_TO_COST_RATIO (default 2x).
+ */
+export function evaluateAyeLabsOpenEv({
+  depositSol,
+  tvlUsd,
+  volume24hUsd,
+  feeTvlRatio,
+  volatilityScore,
+  binsBelow,
+  binsAbove,
+  holdHours = AYE_LABS_EV_HOLD_HOURS,
+  minFeeToCostRatio = AYE_LABS_MIN_FEE_TO_COST_RATIO,
+} = {}) {
+  const deposit = toNum(depositSol);
+  const needsSidecar = strategyLikelyNeedsSidecarSwap(binsBelow, binsAbove);
+  const tx = computeSimTransactionCostsSol(deposit, { needsSidecarSwap: needsSidecar });
+  const roundTripCostSol = tx.openFeeSol + tx.closeFeeSol;
+  const rr = computeLpRiskRewardProfile({
+    tvlUsd,
+    volume24hUsd,
+    feeTvlRatio,
+    volatilityScore,
+    binsBelow,
+    binsAbove,
+    holdHours,
+  });
+  const expectedFeeSol =
+    deposit * (toNum(rr.expectedFeePct) / 100) * getLpSimFeeCalibrationMult();
+  const required = roundTripCostSol * toNum(minFeeToCostRatio, AYE_LABS_MIN_FEE_TO_COST_RATIO);
+  const pass = expectedFeeSol > 0 && expectedFeeSol >= required;
+  return {
+    pass,
+    reason: pass ? null : "fees_below_chain_costs",
+    expectedFeeSol,
+    expectedFeePct: rr.expectedFeePct,
+    roundTripCostSol,
+    minFeeToCostRatio: toNum(minFeeToCostRatio, AYE_LABS_MIN_FEE_TO_COST_RATIO),
+    riskScore: rr.riskScore,
+    riskRewardRatio: rr.ratio,
+    needsSidecar,
+    holdHours: Math.max(0.5, toNum(holdHours, AYE_LABS_EV_HOLD_HOURS)),
+  };
 }
 
 /** Mongo expression: net PnL in USD using SOL PnL × (depositUsd/depositSol) at open. */
@@ -88,6 +136,7 @@ function mergedSimConfig(stateDoc) {
       s.maxConcurrentPositions,
       AYE_LABS_DEFAULTS.maxConcurrentPositions,
     ),
+    maxRunAgeHours: toNum(s.maxRunAgeHours, AYE_LABS_DEFAULTS.maxRunAgeHours),
     openFeeBps: toNum(s.openFeeBps, AYE_LABS_DEFAULTS.openFeeBps),
     closeFeeBps: toNum(s.closeFeeBps, AYE_LABS_DEFAULTS.closeFeeBps),
   };
@@ -110,7 +159,7 @@ export async function ensureAyeLabsBootstrapped() {
       await AyeLabsState.create({
         _id: "singleton",
         activeExperimentId,
-        title: "AyeLabs GMGN V/L radar + DLMM paper (10 SOL bank, 1h max hold)",
+        title: "AyeLabs GMGN V/L radar + DLMM paper (10 SOL bank, 12h fee farm)",
         startedAt: new Date(),
         simConfig: {
           startingBankSol: simDefaults.startingBankSol,
@@ -123,6 +172,19 @@ export async function ensureAyeLabsBootstrapped() {
       await AyeLabsRun.updateMany(
         { $or: [{ experimentId: null }, { experimentId: { $exists: false } }] },
         { $set: { experimentId: activeExperimentId } },
+      );
+      state = await AyeLabsState.findById("singleton").lean();
+    } else if (
+      toNum(state.simConfig?.maxConcurrentPositions) !== simDefaults.maxConcurrentPositions
+    ) {
+      await AyeLabsState.updateOne(
+        { _id: "singleton" },
+        {
+          $set: {
+            "simConfig.maxConcurrentPositions": simDefaults.maxConcurrentPositions,
+            title: "AyeLabs GMGN V/L radar + DLMM paper (10 SOL bank, 12h fee farm)",
+          },
+        },
       );
       state = await AyeLabsState.findById("singleton").lean();
     }
@@ -191,7 +253,7 @@ export async function ensureAyeLabsBootstrapped() {
  * desk stays byte-for-byte aligned on DLMM fee/IL math, but reads AyeLabs's `trailingDropPct`
  * exit key (mapped onto the shared trailing-giveback logic).
  */
-function evaluateAyeLabsRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults) {
+export function evaluateAyeLabsRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults) {
   const priceDriftPct = computePriceDriftPct(toNum(run.entryPriceUsd), toNum(detail.currentPrice));
   const inRange = !isPositionOutOfRange(
     run.activeBinAtOpen,
@@ -257,7 +319,7 @@ function evaluateAyeLabsRunResolution(run, detail, strategyExit, hoursElapsed, s
   const peakPnlPct = Math.min(maxPeak, Math.max(priorPeak, netPnlPct));
   let status = "open";
   let resolution = null;
-  if (priceDriftPct <= toNum(exit.stopLossPct, -15)) {
+  if (netPnlPct <= toNum(exit.stopLossPct, -15)) {
     status = "loss";
     resolution = "stop_loss";
   } else if (netPnlPct >= toNum(exit.takeProfitPct, 5)) {
@@ -517,7 +579,7 @@ function scoreUniverseForStrategy(strategy, universe, effectiveBins) {
         volatilityScore: synthetic.volatilityScore,
         binsBelow: effectiveBins.binsBelow,
         binsAbove: effectiveBins.binsAbove,
-        holdHours: 1,
+        holdHours: AYE_LABS_EV_HOLD_HOURS,
       });
       const enriched = {
         ...pool,
@@ -534,13 +596,10 @@ function scoreUniverseForStrategy(strategy, universe, effectiveBins) {
         swaps_5m: toNum(pool.swaps_5m),
         swaps_1h: toNum(pool.swaps_1h),
       };
+      // Radar signalGate fields (vl_ratio, FLOW) are not in LP buildLpSignals; apply them
+      // via applyAyeLabsRadarGate. Keep strategy screening floors (volume/organic/fee-TVL).
       const strategyForScore = {
         ...strategy,
-        screeningOverrides: {
-          minTvlUsd: strategy.screeningOverrides?.minTvlUsd ?? AYE_LABS_SCREENING_BASE.minTvlUsd,
-          minVolume24hUsd: 0,
-          minOrganic: 0,
-        },
         signalGate: { minPasses: 0 },
       };
       const scoredRow = scorePool(strategyForScore, enriched);
@@ -557,15 +616,16 @@ function scoreUniverseForStrategy(strategy, universe, effectiveBins) {
         effectiveBins.binsBelow,
         effectiveBins.binsAbove,
       );
-      const vlBoost = Math.min(2, 1 + toNum(pool.vl_ratio) * 0.15);
+      const feeBoost = 1 + Math.min(1.5, Math.max(0, toNum(rr.expectedFeePct)) / 4);
       return {
         pool,
         synthetic: enriched,
         adaptiveExit,
+        expectedFeePct: rr.expectedFeePct,
         ...scoredRow,
         gatePassed,
         gateReasons: [...(scoredRow.gateReasons || []), ...radarGate.reasons],
-        score: gatePassed ? toNum(scoredRow.score) * vlBoost : 0,
+        score: gatePassed ? toNum(scoredRow.score) * feeBoost : 0,
       };
     })
     .filter((x) => x.gatePassed)
@@ -707,10 +767,26 @@ async function runAyeLabsMirrorSignalCycle(universe) {
   const leaderBins = resolveEffectiveBins(leader.binsBelow, leader.binsAbove);
   const scored = scoreUniverseForStrategy(leader, universe, leaderBins);
   const memoryMap = await loadPoolMemoryMap(scored.map((s) => s.pool.poolAddress));
+  const depositSol = simCfg.maxPositionSol;
   let best = null;
+  let evSkipCount = 0;
   for (const cand of scored) {
     if (applyPoolMemoryPenalty(memoryMap.get(cand.pool.poolAddress)) <= 0) continue;
     if (await hasRecentPosition(experimentId, mirrorId, cand.pool.poolAddress)) continue;
+    const ev = evaluateAyeLabsOpenEv({
+      depositSol,
+      tvlUsd: cand.pool.tvlUsd,
+      volume24hUsd: cand.pool.volume24hUsd,
+      feeTvlRatio: cand.pool.feeTvlRatio,
+      volatilityScore: cand.synthetic.volatilityScore,
+      binsBelow: leaderBins.binsBelow,
+      binsAbove: leaderBins.binsAbove,
+    });
+    cand.ev = ev;
+    if (!ev.pass) {
+      evSkipCount += 1;
+      continue;
+    }
     best = cand;
     break;
   }
@@ -720,13 +796,18 @@ async function runAyeLabsMirrorSignalCycle(universe) {
       skipped: 1,
       errors: [],
       openedRuns: [],
-      skippedRows: [{ strategyId: mirrorId, reason: "no_candidate", leaderStrategyId: leader.id }],
+      skippedRows: [
+        {
+          strategyId: mirrorId,
+          reason: evSkipCount > 0 ? "fees_below_chain_costs" : "no_candidate",
+          leaderStrategyId: leader.id,
+        },
+      ],
     };
   }
 
   try {
     const solPrice = await fetchSolPriceUsd();
-    const depositSol = simCfg.maxPositionSol;
     const depositUsd = depositSol * solPrice;
     const openFeeSol = computeSimTransactionCostsSol(depositSol, {
       needsSidecarSwap: strategyLikelyNeedsSidecarSwap(leaderBins.binsBelow, leaderBins.binsAbove),
@@ -764,6 +845,8 @@ async function runAyeLabsMirrorSignalCycle(universe) {
         followMode: "real_mirror",
         binsClamped: leaderBins.clamped,
         peakPnlPct: 0,
+        expectedFeeSol: best.ev?.expectedFeeSol,
+        roundTripCostSol: best.ev?.roundTripCostSol,
       },
       status: "open",
       openedAt: new Date(),
@@ -885,13 +968,32 @@ export async function runAyeLabsSignalCycle() {
           1 + Math.log1p(Math.max(0, cashSol - simCfg.startingBankSol)) / 20;
         return { ...row, penalty, score: row.score * penalty * compoundBoost };
       });
-      const best = scored.filter((x) => x.penalty > 0).sort((a, b) => b.score - a.score)[0];
-      if (!best) {
-        skipped.push({ strategyId: strategy.id, reason: "no_candidate" });
-        continue;
+      let best = null;
+      let evSkipCount = 0;
+      for (const cand of scored.filter((x) => x.penalty > 0).sort((a, b) => b.score - a.score)) {
+        if (blockedPoolKeys.has(`${strategy.id}:${cand.pool.poolAddress}`)) continue;
+        const ev = evaluateAyeLabsOpenEv({
+          depositSol,
+          tvlUsd: cand.pool.tvlUsd,
+          volume24hUsd: cand.pool.volume24hUsd,
+          feeTvlRatio: cand.pool.feeTvlRatio,
+          volatilityScore: cand.synthetic.volatilityScore,
+          binsBelow: effectiveBins.binsBelow,
+          binsAbove: effectiveBins.binsAbove,
+        });
+        cand.ev = ev;
+        if (!ev.pass) {
+          evSkipCount += 1;
+          continue;
+        }
+        best = cand;
+        break;
       }
-      if (blockedPoolKeys.has(`${strategy.id}:${best.pool.poolAddress}`)) {
-        skipped.push({ strategyId: strategy.id, reason: "cooldown_or_open" });
+      if (!best) {
+        skipped.push({
+          strategyId: strategy.id,
+          reason: evSkipCount > 0 ? "fees_below_chain_costs" : "no_candidate",
+        });
         continue;
       }
 
@@ -942,6 +1044,9 @@ export async function runAyeLabsSignalCycle() {
             riskRewardRatio: best.synthetic.riskRewardRatio,
             poolMemoryPenalty: best.penalty,
             peakPnlPct: 0,
+            expectedFeeSol: best.ev?.expectedFeeSol,
+            roundTripCostSol: best.ev?.roundTripCostSol,
+            evHoldHours: best.ev?.holdHours,
           },
           status: "open",
           openedAt: new Date(),
@@ -1203,9 +1308,11 @@ export async function pickBestAyeLabsStrategy() {
   if (ranked.length === 0) {
     return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked };
   }
-  // Prefer a profitable, decided leader; fall back to best-ranked warm strategy for the mirror.
   const profitable = ranked.find((r) => r.decided >= 3 && r.sumNetPnlSol > 0);
-  const selected = profitable || ranked[0];
+  if (!profitable) {
+    return { strategy: null, stats: null, failureReason: "no_profitable_leader", ranked };
+  }
+  const selected = profitable;
   const strategy = await resolveAyeLabsStrategyById(selected.strategyId);
   if (!strategy) {
     return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked };
@@ -1226,7 +1333,7 @@ export async function pickBestAyeLabsStrategy() {
     stats: selected,
     failureReason: null,
     ranked,
-    usedFallback: !profitable,
+    usedFallback: false,
   };
 }
 
@@ -1436,7 +1543,7 @@ export async function resetAyeLabsFromScratch(opts = {}) {
   await ensureAyeLabsBootstrapped();
   const state = await AyeLabsState.findById("singleton");
   if (!state) throw new Error("AyeLabs state missing");
-  const cfg = mergedSimConfig(state);
+  const cfg = mergedSimConfig(null);
   await AyeLabsRun.deleteMany({});
   await AyeLabsAgentState.deleteMany({});
   const nextId = `ayeLabs-cohort-${Date.now()}`;
@@ -1444,7 +1551,7 @@ export async function resetAyeLabsFromScratch(opts = {}) {
   state.title =
     typeof opts.title === "string" && opts.title.trim()
       ? opts.title.trim()
-      : "AyeLabs GMGN V/L radar paper lab (reset)";
+      : "AyeLabs GMGN V/L radar + DLMM paper (10 SOL bank, 12h fee farm)";
   state.startedAt = new Date();
   state.simConfig = {
     startingBankSol: cfg.startingBankSol,

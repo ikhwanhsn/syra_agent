@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimatedNumber } from "@/components/motion/animated-number";
 import { cn } from "@/lib/utils";
 
 interface AnimatedMetricProps {
@@ -28,18 +29,22 @@ export function AnimatedMetric({ value, format, className, deltaMode = false }: 
     prev.current = value;
   }, [value, deltaMode]);
 
-  const display = value != null && Number.isFinite(value) ? format(value) : "-";
+  const ready = value != null && Number.isFinite(value);
 
   return (
     <span
       className={cn(
         "inline-block font-mono tabular-nums transition-[color,transform] duration-300 ease-out",
-        flash === "up" && "text-emerald-600 dark:text-emerald-400 scale-[1.02]",
-        flash === "down" && "text-red-600 dark:text-red-400 scale-[0.98]",
+        flash === "up" && "text-success scale-[1.02]",
+        flash === "down" && "text-destructive scale-[0.98]",
         className,
       )}
     >
-      {display}
+      {ready ? (
+        <AnimatedNumber value={value} format={format} startOnView={false} />
+      ) : (
+        "-"
+      )}
     </span>
   );
 }

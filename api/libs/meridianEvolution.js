@@ -113,16 +113,20 @@ export function thompsonSampleStrategy(agents) {
  * @param {{ minDecided?: number }} [opts]
  * @returns {{ strategyId: number; score: number; stats: object } | null}
  */
-export function selectMeridianBanditLeader(agents, { minDecided = 3 } = {}) {
+export function selectMeridianBanditLeader(agents, { minDecided = 3, requirePositivePnl = false } = {}) {
   const rows = (agents || []).filter(
     (a) => a && Number(a.strategyId) !== MERIDIAN_REAL_MIRROR_STRATEGY_ID,
   );
   if (rows.length === 0) return null;
   const eligible = rows.filter((a) => toNum(a.decided) >= minDecided);
-  const pool = eligible.length > 0 ? eligible : rows;
+  const pool = eligible.length > 0 ? eligible : requirePositivePnl ? [] : rows;
+  const scored = requirePositivePnl
+    ? pool.filter((a) => toNum(a.sumNetPnlSol) > 0)
+    : pool;
+  if (scored.length === 0) return null;
   let best = null;
   let bestScore = -Infinity;
-  for (const a of pool) {
+  for (const a of scored) {
     const wins = toNum(a.wins);
     const losses = toNum(a.losses) + toNum(a.expired);
     const decided = wins + losses;

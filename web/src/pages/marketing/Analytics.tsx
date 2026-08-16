@@ -15,6 +15,9 @@ import { Footer } from "@/components/marketing/Footer";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { AnimatedNumber } from "@/components/motion/animated-number";
+import { ScrollReveal } from "@/components/motion/scroll-reveal";
+import { TextReveal } from "@/components/motion/text-reveal";
 import { API_BASE, LINK_AGENT, getApiHeaders } from "@/lib/marketing/global";
 
 type KpiData = {
@@ -128,7 +131,7 @@ export default function Analytics() {
               </span>
             </div>
             <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
-              <span className="neon-text">Rail analytics</span>
+              <TextReveal as="span" className="neon-text block" text="Rail analytics" />
             </h1>
             <p className="text-lg text-muted-foreground">
               Public proof of paid x402 usage on the Syra machine money rail, updated live from production.
@@ -159,6 +162,7 @@ export default function Analytics() {
           </motion.div>
 
           {/* KPI cards */}
+          <ScrollReveal>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -173,7 +177,9 @@ export default function Analytics() {
                 <Zap className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{kpi.totalPaidApiCalls.toLocaleString()}</div>
+                <div className="text-2xl font-bold">
+                  <AnimatedNumber value={kpi.totalPaidApiCalls} />
+                </div>
               </CardContent>
             </Card>
             <Card className="glass-card border-border/50">
@@ -184,7 +190,9 @@ export default function Analytics() {
                 <TrendingUp className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{kpi.paidApiCallsLast7Days.toLocaleString()}</div>
+                <div className="text-2xl font-bold">
+                  <AnimatedNumber value={kpi.paidApiCallsLast7Days} />
+                </div>
               </CardContent>
             </Card>
             <Card className="glass-card border-border/50">
@@ -195,7 +203,9 @@ export default function Analytics() {
                 <MessageSquare className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{kpi.completedPaidToolCalls.toLocaleString()}</div>
+                <div className="text-2xl font-bold">
+                  <AnimatedNumber value={kpi.completedPaidToolCalls} />
+                </div>
               </CardContent>
             </Card>
             <Card className="glass-card border-border/50">
@@ -206,10 +216,13 @@ export default function Analytics() {
                 <Activity className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{kpi.chatsWithPaidToolUse.toLocaleString()}</div>
+                <div className="text-2xl font-bold">
+                  <AnimatedNumber value={kpi.chatsWithPaidToolUse} />
+                </div>
               </CardContent>
             </Card>
           </motion.div>
+          </ScrollReveal>
 
           {/* KPI progress */}
           <motion.div

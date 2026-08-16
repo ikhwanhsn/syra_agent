@@ -1006,9 +1006,18 @@ export async function pickBestMeridianStrategy() {
   if (ranked.length === 0) {
     return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked };
   }
-  // Prefer a profitable, decided leader; fall back to best-ranked warm strategy for the mirror.
+  // Prefer a profitable, decided leader. Never fall back to a red strategy for live/mirror.
   const profitable = ranked.find((r) => r.decided >= 3 && r.sumNetPnlSol > 0);
-  const selected = profitable || ranked[0];
+  if (!profitable) {
+    return {
+      strategy: null,
+      stats: null,
+      failureReason: "no_profitable_leader",
+      ranked,
+      usedFallback: false,
+    };
+  }
+  const selected = profitable;
   const strategy = await resolveMeridianStrategyById(selected.strategyId);
   if (!strategy) {
     return { strategy: null, stats: null, failureReason: "no_best_strategy", ranked };
@@ -1029,7 +1038,7 @@ export async function pickBestMeridianStrategy() {
     stats: selected,
     failureReason: null,
     ranked,
-    usedFallback: !profitable,
+    usedFallback: false,
   };
 }
 

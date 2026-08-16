@@ -14,6 +14,8 @@ import {
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/marketing/Navbar";
 import { Footer } from "@/components/marketing/Footer";
+import { NumberTicker } from "@/components/motion/number-ticker";
+import { TextReveal } from "@/components/motion/text-reveal";
 import { API_BASE, LINK_AGENT, getApiHeaders } from "@/lib/marketing/global";
 
 type SortKey = "rank" | "wallet" | "volume" | "toolsCalls" | "totalReward";
@@ -156,7 +158,7 @@ export default function Leaderboard() {
             </div>
 
             <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
-              <span className="neon-text">Agent leaderboard</span>
+              <TextReveal as="span" className="neon-text block" text="Agent leaderboard" />
             </h1>
             <p className="text-lg text-muted-foreground">
               Auditable rankings by x402 spend and tool usage, proof that agents run on Syra infrastructure.
@@ -336,18 +338,18 @@ export default function Leaderboard() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm font-medium text-foreground">
-                        ${item.volume.toLocaleString()}
+                        <NumberTicker value={item.volume} prefix="$" locale />
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-foreground">
-                        {item.toolsCalls.toLocaleString()}
+                        <NumberTicker value={item.toolsCalls} locale />
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-primary">
-                          ${item.totalReward.toLocaleString()}
+                          <NumberTicker value={item.totalReward} prefix="$" locale />
                         </span>
                         {item.rank <= 3 && (
                           <span className="px-2 py-1 text-xs rounded-full bg-primary/20 text-primary">

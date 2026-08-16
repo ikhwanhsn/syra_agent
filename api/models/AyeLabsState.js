@@ -15,7 +15,8 @@ const ayelabsStateSchema = new mongoose.Schema(
     simConfig: {
       startingBankSol: { type: Number, default: 10 },
       maxPositionSol: { type: Number, default: 1 },
-      maxConcurrentPositions: { type: Number, default: 8 },
+      maxConcurrentPositions: { type: Number, default: 3 },
+      maxRunAgeHours: { type: Number, default: 12 },
       openFeeBps: { type: Number, default: 12 },
       closeFeeBps: { type: Number, default: 12 },
     },

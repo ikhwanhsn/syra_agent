@@ -1300,7 +1300,14 @@ function LaunchLayout({
       )}
 
       {hasPartner ? (
-        <>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            width: "100%",
+          }}
+        >
           <div
             style={{
               display: "flex",
@@ -1317,6 +1324,8 @@ function LaunchLayout({
           <div
             style={{
               display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
               justifyContent: "center",
               width: "100%",
               fontFamily: PHOTO_TYPE.display,
@@ -1337,6 +1346,8 @@ function LaunchLayout({
             <div
               style={{
                 display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
                 justifyContent: "center",
                 fontFamily: PHOTO_TYPE.body,
                 fontSize: 17,
@@ -1350,7 +1361,7 @@ function LaunchLayout({
               {content.body || content.subtitle}
             </div>
           ) : null}
-        </>
+        </div>
       ) : null}
     </div>
   );

@@ -70,7 +70,6 @@ export default function AyeLabsExperiment() {
     mutationFn: () =>
       enableAyeLabsReal({
         maxPositionSol: 0.3,
-        requireGraduation: false,
         dryRun: false,
       }),
     onSuccess: () => {
@@ -136,9 +135,10 @@ export default function AyeLabsExperiment() {
           {realEnabled ? "Real gate ON · opens pending LP wire" : "Paper lab · real gate capped"}
         </p>
         <p className="mt-1 text-xs opacity-90">
-          AyeLabs screens Solana via GMGN V/L radar (liq $2500, smart degen 2), ranks by V/L, then
-          paper-trades matched Meteora DLMM pools with a 1h max hold. Real gate stores caps only in
-          v1. Disable LP/Meridian real on the same earn wallet first.
+          AyeLabs screens Solana via GMGN V/L radar (liq $5000, smart degen 2), then paper-provides
+          liquidity on matched Meteora DLMM pools for up to 12h. Opens require expected fees to cover
+          chain costs after the paper fee haircut. Real gate stores caps only in v1. Disable LP/Meridian
+          real on the same earn wallet first.
         </p>
       </div>
 
@@ -148,12 +148,12 @@ export default function AyeLabsExperiment() {
         </p>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">AyeLabs</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Meridian-style paper desk with strategy from gmgn-vl-radar: trending filters, V/L rank,
-          FLOW/S× gates, and 1-hour rotation. Meridian stays separate.
+          Meridian-style paper desk with strategy from gmgn-vl-radar: fee-farming DLMM ranges,
+          EV gate before open, and 12-hour holds. Meridian stays separate.
           {stateQ.data?.gmgnConfigured === false
             ? " GMGN_API_KEY missing on the API."
             : stateQ.data?.screening
-              ? ` Gates: liq $${Number(stateQ.data.screening.minLiquidityUsd || 2500).toLocaleString()}, smart degen ${String(stateQ.data.screening.minSmartDegen ?? 2)}.`
+              ? ` Gates: liq $${Number(stateQ.data.screening.minLiquidityUsd || 5000).toLocaleString()}, smart degen ${String(stateQ.data.screening.minSmartDegen ?? 2)}.`
               : ""}
         </p>
         <div className="flex flex-wrap gap-2 pt-1">

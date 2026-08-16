@@ -18,22 +18,26 @@ import {
   thompsonSampleStrategy,
   selectMeridianBanditLeader,
 } from "./meridianEvolution.js";
-import { isMeridianRealCronEnabled } from "./meridianRealService.js";
+import { isMeridianRealCronEnabled, meridianRealCapsMayScale, isMeridianGraduationBypassAllowed } from "./meridianRealService.js";
 import MeridianRealConfig from "../models/MeridianRealConfig.js";
 
-test("Meridian Bid-Ask Core is strategy 0 with Meridian screening", () => {
+test("Meridian Blue-Chip Spot is strategy 0 with conservative screening", () => {
   const core = MERIDIAN_STRATEGIES.find((s) => s.id === 0);
   assert.ok(core);
-  assert.equal(core.name, "Meridian Bid-Ask Core");
-  assert.equal(core.lpShape, "bid_ask");
-  assert.equal(core.binsBelow, 69);
-  assert.equal(core.binsAbove, 0);
+  assert.equal(core.name, "Meridian Blue-Chip Spot");
+  assert.equal(core.lpShape, "spot");
+  assert.equal(core.binsBelow, 45);
+  assert.equal(core.binsAbove, 45);
   assert.equal(core.exit?.takeProfitPct, 5);
-  assert.equal(core.exit?.stopLossPct, -15);
+  assert.equal(core.exit?.stopLossPct, -10);
   assert.equal(core.exit?.trailingTriggerPct, 3);
   assert.equal(core.exit?.trailingDropPct, 1.5);
   assert.equal(core.screeningOverrides?.minFeeTvlRatio, MERIDIAN_SCREENING_BASE.minFeeTvlRatio);
+  assert.equal(core.screeningOverrides?.minTvlUsd, 500_000);
   assert.equal(core.screeningOverrides?.minOrganic, 60);
+  assert.equal(MERIDIAN_SCREENING_BASE.minFeeTvlRatio, 0.01);
+  assert.equal(MERIDIAN_SCREENING_BASE.minHolders, 3_000);
+  assert.equal(MERIDIAN_SCREENING_BASE.minVolume24hUsd, 100_000);
 });
 
 test("Meridian roster includes mirror 98 and static count", () => {
@@ -86,6 +90,33 @@ test("selectMeridianBanditLeader prefers decided agents when present", () => {
   assert.ok([0, 1].includes(leader.strategyId));
 });
 
+test("selectMeridianBanditLeader with requirePositivePnl never picks a loser", () => {
+  const agents = [
+    { strategyId: 0, wins: 12, losses: 1, decided: 13, sumNetPnlSol: 1.2 },
+    { strategyId: 1, wins: 0, losses: 9, decided: 9, sumNetPnlSol: -0.8 },
+  ];
+  for (let i = 0; i < 40; i += 1) {
+    const leader = selectMeridianBanditLeader(agents, { requirePositivePnl: true });
+    assert.ok(leader);
+    assert.equal(leader.strategyId, 0);
+  }
+});
+
+test("selectMeridianBanditLeader with requirePositivePnl returns null when all red", () => {
+  const leader = selectMeridianBanditLeader(
+    [{ strategyId: 1, wins: 0, losses: 9, decided: 9, sumNetPnlSol: -0.8 }],
+    { requirePositivePnl: true },
+  );
+  assert.equal(leader, null);
+});
+
+test("meridianRealCapsMayScale requires real closed track record", () => {
+  assert.equal(meridianRealCapsMayScale({ closed: 4, winRate: 0.75, sumNetPnlSol: 0.2 }), false);
+  assert.equal(meridianRealCapsMayScale({ closed: 5, winRate: 0.4, sumNetPnlSol: 0.2 }), false);
+  assert.equal(meridianRealCapsMayScale({ closed: 5, winRate: 0.6, sumNetPnlSol: -0.1 }), false);
+  assert.equal(meridianRealCapsMayScale({ closed: 5, winRate: 0.6, sumNetPnlSol: 0.2 }), true);
+});
+
 test("mutateMeridianFromElite preserves parent shape most of the time and sets new id", () => {
   const parent = MERIDIAN_STRATEGIES[0];
   const child = mutateMeridianFromElite(parent, 42, { lessons: ["never chase thin TVL"] });
@@ -107,4 +138,5 @@ test("Meridian real ships disabled with hard caps", () => {
   assert.equal(maxConcDefault, 2);
   assert.equal(MERIDIAN_DEFAULTS.gasReserve, 0.2);
   assert.equal(MERIDIAN_DEFAULTS.positionSizePct, 0.35);
+  assert.equal(isMeridianGraduationBypassAllowed(), false);
 });

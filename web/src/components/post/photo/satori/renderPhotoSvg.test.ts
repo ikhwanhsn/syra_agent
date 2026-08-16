@@ -136,4 +136,22 @@ describe("renderPhotoSvg", () => {
       }
     }
   }, 120_000);
+
+  it("renders partner launch lockup with both brand images", async () => {
+    const svg = await renderPhotoSvg({
+      ...sampleCard,
+      role: "launch",
+      content: {
+        ...sampleCard.content,
+        badge: "Now live · Onchain x402",
+        headline: "Syra × Dexter",
+        subtitle: "Facilitator settle plus paid onchain activity.",
+        partnerName: "Dexter AI",
+        partnerLogo: "/images/logo.jpg",
+      },
+    });
+
+    expect(svg.startsWith("<svg")).toBe(true);
+    expect(svg.match(/<image /g)?.length).toBe(2);
+  }, 30_000);
 });

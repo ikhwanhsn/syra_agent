@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ModelSelector } from "@/components/llm/ModelSelector";
+import { FileUpload } from "@/components/motion/file-upload";
 import { useLlmTranscription } from "@/hooks/useLlmPlayground";
 
 function fileToBase64(file: File): Promise<{ data: string; format: string }> {
@@ -80,18 +81,20 @@ export function TranscriptionPanel() {
         <ModelSelector modality="transcription" value={model} onChange={onModelChange} />
 
         <div className="space-y-2">
-          <Label htmlFor="llm-stt-file">Audio file</Label>
-          <Input
-            id="llm-stt-file"
-            type="file"
+          <Label>Audio file</Label>
+          <FileUpload
+            multiple={false}
+            maxFiles={1}
             accept="audio/*,.mp3,.wav,.flac,.m4a,.ogg,.webm"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            title="Drop audio here"
+            description="mp3, wav, flac, m4a, ogg, or webm"
+            browseLabel="Browse"
+            onFilesAdded={(_items, files) => setFile(files[0] ?? null)}
+            onRemove={() => setFile(null)}
+            onValueChange={(items) => {
+              if (items.length === 0) setFile(null);
+            }}
           />
-          {file && (
-            <p className="text-xs text-muted-foreground">
-              {file.name} · {(file.size / 1024).toFixed(1)} KB
-            </p>
-          )}
         </div>
 
         <div className="space-y-2">

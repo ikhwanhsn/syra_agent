@@ -49,7 +49,7 @@ export function createAyeLabsRealRouter() {
       const body = req.body && typeof req.body === "object" ? req.body : {};
       const maxPositionSol =
         body.maxPositionSol != null ? Number(body.maxPositionSol) : undefined;
-      const requireGraduation = body.requireGraduation === false ? false : true;
+      const requireGraduation = true;
       const dryRun = body.dryRun === true;
       const data = await enableAyeLabsReal({
         anonymousId: req.user.anonymousId,

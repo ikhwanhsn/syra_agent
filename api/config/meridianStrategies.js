@@ -38,38 +38,38 @@ export const MERIDIAN_DEFAULTS = Object.freeze({
 });
 
 /**
- * Meridian screening base (from the desk's user-config profitable defaults).
+ * Conservative quality-pool screen (aligned with live engine user-config).
  * The reused LP scoring reads a subset of these keys (minOrganic, minFeeTvlRatio,
  * minVolume24hUsd, minHolderCount, minTvlUsd, maxTvlUsd, maxRiskScore, …). The remaining
- * Meridian-native keys (mcap, bin step, holder-quality) are carried into snapshots and used
- * by Meridian's own pre-screen in meridianService.
+ * Meridian-native keys (mcap, bin step, holder-quality) are carried into snapshots.
  */
 export const MERIDIAN_SCREENING_BASE = Object.freeze({
-  minFeeTvlRatio: 0.05,
-  minTvlUsd: 10_000,
-  maxTvlUsd: 150_000,
-  minVolume24hUsd: 500,
+  minFeeTvlRatio: 0.01,
+  minTvlUsd: 500_000,
+  maxTvlUsd: 50_000_000,
+  minVolume24hUsd: 100_000,
   minOrganic: 60,
-  minHolders: 500,
+  minHolders: 3_000,
   /** Alias so the reused LP screening (passesScreeningOverrides) also enforces holder floor. */
-  minHolderCount: 500,
-  minMcap: 150_000,
-  maxMcap: 10_000_000,
-  minBinStep: 80,
-  maxBinStep: 125,
+  minHolderCount: 3_000,
+  minMcap: 5_000_000,
+  maxMcap: 50_000_000_000,
+  minBinStep: 1,
+  maxBinStep: 80,
   minTokenFeesSol: 30,
-  maxBotHoldersPct: 30,
-  maxTop10Pct: 60,
+  maxBotHoldersPct: 15,
+  maxTop10Pct: 40,
+  minTokenAgeHours: 168,
 });
 
 export const MERIDIAN_STRATEGIES = Object.freeze([
   {
     id: 0,
-    name: "Meridian Bid-Ask Core",
-    lpShape: "bid_ask",
-    binsBelow: 69,
-    binsAbove: 0,
-    // PRIMARY PROFITABLE SETUP — single-sided bid-ask fee farm on thin high-velocity pools.
+    name: "Meridian Blue-Chip Spot",
+    lpShape: "spot",
+    binsBelow: 45,
+    binsAbove: 45,
+    // PRIMARY CONSERVATIVE SETUP — two-sided spot fee farm on liquid SOL pairs.
     screeningOverrides: { ...MERIDIAN_SCREENING_BASE },
     signalGate: {
       any: [
@@ -78,16 +78,16 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
       ],
       minPasses: 1,
     },
-    signalWeights: { ...MERIDIAN_DEFAULT_SIGNAL_WEIGHTS, fee_velocity: 1.6, fee_tvl_ratio: 1.7 },
+    signalWeights: { ...MERIDIAN_DEFAULT_SIGNAL_WEIGHTS, fee_velocity: 1.6, fee_tvl_ratio: 1.7, safety_score: 1.8 },
     exit: {
-      stopLossPct: -15,
+      stopLossPct: -10,
       takeProfitPct: 5,
       oorWaitMin: 30,
       trailingTriggerPct: 3,
       trailingDropPct: 1.5,
       minHoldMin: 30,
     },
-    notes: "Primary profitable seed: single-sided bid-ask fee farm on thin, high-velocity pools.",
+    notes: "Primary conservative seed: two-sided spot on high-TVL SOL pairs. Compound fees in range; never single-side a dump.",
   },
   {
     id: 1,
@@ -97,9 +97,9 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     binsAbove: 40,
     screeningOverrides: {
       ...MERIDIAN_SCREENING_BASE,
-      minFeeTvlRatio: 0.055,
+      minFeeTvlRatio: 0.015,
       minOrganic: 64,
-      minVolume24hUsd: 2_000,
+      minVolume24hUsd: 150_000,
     },
     signalGate: {
       any: [{ field: "fee_tvl_ratio", op: "gte", value: 0.45 }],
@@ -122,7 +122,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "curve",
     binsBelow: 38,
     binsAbove: 38,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minOrganic: 64, minHolderCount: 700 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minOrganic: 64, minHolderCount: 4_000 },
     signalGate: {
       any: [
         { field: "organic_score", op: "gte", value: 0.6 },
@@ -147,7 +147,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "bid_ask",
     binsBelow: 45,
     binsAbove: 5,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.055 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.015 },
     signalGate: {
       any: [{ field: "fee_tvl_ratio", op: "gte", value: 0.55 }],
       minPasses: 1,
@@ -169,7 +169,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "spot",
     binsBelow: 42,
     binsAbove: 42,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.06, minVolume24hUsd: 3_000 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.02, minVolume24hUsd: 150_000 },
     signalGate: {
       all: [{ field: "fee_tvl_ratio", op: "gte", value: 0.55 }],
       minPasses: 1,
@@ -191,7 +191,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "bid_ask",
     binsBelow: 60,
     binsAbove: 10,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minVolume24hUsd: 5_000 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minVolume24hUsd: 200_000 },
     signalGate: {
       any: [
         { field: "volume", op: "gte", value: 0.6 },
@@ -216,7 +216,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "spot",
     binsBelow: 50,
     binsAbove: 50,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minOrganic: 70, minHolderCount: 800 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minOrganic: 70, minHolderCount: 4_000 },
     signalGate: {
       any: [{ field: "organic_score", op: "gte", value: 0.65 }],
       minPasses: 1,
@@ -238,7 +238,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "bid_ask",
     binsBelow: 90,
     binsAbove: 0,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.055 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.015 },
     signalGate: {
       any: [
         { field: "volume", op: "gte", value: 0.55 },
@@ -285,7 +285,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "spot",
     binsBelow: 35,
     binsAbove: 35,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minMcap: 500_000, maxMcap: 5_000_000 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minMcap: 10_000_000, maxMcap: 5_000_000_000 },
     signalGate: {
       any: [{ field: "organic_score", op: "gte", value: 0.6 }],
       minPasses: 1,
@@ -307,7 +307,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "bid_ask",
     binsBelow: 50,
     binsAbove: 10,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minVolume24hUsd: 50_000 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minVolume24hUsd: 200_000 },
     signalGate: {
       any: [
         { field: "volume", op: "gte", value: 0.62 },
@@ -351,14 +351,14 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
   {
     id: MERIDIAN_REAL_MIRROR_STRATEGY_ID,
     name: "Meridian Real Mirror",
-    lpShape: "bid_ask",
-    binsBelow: 60,
-    binsAbove: 0,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minOrganic: 55, minFeeTvlRatio: 0.045 },
+    lpShape: "spot",
+    binsBelow: 45,
+    binsAbove: 45,
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE },
     signalGate: { minPasses: 0 },
     signalWeights: { ...MERIDIAN_DEFAULT_SIGNAL_WEIGHTS },
     exit: {
-      stopLossPct: -15,
+      stopLossPct: -10,
       takeProfitPct: 5,
       oorWaitMin: 30,
       trailingTriggerPct: 3,
@@ -366,7 +366,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
       minHoldMin: 30,
     },
     notes:
-      "Pinned mirror of the live Meridian real agent: follows the sim PnL leader on the real pool screen. Not evolvable.",
+      "Pinned mirror of the live Meridian real agent: follows a profitable sim leader on the conservative pool screen. Not evolvable.",
   },
 ]);
 

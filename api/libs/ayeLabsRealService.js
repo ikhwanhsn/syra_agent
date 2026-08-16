@@ -7,6 +7,7 @@ import AyeLabsRealConfig from "../models/AyeLabsRealConfig.js";
 import AyeLabsRealPosition from "../models/AyeLabsRealPosition.js";
 import AyeLabsState from "../models/AyeLabsState.js";
 import { AYE_LABS_CRON } from "../config/onchainEarnExperiments.js";
+import { AYE_LABS_REAL_MIRROR_STRATEGY_ID } from "../config/ayeLabsStrategies.js";
 import { ensureAyeLabsBootstrapped, getAyeLabsStats } from "./ayeLabsService.js";
 import { selectAyeLabsBanditLeader } from "./ayeLabsEvolution.js";
 import { lpAgentAnonymousIdFrom } from "./agentWalletPurpose.js";
@@ -26,6 +27,7 @@ const DEFAULT_DAILY_MAX_LOSS_SOL = CAPS.dailyMaxLossSol || 0.5;
 const CAP_SOL = CAPS.capSol || 1;
 
 const PAPER_GRAD_MIN_DECIDED = 20;
+const PAPER_GRAD_MIN_WIN_RATE = 0.45;
 const LEADER_MIN_DECIDED = 3;
 
 const OPEN_STATUSES = Object.freeze(["opening", "open", "closing"]);
@@ -82,23 +84,55 @@ export async function getOrCreateConfig(wallet) {
   return cfg;
 }
 
-export async function checkAyeLabsPaperGraduation() {
-  const stats = await getAyeLabsStats();
-  const totals = (stats.agents || []).reduce(
+/**
+ * Pure graduation check over getAyeLabsStats() rows. Mirror (id 98) is excluded.
+ * Hard floor: enough decided trades, positive aggregate AND average net, min win rate.
+ */
+export function evaluateAyeLabsPaperGraduation(stats) {
+  const agents = (stats?.agents || []).filter(
+    (a) => Number(a?.strategyId) !== AYE_LABS_REAL_MIRROR_STRATEGY_ID,
+  );
+  const totals = agents.reduce(
     (acc, a) => ({
       decided: acc.decided + toNum(a.decided),
+      wins: acc.wins + toNum(a.wins),
       sumNetPnlSol: acc.sumNetPnlSol + toNum(a.sumNetPnlSol),
     }),
-    { decided: 0, sumNetPnlSol: 0 },
+    { decided: 0, wins: 0, sumNetPnlSol: 0 },
   );
-  const pass = totals.decided >= PAPER_GRAD_MIN_DECIDED && totals.sumNetPnlSol > 0;
+  const winRate = totals.decided > 0 ? totals.wins / totals.decided : 0;
+  const avgNetPnlSol = totals.decided > 0 ? totals.sumNetPnlSol / totals.decided : 0;
+  const pass =
+    totals.decided >= PAPER_GRAD_MIN_DECIDED &&
+    totals.sumNetPnlSol > 0 &&
+    avgNetPnlSol > 0 &&
+    winRate >= PAPER_GRAD_MIN_WIN_RATE;
+  let reason = null;
+  if (!pass) {
+    if (totals.decided < PAPER_GRAD_MIN_DECIDED) {
+      reason = `need_${PAPER_GRAD_MIN_DECIDED}_decided_positive_net_pnl`;
+    } else if (!(totals.sumNetPnlSol > 0) || !(avgNetPnlSol > 0)) {
+      reason = "need_positive_avg_net_pnl";
+    } else {
+      reason = `need_win_rate_${Math.round(PAPER_GRAD_MIN_WIN_RATE * 100)}pct`;
+    }
+  }
   return {
     pass,
     decided: totals.decided,
+    wins: totals.wins,
     sumNetPnlSol: totals.sumNetPnlSol,
+    avgNetPnlSol,
+    winRate,
     minDecided: PAPER_GRAD_MIN_DECIDED,
-    reason: pass ? null : `need_${PAPER_GRAD_MIN_DECIDED}_decided_positive_net_pnl`,
+    minWinRate: PAPER_GRAD_MIN_WIN_RATE,
+    reason,
   };
+}
+
+export async function checkAyeLabsPaperGraduation() {
+  const stats = await getAyeLabsStats();
+  return evaluateAyeLabsPaperGraduation(stats);
 }
 
 export async function getAyeLabsRealState({ viewerAnonymousId } = {}) {
@@ -225,7 +259,9 @@ export async function enableAyeLabsReal({
   if (!anonymousId) throw new Error("anonymousId required");
 
   const graduation = await checkAyeLabsPaperGraduation();
-  if (requireGraduation && !graduation.pass) {
+  // Hard floor: client cannot bypass paper graduation (requireGraduation is ignored).
+  void requireGraduation;
+  if (!graduation.pass) {
     throw new Error(`paper_graduation_blocked:${graduation.reason}`);
   }
 
@@ -254,6 +290,18 @@ export async function enableAyeLabsReal({
   const cfg = await getOrCreateConfig(wallet);
   const stats = await getAyeLabsStats();
   const leader = selectAyeLabsBanditLeader(stats.agents, { minDecided: LEADER_MIN_DECIDED });
+  if (!leader || toNum(leader.stats?.sumNetPnlSol) <= 0) {
+    throw new Error("paper_graduation_blocked:no_positive_net_leader");
+  }
+  const leaderWinRate =
+    leader.stats?.winRate != null
+      ? toNum(leader.stats.winRate)
+      : toNum(leader.stats?.decided) > 0
+        ? toNum(leader.stats.wins) / toNum(leader.stats.decided)
+        : 0;
+  if (leaderWinRate < PAPER_GRAD_MIN_WIN_RATE) {
+    throw new Error("paper_graduation_blocked:leader_win_rate");
+  }
 
   cfg.enabled = true;
   cfg.startedAt = cfg.startedAt ?? new Date();
@@ -278,11 +326,7 @@ export async function enableAyeLabsReal({
   cfg.closeAllRequested = false;
   cfg.lossPausedAt = null;
   cfg.lastEnabledBy = enabledBy || anonymousId;
-  cfg.lastError = dryRun
-    ? "dry_run_gate_only"
-    : graduation.pass
-      ? "real_opens_pending_lp_exec_wire"
-      : `soft_warn:${graduation.reason}`;
+  cfg.lastError = dryRun ? "dry_run_gate_only" : "real_opens_pending_lp_exec_wire";
   cfg.capitalBaselineSol = cfg.capitalBaselineSol ?? CAP_SOL;
   await cfg.save();
 

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "@/lib/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownUp, Loader2, Wallet } from "lucide-react";
+import { ArrowDownUp, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatefulButton, type ButtonState } from "@/components/motion/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWalletContext } from "@/contexts/WalletContext";
@@ -322,7 +323,9 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
     return null;
   }, [actionError, amount, quoteQuery]);
 
-  const busy = phase === "building" || phase === "signing";
+  const busy = phase === "building" || phase === "signing" || phase === "confirming";
+  const confirmState: ButtonState =
+    busy ? "loading" : phase === "error" ? "error" : "idle";
 
   const quoteLoadingActive =
     quoteQuery.hasValidAmount && (quoteQuery.isFetching || quoteQuery.isDebouncing);
@@ -509,17 +512,17 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
                   ) : null}
                 </p>
                 <div className="flex gap-2">
-                  <Button
+                  <StatefulButton
                     className="h-11 flex-1 rounded-xl font-semibold"
+                    state={confirmState}
                     onClick={() => void handleSwap()}
                     disabled={busy}
+                    loadingText="Swapping"
+                    successText="Submitted"
+                    errorText="Try again"
                   >
-                    {busy ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Confirm swap"
-                    )}
-                  </Button>
+                    Confirm swap
+                  </StatefulButton>
                   <Button
                     variant="outline"
                     className="h-11 rounded-xl"

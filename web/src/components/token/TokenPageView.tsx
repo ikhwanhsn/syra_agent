@@ -6,6 +6,7 @@ import { AboutTokenBar } from "@/components/about/AboutTokenBar";
 import { GrowthBuybackProofPanel } from "@/components/growth/GrowthBuybackProofPanel";
 import { GrowthFooter } from "@/components/growth/GrowthFooter";
 import { TokenSection } from "@/components/marketing/TokenSection";
+import { BouncyAccordion } from "@/components/motion/bouncy-accordion";
 import { HolderBenefitsPanel } from "@/components/syra/HolderBenefitsPanel";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
 import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
@@ -56,6 +57,38 @@ export function TokenPageView() {
             </Button>
           </div>
         </header>
+
+        <div className="mb-8">
+          <BouncyAccordion
+            defaultValue="what"
+            items={[
+              {
+                id: "what",
+                title: "What is $SYRA?",
+                description:
+                  "Utility for the machine-money layer agents settle on. Product growth is paid calls; the token is how usage routes back to holders.",
+              },
+              {
+                id: "buybacks",
+                title: "How do buybacks work?",
+                description:
+                  "Treasury-settled revenue (about 80%) queues into $SYRA buybacks. Verify live fills on this page, not a promise of price.",
+              },
+              {
+                id: "buy",
+                title: "How do I buy?",
+                description:
+                  "Swap SOL for $SYRA on the Syra swap page. Always verify the mint before you sign.",
+              },
+              {
+                id: "stake",
+                title: "How do I stake?",
+                description:
+                  "Open the staking page to lock $SYRA in Streamflow. Usage rewards are a separate surface at /rewards.",
+              },
+            ]}
+          />
+        </div>
 
         <div className="mb-8">
           <GrowthBuybackProofPanel />

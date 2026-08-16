@@ -63,7 +63,7 @@ export function createMeridianRealRouter() {
       const body = req.body && typeof req.body === 'object' ? req.body : {};
       const maxPositionSol =
         body.maxPositionSol != null ? Number(body.maxPositionSol) : undefined;
-      // Live ops: allow skipping graduation when admin explicitly opts out.
+      // Live ops: graduation skip is ignored unless MERIDIAN_ALLOW_GRADUATION_BYPASS is set (non-prod).
       const requireGraduation = body.requireGraduation === false ? false : true;
       const dryRun = body.dryRun === true;
       const data = await enableMeridianReal({

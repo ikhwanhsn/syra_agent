@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { Link } from "@/lib/navigation";
+import { ActionSwapBlurButton } from "@/components/motion/action-swap-blur";
 import { SYRA_BUY_SWAP_URL } from "@/lib/swapNavigation";
 import { SYRA_TOKEN_MINT, truncateBase58 } from "@/data/marketing/agentIdentity";
 import { SYRA_TOKEN_PAGE_PATH } from "@/content/syraFocus";
@@ -69,30 +70,23 @@ export function GrowthTokenSection() {
                 <span className="truncate sm:hidden">{truncateBase58(SYRA_TOKEN_MINT, 8, 8)}</span>
                 <span className="hidden truncate sm:inline">{SYRA_TOKEN_MINT}</span>
               </code>
-              <button
-                type="button"
-                onClick={() => void copyMint()}
+              <ActionSwapBlurButton
+                items={[
+                  { id: "copy", label: "Copy", icon: <Copy className="h-3.5 w-3.5" />, ariaLabel: "Copy $SYRA mint address" },
+                  { id: "copied", label: "Copied", icon: <Check className="h-3.5 w-3.5" />, ariaLabel: "Mint address copied" },
+                ]}
+                value={copied ? "copied" : "copy"}
+                cycle={false}
+                size="md"
+                variant="outline"
                 className={cn(
-                  "inline-flex h-10 min-h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3.5 text-xs font-medium transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "h-10 min-h-10 shrink-0 rounded-xl px-3.5 text-xs font-medium",
                   copied
-                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
+                    ? "border-success/35 bg-success/10 text-success"
                     : "border-border/45 bg-background/40 text-muted-foreground hover:border-border/70 hover:text-foreground",
                 )}
-                aria-label="Copy $SYRA mint address"
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-3.5 w-3.5" aria-hidden />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3.5 w-3.5" aria-hidden />
-                    Copy
-                  </>
-                )}
-              </button>
+                onClick={() => void copyMint()}
+              />
             </div>
             <p className="mt-3 text-xs text-muted-foreground/75">
               Verify mint before you swap
