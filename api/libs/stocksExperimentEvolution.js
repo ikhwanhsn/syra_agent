@@ -118,24 +118,26 @@ export function stocksEvolutionConfigFromEnv() {
 }
 
 const UNIVERSE_PRESETS = Object.freeze([
-  ["TSLAx", "NVDAx", "AAPLx"],
-  ["TSLAx", "AAPLx", "SPYx", "SPCXx"],
-  ["NVDAx", "TSLAx", "SPCXx"],
-  ["SPYx", "AAPLx"],
+  ["TSLAx", "SPCXx"],
+  ["TSLAx", "NVDAx", "SPCXx"],
+  ["TSLAx", "AAPLx", "SPYx"],
   ["TSLAx", "NVDAx", "AAPLx", "SPYx", "SPCXx"],
 ]);
 
 const GATE_PRESETS = Object.freeze([
   {
-    any: [{ field: "sentiment_score", op: "gte", value: 0.1 }],
+    all: [{ field: "momentum_score", op: "gte", value: 0.56 }],
     minPasses: 1,
   },
   {
-    any: [{ field: "event_score", op: "gte", value: 0.4 }],
+    all: [{ field: "trend_score", op: "gte", value: 0.54 }],
     minPasses: 1,
   },
   {
-    all: [{ field: "freshness_score", op: "gte", value: 0.5 }],
+    all: [
+      { field: "momentum_score", op: "gte", value: 0.55 },
+      { field: "freshness_score", op: "gte", value: 0.3 },
+    ],
     minPasses: 1,
   },
 ]);
@@ -160,16 +162,19 @@ export function buildRandomStocksStrategy(strategyId) {
   return {
     strategyId,
     name: `News lab #${strategyId} · ${tag}`,
-    minSentiment: mutateNum(0.05, 2, -0.3, 0.5),
+    minSentiment: mutateNum(-0.2, 0.5, -1, 0.1),
     eventWeight: mutateNum(1, 0.5, 0.3, 2.5),
-    momentumConfirm: Math.random() < 0.5,
-    maxHoldHours: randInt(12, 96),
+    momentumConfirm: Math.random() < 0.75,
+    allowShort: Math.random() < 0.2,
+    shortOnly: false,
+    maxHoldHours: randInt(12, 72),
     universeFilter: { symbols: pick(UNIVERSE_PRESETS) },
     signalGate: pick(GATE_PRESETS),
     signalWeights,
     exit: {
-      stopLossPct: -randInt(3, 8),
-      takeProfitPct: randInt(5, 15),
+      stopLossPct: -randInt(3, 6),
+      takeProfitPct: randInt(5, 10),
+      atrScale: true,
     },
     notes: "Evolution spawn — randomized stocks news agent",
   };
@@ -200,20 +205,25 @@ export function mutateStocksStrategyFromElite(parent, strategyId, stats = {}) {
     holdHi = Math.max(18, Math.min(36, parent.maxHoldHours ?? 24));
   }
 
-  let minSentiment = mutateNum(parent.minSentiment ?? 0.1, 0.2, -0.3, 0.5);
+  let minSentiment = mutateNum(parent.minSentiment ?? -1, 0.2, -1, 0.2);
   let signalGate = parent.signalGate ?? pick(GATE_PRESETS);
-  // Soft win rate → tighten entry gates instead of randomizing exits only.
+  let allowShort = Boolean(parent.allowShort);
+  let shortOnly = Boolean(parent.shortOnly);
   if (winRate != null && winRate < 0.5) {
-    minSentiment = clamp(Math.max(minSentiment, 0.12), -0.3, 0.5);
     signalGate = {
-      all: [{ field: "sentiment_score", op: "gte", value: 0.15 }],
+      all: [
+        { field: "momentum_score", op: "gte", value: 0.58 },
+        { field: "trend_score", op: "gte", value: 0.54 },
+      ],
       minPasses: 1,
     };
-    signalWeights.sentiment_score = clamp(
-      Number(signalWeights.sentiment_score || 1) + 0.2,
+    signalWeights.momentum_score = clamp(
+      Number(signalWeights.momentum_score || 1) + 0.2,
       0.3,
       2.5,
     );
+    allowShort = false;
+    shortOnly = false;
   }
 
   let takeProfitPct = mutateNum(parent.exit?.takeProfitPct ?? 8, 0.15, 4, 20);
@@ -235,8 +245,10 @@ export function mutateStocksStrategyFromElite(parent, strategyId, stats = {}) {
     name: `${parent.name?.slice(0, 24) ?? "Elite"} · evo ${tag}`,
     minSentiment,
     eventWeight: mutateNum(parent.eventWeight ?? 1, 0.2, 0.3, 2.5),
-    momentumConfirm:
-      winRate != null && winRate < 0.5 ? true : (parent.momentumConfirm ?? false),
+    momentumConfirm: true,
+    allowShort,
+    shortOnly,
+    sideMode: parent.sideMode === "fade" ? "fade" : "follow",
     maxHoldHours: randInt(holdLo, Math.max(holdLo, holdHi)),
     universeFilter,
     signalGate,
@@ -244,6 +256,7 @@ export function mutateStocksStrategyFromElite(parent, strategyId, stats = {}) {
     exit: {
       stopLossPct,
       takeProfitPct,
+      atrScale: parent.exit?.atrScale !== false,
     },
     notes: `Evolved from agent #${parent.id} (${parent.name}); expire=${expireRate.toFixed(2)}`,
   };
@@ -286,6 +299,31 @@ export async function rankStocksStrategiesByPnl(experimentId) {
     },
   ]);
 
+  const recentByStrategy = await StocksExperimentRun.aggregate([
+    { $match: { experimentId: expId, status: { $in: ["win", "loss", "expired"] } } },
+    { $sort: { resolvedAt: 1, createdAt: 1 } },
+    {
+      $group: {
+        _id: "$strategyId",
+        pnls: { $push: { $ifNull: ["$simPnlUsd", 0] } },
+      },
+    },
+  ]);
+  const oosMap = new Map();
+  for (const row of recentByStrategy) {
+    const pnls = Array.isArray(row.pnls) ? row.pnls : [];
+    const n = pnls.length;
+    const split = Math.max(1, Math.floor(n * 0.6));
+    const holdout = pnls.slice(0, split);
+    const recent = pnls.slice(split);
+    const avg = (arr) =>
+      arr.length ? arr.reduce((a, b) => a + Number(b || 0), 0) / arr.length : 0;
+    oosMap.set(row._id, {
+      holdoutAvgPnlUsd: avg(holdout),
+      recentAvgPnlUsd: recent.length ? avg(recent) : avg(holdout),
+    });
+  }
+
   const openCounts = await StocksExperimentRun.aggregate([
     { $match: { experimentId: expId, status: "open" } },
     { $group: { _id: "$strategyId", openPositions: { $sum: 1 } } },
@@ -302,6 +340,7 @@ export async function rankStocksStrategiesByPnl(experimentId) {
     const decided = wins + losses;
     const closed = decided + expired;
     const winRate = decided > 0 ? wins / decided : null;
+    const oos = oosMap.get(s.id) || { holdoutAvgPnlUsd: 0, recentAvgPnlUsd: row?.avgPnlUsd ?? 0 };
     const base = {
       strategyId: s.id,
       strategyName: s.name,
@@ -314,6 +353,8 @@ export async function rankStocksStrategiesByPnl(experimentId) {
       winRate,
       sumPnlUsd: row?.sumPnlUsd ?? 0,
       avgPnlUsd: row?.avgPnlUsd ?? 0,
+      recentAvgPnlUsd: oos.recentAvgPnlUsd,
+      holdoutAvgPnlUsd: oos.holdoutAvgPnlUsd,
       grossWinUsd: row?.grossWinUsd ?? 0,
       grossLossUsd: row?.grossLossUsd ?? 0,
       openPositions: openMap.get(s.id) ?? 0,

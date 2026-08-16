@@ -97,6 +97,8 @@ export interface StocksRunRow {
   nasdaqTicker: string | null;
   entryPriceUsd: number;
   notionalUsd: number;
+  side?: "long" | "short";
+  priceSource?: string | null;
   signalSnapshot: Record<string, unknown> | null;
   newsHeadline: string | null;
   status: StocksRunStatus;
@@ -126,6 +128,9 @@ export interface StocksNewsSignal {
   eventScore: number;
   freshnessScore: number;
   momentumScore: number;
+  trendScore?: number;
+  volatilityScore?: number;
+  volatilityPct?: number;
   volumeScore: number;
   spreadScore: number;
   direction: "long" | "short" | "neutral";

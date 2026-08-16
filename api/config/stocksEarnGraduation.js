@@ -35,9 +35,10 @@ export const STOCKS_EARN_PREREQUISITES = Object.freeze([
 export const STOCKS_EARN_GRADUATION_STAGES = Object.freeze([
   {
     id: "paper_watch",
-    label: "Public paper watch",
+    label: "Admin paper watch",
     earnListed: false,
-    description: "Admin or public /stocks leaderboard. No deposits.",
+    description:
+      "Admin-only /stocks desk on a realistic paper sim. No public nav, no deposits, no real executor until paper_edge passes.",
   },
   {
     id: "paper_edge",

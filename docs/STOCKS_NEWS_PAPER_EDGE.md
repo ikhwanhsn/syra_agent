@@ -8,9 +8,9 @@ Do not list Stocks on Earn Yield (no `coming_soon` tease, no deposits) until eve
 
 | Surface | Open? |
 |---|---|
-| Public paper watch at `/stocks` | Yes (read-only leaderboard) |
+| Admin paper watch at `/stocks` | Yes (admin wallet + Syra session only) |
 | Earn Yield deposits | **No** |
-| Earn Skills / paid `/equity` | Separate products; OK for real micropayments |
+| Real Jupiter executor | **No** until paper-edge dossier passes |
 
 Registry guard: `EARN_YIELD_BLOCKED_EXPERIMENTS` in [`api/config/earnProducts.js`](../api/config/earnProducts.js) fails boot/tests if a `stocks_*` product is registered.
 
@@ -63,7 +63,7 @@ From `STOCKS_EARN_KILL_CRITERIA`:
 
 ## Graduation path (do not skip)
 
-1. **Paper watch** — public `/stocks`, no capital (current).
+1. **Paper watch** — admin `/stocks`, realistic sim (spread + slippage + risk fraction). No capital (current).
 2. **Paper edge** — dossier script green.
 3. **Compliance** — equity-like xStocks legal/reputational review.
 4. **Real lab** — Jupiter + `walletBroker` executor, `stocks_real_config` with `publicEarnListed=false`, small notional, cron gated.

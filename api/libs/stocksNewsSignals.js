@@ -1,21 +1,27 @@
 /**
- * Deterministic news/sentiment/event scoring for xStocks universe.
+ * News + real price momentum scoring for the xStocks universe.
  */
 import { XSTOCKS_CATALOG } from "../config/equityTokens.js";
 import { fetchXStocksAsset } from "./xstocksAssetRegistry.js";
+import { getAssetNews, getAssetEvents } from "./assetNewsFeed.js";
+import StocksPriceSnapshot from "../models/StocksPriceSnapshot.js";
 import {
-  getAssetNews,
-  getAssetSentiment,
-  getAssetEvents,
-} from "./assetNewsFeed.js";
+  computeMomentumFromPrices,
+  loadMomentumPriceSeries,
+} from "./stocksPriceMomentum.js";
 
 /** @typedef {{ symbol: string; name: string; mint: string; nasdaqTicker: string | null; isTradingHalted: boolean }} UniverseEntry */
 
-/** @typedef {{ symbol: string; sentimentScore: number; eventScore: number; freshnessScore: number; momentumScore: number; volumeScore: number; spreadScore: number; direction: 'long' | 'short' | 'neutral'; compositeScore: number; topHeadline: string | null; newsCount: number; fetchedAt: string }} StockNewsSignal */
+/** @typedef {{ symbol: string; sentimentScore: number; eventScore: number; freshnessScore: number; momentumScore: number; trendScore: number; volatilityScore: number; volatilityPct: number; volumeScore: number; spreadScore: number; direction: 'long' | 'short' | 'neutral'; compositeScore: number; topHeadline: string | null; newsCount: number; fetchedAt: string }} StockNewsSignal */
 
 const CACHE_TTL_MS = 90_000;
 /** @type {Map<string, { expires: number; data: StockNewsSignal }>} */
 const signalCache = new Map();
+
+const BULLISH_RE =
+  /\b(beat|beats|surge|surges|rally|rallies|upgrade|upgraded|record|profit|growth|bullish|soar|soars|jump|jumps|gain|gains|outperform|buy rating|raised guidance|all-time high)\b/i;
+const BEARISH_RE =
+  /\b(miss|misses|plunge|plunges|downgrade|downgraded|lawsuit|probe|loss|losses|bearish|tumble|tumbles|fall|falls|cut|cuts|sell rating|lowered guidance|recall|fraud|investigation)\b/i;
 
 /**
  * @param {import('../config/equityTokens.js').EquityTokenEntry} entry
@@ -30,39 +36,64 @@ function keywordQueryForEntry(entry) {
   return { primary, all };
 }
 
-/**
- * @param {unknown[]} sentimentRows
- */
-function extractSentimentScore(sentimentRows) {
-  if (!Array.isArray(sentimentRows) || sentimentRows.length === 0) return 0;
-  const latest = sentimentRows[sentimentRows.length - 1];
-  const bucket = latest?.ticker ?? latest?.general ?? latest?.allTicker;
-  if (!bucket || typeof bucket !== "object") return 0;
-  const b = /** @type {Record<string, number>} */ (bucket);
-  const score = b.sentiment_score ?? b.Sentiment_Score;
-  if (typeof score === "number" && Number.isFinite(score)) return Math.max(-1, Math.min(1, score));
-  const total = (b.Total ?? 0) || (b.Positive ?? 0) + (b.Negative ?? 0) + (b.Neutral ?? 0);
-  if (total <= 0) return 0;
-  return Math.max(-1, Math.min(1, ((b.Positive ?? 0) - (b.Negative ?? 0)) / total));
+function articleText(row) {
+  return `${row?.title ?? row?.news_title ?? ""} ${row?.text ?? row?.description ?? ""}`;
 }
 
 /**
- * @param {unknown[]} eventRows
+ * Headline lexicon sentiment in [-1, 1]. Returns 0 only when there are no keyword hits.
+ * @param {unknown[]} newsRows
  */
-function extractEventScore(eventRows) {
-  if (!Array.isArray(eventRows) || eventRows.length === 0) return 0;
-  let count = 0;
-  for (const row of eventRows) {
-    const bucket = row?.ticker ?? row?.general;
-    if (Array.isArray(bucket)) count += bucket.length;
+export function extractHeadlineSentiment(newsRows) {
+  if (!Array.isArray(newsRows) || newsRows.length === 0) return 0;
+  let pos = 0;
+  let neg = 0;
+  for (const row of newsRows) {
+    const text = articleText(row);
+    const bull = BULLISH_RE.test(text);
+    const bear = BEARISH_RE.test(text);
+    if (bull && !bear) pos += 1;
+    else if (bear && !bull) neg += 1;
   }
-  return Math.min(1, count / 5);
+  const hits = pos + neg;
+  if (hits === 0) return 0;
+  return Math.max(-1, Math.min(1, (pos - neg) / hits));
 }
 
 /**
- * @param {import('./assetNewsFeed.js').CryptonewsArticle[] | unknown[]} newsRows
+ * Age-decayed, de-duplicated event score in [0, 1]. Does not saturate at 1 event.
+ * @param {unknown[]} eventRows
+ * @param {number} [nowMs]
  */
-function extractFreshnessScore(newsRows) {
+export function extractEventScore(eventRows, nowMs = Date.now()) {
+  if (!Array.isArray(eventRows) || eventRows.length === 0) return 0;
+  const seen = new Set();
+  let weight = 0;
+  for (const row of eventRows) {
+    const dateStr = typeof row?.date === "string" ? row.date : null;
+    const bucket = Array.isArray(row?.ticker)
+      ? row.ticker
+      : Array.isArray(row?.general)
+        ? row.general
+        : [];
+    for (const ev of bucket) {
+      const name = String(ev?.event_name ?? ev?.title ?? "").trim().toLowerCase();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      const published = dateStr ? new Date(dateStr).getTime() : nowMs;
+      const ageHours = Number.isFinite(published) ? (nowMs - published) / 3_600_000 : 24;
+      const decay = Math.max(0, 1 - ageHours / 48);
+      weight += decay;
+    }
+  }
+  if (weight <= 0) return 0;
+  return 1 - Math.exp(-weight / 2);
+}
+
+/**
+ * @param {unknown[]} newsRows
+ */
+export function extractFreshnessScore(newsRows) {
   if (!Array.isArray(newsRows) || newsRows.length === 0) return 0;
   const now = Date.now();
   let best = 0;
@@ -78,19 +109,46 @@ function extractFreshnessScore(newsRows) {
 }
 
 /**
- * Deterministic momentum proxy from sentiment + event recency (no price in signal layer).
- * @param {number} sentimentScore
- * @param {number} eventScore
- * @param {number} freshnessScore
+ * Warn when a scored field does not discriminate across the universe.
+ * @param {StockNewsSignal[]} signals
+ * @param {(msg: string) => void} [log]
  */
-function deriveMomentumScore(sentimentScore, eventScore, freshnessScore) {
-  const raw = sentimentScore * 0.5 + eventScore * 0.3 + freshnessScore * 0.2;
-  return Math.max(0, Math.min(1, (raw + 1) / 2));
+export function warnIfSignalsCollapsed(signals, log = console.warn) {
+  if (!Array.isArray(signals) || signals.length < 2) return { collapsed: [] };
+  const fields = ["sentimentScore", "eventScore", "momentumScore", "trendScore"];
+  const collapsed = [];
+  for (const field of fields) {
+    const vals = signals.map((s) => Number(s[field])).filter(Number.isFinite);
+    if (vals.length < 2) continue;
+    const span = Math.max(...vals) - Math.min(...vals);
+    if (span < 0.02) collapsed.push(field);
+  }
+  if (collapsed.length > 0) {
+    log(`[stocks signals] collapsed fields: ${collapsed.join(",")}`);
+  }
+  return { collapsed };
+}
+
+function directionFromScores({ compositeScore, momentumScore, trendScore }) {
+  if (trendScore > 0.54 && momentumScore >= 0.32) return "long";
+  if (momentumScore > 0.58 && trendScore > 0.52) return "long";
+  if (momentumScore < 0.42 && trendScore < 0.48) return "short";
+  if (compositeScore > 0.12) return "long";
+  if (compositeScore < -0.12) return "short";
+  return "neutral";
 }
 
 /**
  * @param {string} symbol
- * @param {{ priceUsd?: number; nasdaqPriceUsd?: number }} [priceCtx]
+ * @param {{
+ *   priceUsd?: number;
+ *   nasdaqPriceUsd?: number;
+ *   priceChange24h?: number | null;
+ *   spreadPct?: number | null;
+ *   liquidityUsd?: number | null;
+ *   source?: string;
+ *   mint?: string;
+ * }} [priceCtx]
  * @returns {Promise<StockNewsSignal | null>}
  */
 export async function fetchStockNewsSignal(symbol, priceCtx = {}) {
@@ -106,30 +164,57 @@ export async function fetchStockNewsSignal(symbol, priceCtx = {}) {
   const kw = keywordQueryForEntry(catalogEntry);
   const ticker = catalogEntry.nasdaqTicker || sym.replace(/x$/i, "");
 
-  const [news, sentiment, events] = await Promise.all([
+  const [news, events] = await Promise.all([
     getAssetNews(ticker, kw, 12),
-    getAssetSentiment(ticker, kw),
     getAssetEvents(ticker, kw),
   ]);
 
-  const sentimentScore = extractSentimentScore(sentiment);
+  const sentimentScore = extractHeadlineSentiment(news);
   const eventScore = extractEventScore(events);
   const freshnessScore = extractFreshnessScore(news);
-  const momentumScore = deriveMomentumScore(sentimentScore, eventScore, freshnessScore);
+
+  let onchainCloses = [];
+  try {
+    const snap = await StocksPriceSnapshot.findOne({ symbol: catalogEntry.symbol }).lean();
+    onchainCloses = (snap?.samples || []).map((s) => Number(s.priceUsd)).filter((p) => p > 0);
+  } catch {
+    onchainCloses = [];
+  }
+
+  const series = await loadMomentumPriceSeries(
+    catalogEntry.symbol,
+    catalogEntry.nasdaqTicker ?? null,
+    onchainCloses,
+  );
+  const mom = computeMomentumFromPrices(series, priceCtx.priceChange24h ?? null);
 
   const spreadScore =
-    priceCtx.priceUsd && priceCtx.nasdaqPriceUsd && priceCtx.nasdaqPriceUsd > 0
-      ? Math.max(0, 1 - Math.abs(priceCtx.priceUsd / priceCtx.nasdaqPriceUsd - 1))
-      : 0.5;
+    priceCtx.spreadPct != null && Number.isFinite(Number(priceCtx.spreadPct))
+      ? Math.max(0, 1 - Math.abs(Number(priceCtx.spreadPct)) / 8)
+      : priceCtx.priceUsd && priceCtx.nasdaqPriceUsd && priceCtx.nasdaqPriceUsd > 0
+        ? Math.max(0, 1 - Math.abs(priceCtx.priceUsd / priceCtx.nasdaqPriceUsd - 1))
+        : 0.5;
 
-  const volumeScore = news.length > 0 ? Math.min(1, news.length / 8) : 0;
+  const absChg = Math.abs(Number(priceCtx.priceChange24h) || mom.returnPct || 0);
+  const volumeScore = Math.min(
+    1,
+    (Array.isArray(news) ? news.length / 8 : 0) * 0.35 + Math.min(1, absChg / 6) * 0.65,
+  );
 
+  const momentumCentered = (mom.momentumScore - 0.5) * 2;
+  const trendCentered = (mom.trendScore - 0.5) * 2;
   const compositeScore =
-    sentimentScore * 0.35 + eventScore * 0.25 + freshnessScore * 0.2 + momentumScore * 0.2;
+    sentimentScore * 0.15 +
+    eventScore * 0.15 +
+    freshnessScore * 0.15 +
+    momentumCentered * 0.35 +
+    trendCentered * 0.2;
 
-  let direction = "neutral";
-  if (compositeScore > 0.08) direction = "long";
-  else if (compositeScore < -0.08) direction = "short";
+  const direction = directionFromScores({
+    compositeScore,
+    momentumScore: mom.momentumScore,
+    trendScore: mom.trendScore,
+  });
 
   const topHeadline =
     Array.isArray(news) && news.length > 0
@@ -141,7 +226,10 @@ export async function fetchStockNewsSignal(symbol, priceCtx = {}) {
     sentimentScore,
     eventScore,
     freshnessScore,
-    momentumScore,
+    momentumScore: mom.momentumScore,
+    trendScore: mom.trendScore,
+    volatilityScore: mom.volatilityScore,
+    volatilityPct: mom.volatilityPct,
     volumeScore,
     spreadScore,
     direction,
@@ -187,14 +275,16 @@ export async function resolveStocksUniverse() {
 
 /**
  * @param {string[]} symbols
- * @param {Record<string, { priceUsd?: number; nasdaqPriceUsd?: number }>} [priceMap]
+ * @param {Record<string, { priceUsd?: number; nasdaqPriceUsd?: number; priceChange24h?: number; spreadPct?: number; liquidityUsd?: number; source?: string; mint?: string }>} [priceMap]
  * @returns {Promise<StockNewsSignal[]>}
  */
 export async function fetchAllStockNewsSignals(symbols, priceMap = {}) {
   const results = await Promise.all(
     symbols.map((sym) => fetchStockNewsSignal(sym, priceMap[sym] ?? {})),
   );
-  return results.filter(Boolean);
+  const signals = results.filter(Boolean);
+  warnIfSignalsCollapsed(signals);
+  return signals;
 }
 
 /**
@@ -210,12 +300,14 @@ export function scoreStockSignal(weights, signal) {
     event_score: signal.eventScore,
     freshness_score: signal.freshnessScore,
     momentum_score: signal.momentumScore,
+    trend_score: signal.trendScore ?? 0.5,
+    volatility_score: signal.volatilityScore ?? 0.5,
     volume_score: signal.volumeScore,
     spread_score: signal.spreadScore,
   };
 
   for (const [field, value] of Object.entries(fields)) {
-    const weight = Number(w[field] ?? 1);
+    const weight = Number(w[field] ?? 0);
     if (!Number.isFinite(weight) || weight <= 0) continue;
     const normalized = field === "sentiment_score" ? (value + 1) / 2 : value;
     score += normalized * weight;
@@ -236,6 +328,8 @@ export function applyStocksSignalGate(strategy, signal) {
     event_score: signal.eventScore,
     freshness_score: signal.freshnessScore,
     momentum_score: signal.momentumScore,
+    trend_score: signal.trendScore ?? 0.5,
+    volatility_score: signal.volatilityScore ?? 0.5,
     volume_score: signal.volumeScore,
     spread_score: signal.spreadScore,
   };
@@ -284,7 +378,7 @@ export function applyStocksSignalGate(strategy, signal) {
   }
 
   if (allRules.length === 0 && anyRules.length === 0) {
-    passes = signal.direction === "long" ? 1 : 0;
+    passes = signal.direction === "long" || signal.direction === "short" ? 1 : 0;
     if (!passes) reasons.push("neutral direction");
   }
 

@@ -13,6 +13,9 @@ function mergeBaseWithOverride(base, o) {
     minSentiment: typeof o.minSentiment === "number" ? o.minSentiment : base.minSentiment,
     eventWeight: typeof o.eventWeight === "number" ? o.eventWeight : base.eventWeight,
     momentumConfirm: typeof o.momentumConfirm === "boolean" ? o.momentumConfirm : base.momentumConfirm,
+    allowShort: typeof o.allowShort === "boolean" ? o.allowShort : Boolean(base.allowShort),
+    shortOnly: typeof o.shortOnly === "boolean" ? o.shortOnly : Boolean(base.shortOnly),
+    sideMode: typeof o.sideMode === "string" ? o.sideMode : base.sideMode,
     maxHoldHours: typeof o.maxHoldHours === "number" ? o.maxHoldHours : base.maxHoldHours,
     universeFilter:
       o.universeFilter != null && typeof o.universeFilter === "object"
@@ -42,6 +45,9 @@ function overrideRowToStrategy(o) {
     minSentiment: o.minSentiment ?? 0,
     eventWeight: o.eventWeight ?? 1,
     momentumConfirm: Boolean(o.momentumConfirm),
+    allowShort: Boolean(o.allowShort),
+    shortOnly: Boolean(o.shortOnly),
+    sideMode: o.sideMode || "follow",
     maxHoldHours: o.maxHoldHours ?? 48,
     universeFilter: o.universeFilter ?? {},
     signalGate: o.signalGate ?? { minPasses: 0 },

@@ -4,15 +4,16 @@
  */
 
 /** Min decided (wins+losses) before a strategy can be named lab leader. */
-const MIN_DECIDED_FOR_LEADER = 12;
+const MIN_DECIDED_FOR_LEADER = 30;
 
 /** Elite parent bar for evolution spawns (stricter than leader floor). */
-const ELITE_MIN_DECIDED = 12;
+const ELITE_MIN_DECIDED = 30;
 const ELITE_MIN_WIN_RATE = 0.48;
 const ELITE_MIN_AVG_PNL_USD = 0;
+const ELITE_MIN_RECENT_AVG_PNL_USD = 0;
 
 /** Sample size where score is fully trusted. */
-const FULL_SAMPLE_DECIDED = 20;
+const FULL_SAMPLE_DECIDED = 40;
 
 function toNum(value, fallback = 0) {
   const n = Number(value);
@@ -82,6 +83,7 @@ export function computeStocksLeaderScore(row) {
  *   sumPnlUsd?: number;
  *   winRate?: number | null;
  *   avgPnlUsd?: number | null;
+ *   recentAvgPnlUsd?: number | null;
  *   openPositions?: number;
  * }} row
  */
@@ -90,11 +92,15 @@ export function isStocksEliteParent(row) {
   const sumPnl = toNum(row.sumPnlUsd);
   const winRate = row.winRate == null ? 0 : toNum(row.winRate);
   const avgPnl = row.avgPnlUsd == null ? sumPnl / Math.max(1, decided) : toNum(row.avgPnlUsd);
+  const recentAvg =
+    row.recentAvgPnlUsd == null ? avgPnl : toNum(row.recentAvgPnlUsd);
   const open = toNum(row.openPositions);
   return (
     decided >= ELITE_MIN_DECIDED &&
     sumPnl > 0 &&
     avgPnl > ELITE_MIN_AVG_PNL_USD &&
+    recentAvg > ELITE_MIN_RECENT_AVG_PNL_USD &&
+    (row.holdoutAvgPnlUsd == null || toNum(row.holdoutAvgPnlUsd) > 0) &&
     winRate >= ELITE_MIN_WIN_RATE &&
     open === 0 &&
     computeStocksLeaderScore(row) > 0
@@ -127,5 +133,6 @@ export {
   ELITE_MIN_DECIDED,
   ELITE_MIN_WIN_RATE,
   ELITE_MIN_AVG_PNL_USD,
+  ELITE_MIN_RECENT_AVG_PNL_USD,
   FULL_SAMPLE_DECIDED,
 };

@@ -9,7 +9,7 @@ const stocksExperimentStateSchema = new mongoose.Schema(
     simConfig: {
       startingBankUsd: { type: Number, default: 1000 },
       maxConcurrentPositions: { type: Number, default: 3 },
-      maxPositionPct: { type: Number, default: 100 },
+      maxPositionPct: { type: Number, default: 20 },
     },
   },
   { collection: "stocks_experiment_state" },

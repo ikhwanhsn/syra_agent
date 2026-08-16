@@ -252,8 +252,14 @@ function AppRoutes() {
             </AdminExperimentRoute>
           }
         />
-        {/* Public paper watch: no Earn deposits. Real money via /equity or /earn?track=skills. */}
-        <Route path="/stocks" element={<StocksNewsExperiment />} />
+        <Route
+          path="/stocks"
+          element={
+            <AdminExperimentRoute>
+              <StocksNewsExperiment />
+            </AdminExperimentRoute>
+          }
+        />
         <Route
           path="/momentum-rotator"
           element={

@@ -10,8 +10,8 @@ import {
 
 describe("stocksExperimentScoring", () => {
   it("raises leader / elite sample floors above lucky streaks", () => {
-    assert.ok(MIN_DECIDED_FOR_LEADER >= 12);
-    assert.ok(ELITE_MIN_DECIDED >= 12);
+    assert.ok(MIN_DECIDED_FOR_LEADER >= 30);
+    assert.ok(ELITE_MIN_DECIDED >= 30);
   });
 
   it("scores well-sampled positive agents above tiny lucky winners", () => {
@@ -27,9 +27,9 @@ describe("stocksExperimentScoring", () => {
       grossLossUsd: 20,
     });
     const solid = computeStocksLeaderScore({
-      decided: 20,
-      wins: 12,
-      losses: 8,
+      decided: 40,
+      wins: 24,
+      losses: 16,
       expired: 2,
       winRate: 0.6,
       sumPnlUsd: 120,
@@ -47,9 +47,9 @@ describe("stocksExperimentScoring", () => {
 
   it("penalizes heavy expire rates", () => {
     const clean = computeStocksLeaderScore({
-      decided: 16,
-      wins: 10,
-      losses: 6,
+      decided: 32,
+      wins: 20,
+      losses: 12,
       expired: 0,
       winRate: 0.625,
       sumPnlUsd: 80,
@@ -58,9 +58,9 @@ describe("stocksExperimentScoring", () => {
       grossLossUsd: 40,
     });
     const expireHeavy = computeStocksLeaderScore({
-      decided: 16,
-      wins: 10,
-      losses: 6,
+      decided: 32,
+      wins: 20,
+      losses: 12,
       expired: 20,
       winRate: 0.625,
       sumPnlUsd: 80,
@@ -71,29 +71,48 @@ describe("stocksExperimentScoring", () => {
     assert.ok(clean > expireHeavy);
   });
 
-  it("elite parent requires sample, net+, win rate, no open positions", () => {
+  it("elite parent requires sample, net+, recent and holdout edge, win rate, no open positions", () => {
     assert.equal(
       isStocksEliteParent({
-        decided: 7,
+        decided: 14,
         sumPnlUsd: 138,
         winRate: 0.57,
         avgPnlUsd: 19,
+        recentAvgPnlUsd: 10,
+        holdoutAvgPnlUsd: 8,
         openPositions: 0,
       }),
       false,
     );
     assert.equal(
       isStocksEliteParent({
-        decided: 14,
+        decided: 32,
         sumPnlUsd: 80,
         winRate: 0.55,
         avgPnlUsd: 5,
+        recentAvgPnlUsd: 4,
+        holdoutAvgPnlUsd: 6,
         openPositions: 0,
-        wins: 8,
-        losses: 6,
+        wins: 18,
+        losses: 14,
         expired: 1,
       }),
       true,
+    );
+    assert.equal(
+      isStocksEliteParent({
+        decided: 32,
+        sumPnlUsd: 80,
+        winRate: 0.55,
+        avgPnlUsd: 5,
+        recentAvgPnlUsd: 4,
+        holdoutAvgPnlUsd: -2,
+        openPositions: 0,
+        wins: 18,
+        losses: 14,
+        expired: 1,
+      }),
+      false,
     );
   });
 

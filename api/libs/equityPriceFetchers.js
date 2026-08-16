@@ -66,6 +66,33 @@ export async function fetchNasdaqPrice(ticker, fallbackPriceUsd) {
   return null;
 }
 
+/**
+ * Intraday NASDAQ closes from the Yahoo chart (reference series, not a fill price).
+ * @param {string} ticker
+ * @returns {Promise<number[]>}
+ */
+export async function fetchNasdaqIntradayCloses(ticker) {
+  const sym = String(ticker || "").trim().toUpperCase();
+  if (!sym) return [];
+
+  try {
+    const url = `${YAHOO_CHART_URL}/${encodeURIComponent(sym)}?interval=5m&range=5d`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Syra-Equity-Intel/1.0" },
+      signal: AbortSignal.timeout(12_000),
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const result = json?.chart?.result?.[0];
+    const closes = result?.indicators?.quote?.[0]?.close;
+    if (!Array.isArray(closes)) return [];
+    return closes.filter((p) => typeof p === "number" && Number.isFinite(p) && p > 0);
+  } catch (e) {
+    console.warn("[equityPriceFetchers] Nasdaq series fetch failed:", e?.message || e);
+    return [];
+  }
+}
+
 /** Min/max ratio vs Nasdaq reference for accepting a DEX quote as real equity liquidity. */
 const EQUITY_PRICE_SANITY_MIN_RATIO = 0.25;
 const EQUITY_PRICE_SANITY_MAX_RATIO = 4;

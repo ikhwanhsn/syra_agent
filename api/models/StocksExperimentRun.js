@@ -16,6 +16,8 @@ const stocksExperimentRunSchema = new mongoose.Schema(
 
     signalSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
     newsHeadline: { type: String, default: null },
+    side: { type: String, enum: ["long", "short"], default: "long" },
+    priceSource: { type: String, default: null },
 
     status: {
       type: String,

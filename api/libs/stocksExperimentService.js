@@ -1,5 +1,5 @@
 /**
- * Stocks news experiment — paper trading xStocks via Jupiter price feeds.
+ * Stocks news experiment — paper trading xStocks with a realistic on-chain sim.
  */
 import crypto from "node:crypto";
 import StocksExperimentState from "../models/StocksExperimentState.js";
@@ -7,18 +7,16 @@ import StocksExperimentRun from "../models/StocksExperimentRun.js";
 import StocksExperimentAgentState from "../models/StocksExperimentAgentState.js";
 import {
   STOCKS_EXPERIMENT_DEFAULTS,
-  STOCKS_EXPERIMENT_STRATEGIES,
 } from "../config/stocksExperimentStrategies.js";
 import {
   TRADING_EXPERIMENT_STARTING_USD,
-  TRADING_EXPERIMENT_MIN_TRADE_NOTIONAL_USD,
   roundUsd,
   computeAgentEquityFromRealizedPnl,
   computeAgentReturnPct,
   computeAgentCashFromEquity,
-  computeExperimentNotionalUsd,
 } from "../config/tradingExperimentSim.js";
-import { resolveStocksExperimentStrategies } from "./stocksStrategyResolve.js";
+import { resolveStocksExperimentStrategies, invalidateStocksStrategyCache } from "./stocksStrategyResolve.js";
+import StocksExperimentStrategyOverride from "../models/StocksExperimentStrategyOverride.js";
 import {
   resolveStocksUniverse,
   fetchAllStockNewsSignals,
@@ -29,6 +27,16 @@ import { fetchStockPricesBatch } from "./stocksPriceFeed.js";
 import { rankStocksStrategiesByPnl } from "./stocksExperimentEvolution.js";
 import { computeStocksLeaderScore, MIN_DECIDED_FOR_LEADER } from "./stocksExperimentScoring.js";
 import { shouldWriteStocksRunHeartbeat } from "../utils/mongoHeartbeatWrite.js";
+import {
+  computeStocksNotionalUsd,
+  computeStocksCostBps,
+  isTradableStocksQuote,
+  evaluateStocksExit,
+  computeStocksSimPnl,
+  scaleExitsByVolatility,
+  relabelStatusAfterCost,
+  STOCKS_DEFAULT_ROUND_TRIP_BPS,
+} from "./stocksSimMath.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 200;
@@ -57,6 +65,12 @@ export async function ensureStocksBootstrapped() {
   bootPromise = (async () => {
     let state = await StocksExperimentState.findById("singleton");
     if (state?.activeExperimentId) {
+      if (toNum(state.simConfig?.maxPositionPct, 100) > 40) {
+        await StocksExperimentState.updateOne(
+          { _id: "singleton" },
+          { $set: { "simConfig.maxPositionPct": STOCKS_EXPERIMENT_DEFAULTS.maxPositionPct } },
+        );
+      }
       await ensureAgentStates(state.activeExperimentId);
       return { experimentId: state.activeExperimentId };
     }
@@ -371,6 +385,8 @@ export async function listStocksRuns({ limit, offset, strategyId, experimentId, 
       notionalUsd: r.notionalUsd,
       signalSnapshot: r.signalSnapshot,
       newsHeadline: r.newsHeadline,
+      side: r.side === "short" ? "short" : "long",
+      priceSource: r.priceSource ?? null,
       status: r.status,
       resolution: r.resolution,
       simExitPrice: r.simExitPrice,
@@ -411,6 +427,10 @@ export async function getStocksNewsFeed({ limit = 12 } = {}) {
       {
         priceUsd: priceMap[sym]?.priceUsd,
         nasdaqPriceUsd: priceMap[sym]?.nasdaqPriceUsd,
+        priceChange24h: priceMap[sym]?.priceChange24h,
+        spreadPct: priceMap[sym]?.spreadPct,
+        liquidityUsd: priceMap[sym]?.liquidityUsd,
+        source: priceMap[sym]?.source,
       },
     ]),
   );
@@ -438,6 +458,11 @@ export async function runStocksSignalCycle() {
       {
         priceUsd: priceMap[u.symbol]?.priceUsd,
         nasdaqPriceUsd: priceMap[u.symbol]?.nasdaqPriceUsd,
+        priceChange24h: priceMap[u.symbol]?.priceChange24h,
+        spreadPct: priceMap[u.symbol]?.spreadPct,
+        liquidityUsd: priceMap[u.symbol]?.liquidityUsd,
+        source: priceMap[u.symbol]?.source,
+        mint: u.mint,
       },
     ]),
   );
@@ -464,8 +489,12 @@ export async function runStocksSignalCycle() {
         continue;
       }
 
-      const notional = computeExperimentNotionalUsd(ledger?.cashUsd ?? 0);
-      if (notional < TRADING_EXPERIMENT_MIN_TRADE_NOTIONAL_USD) {
+      const notional = computeStocksNotionalUsd(
+        ledger?.cashUsd ?? 0,
+        ledger?.equityUsd ?? 0,
+        cfg.maxPositionPct,
+      );
+      if (!(notional > 0)) {
         skipped.push({ strategyId: strategy.id, reason: "insufficient_cash" });
         continue;
       }
@@ -477,19 +506,38 @@ export async function runStocksSignalCycle() {
       for (const sym of allowedSymbols) {
         const signal = signalBySymbol.get(sym);
         const uniEntry = universe.find((u) => u.symbol === sym);
-        if (!signal || !uniEntry) continue;
+        const quote = priceMap[sym];
+        if (!signal || !uniEntry || !quote) continue;
+
+        const tradable = isTradableStocksQuote(quote);
+        if (!tradable.ok) continue;
 
         const gate = applyStocksSignalGate(strategy, signal);
         if (!gate.pass) continue;
 
-        if (strategy.momentumConfirm && signal.momentumScore < 0.4) continue;
-        if (signal.sentimentScore < (strategy.minSentiment ?? -1)) continue;
+        if (strategy.momentumConfirm && signal.momentumScore < 0.5) continue;
+
+        let side = signal.direction === "short" ? "short" : "long";
+        if (strategy.sideMode === "fade") {
+          if (signal.momentumScore >= 0.62) side = "short";
+          else if (signal.momentumScore <= 0.38) side = "long";
+          else continue;
+        } else if (signal.direction === "neutral") {
+          continue;
+        }
+
+        if (side === "short" && !strategy.allowShort) continue;
+        if (strategy.shortOnly && side !== "short") continue;
 
         const score = scoreStockSignal(strategy.signalWeights, signal);
-        const px = priceMap[sym]?.priceUsd;
-        if (!(px > 0)) continue;
-
-        candidates.push({ sym, signal, uniEntry, score, priceUsd: px });
+        candidates.push({
+          sym,
+          signal,
+          uniEntry,
+          score,
+          quote,
+          side,
+        });
       }
 
       if (candidates.length === 0) {
@@ -518,10 +566,12 @@ export async function runStocksSignalCycle() {
         symbol: best.sym,
         mint: best.uniEntry.mint,
         nasdaqTicker: best.uniEntry.nasdaqTicker,
-        entryPriceUsd: best.priceUsd,
+        entryPriceUsd: best.quote.priceUsd,
         notionalUsd: notional,
         signalSnapshot: best.signal,
         newsHeadline: best.signal.topHeadline,
+        side: best.side,
+        priceSource: best.quote.source,
         status: "open",
         openedAt: new Date(),
       });
@@ -530,6 +580,7 @@ export async function runStocksSignalCycle() {
         strategyId: strategy.id,
         runId: String(run._id),
         symbol: best.sym,
+        side: best.side,
         notionalUsd: notional,
       });
     } catch (e) {
@@ -549,7 +600,9 @@ export async function resolveOpenStocksRuns() {
   const experimentId = state.activeExperimentId;
 
   const openRuns = await StocksExperimentRun.find({ experimentId, status: "open" })
-    .select("_id strategyId mint nasdaqTicker entryPriceUsd notionalUsd openedAt lastEvaluatedAt")
+    .select(
+      "_id strategyId symbol mint nasdaqTicker entryPriceUsd notionalUsd side priceSource openedAt lastEvaluatedAt signalSnapshot",
+    )
     .lean();
   if (openRuns.length === 0) {
     return { experimentId, resolved: 0, stillOpen: 0, errors: [] };
@@ -557,7 +610,7 @@ export async function resolveOpenStocksRuns() {
 
   const priceMap = await fetchStockPricesBatch(
     openRuns.map((r) => ({
-      symbol: r.mint,
+      symbol: r.symbol,
       mint: r.mint,
       nasdaqTicker: r.nasdaqTicker,
     })),
@@ -569,56 +622,41 @@ export async function resolveOpenStocksRuns() {
   let resolved = 0;
   const strategies = await resolveStocksExperimentStrategies();
   const strategyById = new Map(strategies.map((s) => [s.id, s]));
+  const baseRoundTripBps = Number(
+    process.env.STOCKS_PAPER_ROUND_TRIP_BPS || STOCKS_DEFAULT_ROUND_TRIP_BPS,
+  );
 
   for (const run of openRuns) {
     try {
       const strategy = strategyById.get(run.strategyId) ?? null;
-      const exit = strategy?.exit ?? {};
-      const entry = Number(run.entryPriceUsd);
-      const notional = Number(run.notionalUsd) || TRADING_EXPERIMENT_MIN_TRADE_NOTIONAL_USD;
-
-      const priceResult = priceMap[run.mint];
-      if (!priceResult?.priceUsd) {
+      const quote = priceMap[run.symbol] || priceMap[run.mint];
+      if (!quote?.priceUsd) {
         errors.push({ runId: String(run._id), error: "no_price" });
         continue;
       }
-      const px = priceResult.priceUsd;
-
-      const stopLossPct = Number(exit.stopLossPct ?? -5);
-      const takeProfitPct = Number(exit.takeProfitPct ?? 8);
-      const maxHoldHours = Number(strategy?.maxHoldHours ?? STOCKS_EXPERIMENT_DEFAULTS.defaultMaxHoldHours);
-      const pnlPct = entry > 0 ? ((px - entry) / entry) * 100 : 0;
-
-      let status = null;
-      let resolution = null;
-      let exitPx = px;
-
-      if (pnlPct >= takeProfitPct) {
-        status = "win";
-        resolution = "take_profit";
-        exitPx = entry * (1 + takeProfitPct / 100);
-      } else if (pnlPct <= stopLossPct) {
-        status = "loss";
-        resolution = "stop_loss";
-        exitPx = entry * (1 + stopLossPct / 100);
-      } else if (run.openedAt) {
-        const holdMs = maxHoldHours * 3_600_000;
-        const heldMs = Date.now() - new Date(run.openedAt).getTime();
-        // Time-stop: cut underwater positions at 50% of max hold instead of bleeding to expiry.
-        // This was the -$2.7k "expired" dump root cause.
-        const timeStopMs = holdMs * 0.5;
-        if (heldMs > timeStopMs && pnlPct < 0) {
-          status = "loss";
-          resolution = "time_stop";
-          exitPx = px;
-        } else if (heldMs > holdMs) {
-          status = pnlPct >= 0 ? "win" : "expired";
-          resolution = "max_hold";
-          exitPx = px;
-        }
+      const tradable = isTradableStocksQuote(quote);
+      if (!tradable.ok) {
+        errors.push({ runId: String(run._id), error: tradable.reason || "untradable" });
+        continue;
       }
 
-      if (!status) {
+      const volPct = Number(run.signalSnapshot?.volatilityPct);
+      const scaled = scaleExitsByVolatility(strategy?.exit ?? {}, volPct);
+      const maxHoldHours = Number(
+        strategy?.maxHoldHours ?? STOCKS_EXPERIMENT_DEFAULTS.defaultMaxHoldHours,
+      );
+      const hit = evaluateStocksExit({
+        side: run.side === "short" ? "short" : "long",
+        entryPriceUsd: run.entryPriceUsd,
+        markPriceUsd: quote.priceUsd,
+        openedAt: run.openedAt,
+        now: Date.now(),
+        stopLossPct: scaled.stopLossPct,
+        takeProfitPct: scaled.takeProfitPct,
+        maxHoldHours,
+      });
+
+      if (!hit) {
         if (shouldWriteStocksRunHeartbeat(run)) {
           bulkOps.push({
             updateOne: {
@@ -630,21 +668,21 @@ export async function resolveOpenStocksRuns() {
         continue;
       }
 
-      const roundTripCostBps = Number(process.env.STOCKS_PAPER_ROUND_TRIP_BPS || 110);
-      const grossPnl =
-        entry > 0 && exitPx > 0 ? roundUsd(notional * (exitPx / entry - 1)) : 0;
-      const costUsd = roundUsd(notional * (Math.max(0, roundTripCostBps) / 10_000));
-      const simPnlUsd = roundUsd(grossPnl - costUsd);
-      const simPnlPct = entry > 0
-        ? roundUsd(((exitPx - entry) / entry) * 100 - roundTripCostBps / 100)
-        : 0;
-      // Relabel by net PnL after costs (same bug class as BTC quant).
-      let labeledStatus = status;
-      if (status === "win" || status === "loss" || status === "expired") {
-        if (simPnlUsd > 0) labeledStatus = "win";
-        else if (status === "expired") labeledStatus = "expired";
-        else labeledStatus = "loss";
-      }
+      const costBps = computeStocksCostBps({
+        notionalUsd: run.notionalUsd,
+        liquidityUsd: quote.liquidityUsd,
+        spreadPct: quote.spreadPct,
+        baseRoundTripBps,
+      });
+      const pnl = computeStocksSimPnl({
+        side: run.side,
+        entryPriceUsd: run.entryPriceUsd,
+        exitPriceUsd: hit.exitPx,
+        notionalUsd: run.notionalUsd,
+        costBps,
+        expired: hit.status === "expired",
+      });
+      const labeledStatus = relabelStatusAfterCost(hit.status, pnl.simPnlUsd);
       bulkOps.push({
         updateOne: {
           filter: { _id: run._id, status: "open" },
@@ -652,10 +690,10 @@ export async function resolveOpenStocksRuns() {
             $set: {
               status: labeledStatus,
               resolution:
-                status === "win" && labeledStatus === "loss" ? "tp_below_cost" : resolution,
-              simExitPrice: exitPx,
-              simPnlUsd,
-              simPnlPct,
+                hit.status === "win" && labeledStatus === "loss" ? "tp_below_cost" : hit.resolution,
+              simExitPrice: hit.exitPx,
+              simPnlUsd: pnl.simPnlUsd,
+              simPnlPct: pnl.simPnlPct,
               resolvedAt: new Date(),
               lastEvaluatedAt: new Date(),
             },
@@ -706,6 +744,8 @@ export async function resetStocksFromScratch() {
   const nextId = newExperimentId();
   await StocksExperimentRun.deleteMany({});
   await StocksExperimentAgentState.deleteMany({});
+  await StocksExperimentStrategyOverride.deleteMany({});
+  invalidateStocksStrategyCache();
   await StocksExperimentState.findOneAndUpdate(
     { _id: "singleton" },
     {
@@ -734,6 +774,8 @@ export async function listStocksStrategies() {
     minSentiment: s.minSentiment,
     eventWeight: s.eventWeight,
     momentumConfirm: s.momentumConfirm,
+    allowShort: Boolean(s.allowShort),
+    shortOnly: Boolean(s.shortOnly),
     maxHoldHours: s.maxHoldHours,
     universeFilter: s.universeFilter,
     signalGate: s.signalGate,

@@ -58,7 +58,8 @@ These stay **out of Earn** until they have a real executor + lab track record.
 
 | Experiment | Main service | Gap to earn-ready |
 |---|---|---|
-| Stocks (xStocks) | `api/libs/stocksExperimentService.js` | Paper via Jupiter price feeds. Need real swap path + compliance review for equity-like tokens. **Public paper watch OK at `/stocks`. Earn Yield blocked.** Dossier: [STOCKS_NEWS_PAPER_EDGE.md](./STOCKS_NEWS_PAPER_EDGE.md). |
+| Stocks (xStocks) | `api/libs/stocksExperimentService.js` | Realistic paper sim (on-chain fill, spread/slippage, risk-fraction size). Need real swap path + compliance review for equity-like tokens. **Admin paper watch only at `/stocks`. Earn Yield blocked.** Dossier: [STOCKS_NEWS_PAPER_EDGE.md](./STOCKS_NEWS_PAPER_EDGE.md). |
+| AyeLabs (GMGN V/L DLMM) | `api/libs/ayeLabsService.js` | Paper fee-farm with EV gate. Real gate is config-only (`live_opens_not_wired_v1_paper_only`). **Admin paper watch at `/ayelabs`.** Dossier: [AYELABS_STRATEGY.md](./AYELABS_STRATEGY.md). |
 | Arbitrage CEX spread | `arbitrageExperimentAggregate.js` | Read-only feed — no execution. |
 
 ### Stocks News — current hold
@@ -102,6 +103,7 @@ Meteora LP Lab `simulation.sumNetPnlSol` is the **sum of every paper agent’s s
 ## Related docs
 
 - [STOCKS_NEWS_PAPER_EDGE.md](./STOCKS_NEWS_PAPER_EDGE.md) — Stocks paper dossier, kill criteria, Earn hold
+- [AYELABS_STRATEGY.md](./AYELABS_STRATEGY.md) — AyeLabs DLMM fee-farm EV gate, paper-only real gate
 - `api/config/earnProducts.js` — product registry + blocked experiment guard
 - `api/config/stocksEarnGraduation.js` — Stocks stage gates (config-only until executor exists)
 - `api/libs/earnAdapters/` — adapters

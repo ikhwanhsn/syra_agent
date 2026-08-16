@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Compass, Droplets, Radar } from "lucide-react";
+import { BarChart3, Compass, Droplets, Radar } from "lucide-react";
 
 export type DashboardExperimentNavItem = {
   id: string;
@@ -39,6 +39,15 @@ export const DASHBOARD_EXPERIMENT_NAV: readonly DashboardExperimentNavItem[] = [
     to: "/ayelabs",
     isActive: (p) => p.startsWith("/ayelabs"),
     badge: { label: "Lab" },
+  },
+  {
+    id: "stocks",
+    label: "Stocks news",
+    description: "Headline paper desk",
+    icon: BarChart3,
+    to: "/stocks",
+    isActive: (p) => p.startsWith("/stocks"),
+    badge: { label: "Paper" },
   },
 ];
 
