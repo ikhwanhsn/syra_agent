@@ -137,7 +137,7 @@ export const LLM_EXCHANGE_PHOTO = definePhotoUpdate(LLM_EXCHANGE_POST.meta, [
     shareCopy: copies.featured,
     content: photoContent({
       headline: "POST /llm/route is the single agent entry.",
-      stats: [{ value: "/llm/route", label: "Multi-protocol smart router" }],
+      stats: [{ value: "1", label: "x402 route for all models" }],
       narrative: "Failover, policy headers, and syra_route metadata on every completion.",
     }),
   },

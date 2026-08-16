@@ -17,6 +17,7 @@ const PHOTO_MODULES = [
   () => import("./saidProtocolPhoto"),
   () => import("./covenantPhoto"),
   () => import("./aipIntegrationPhoto"),
+  () => import("./llmExchangePhoto"),
 ];
 
 describe("all ship-log photo decks", () => {
