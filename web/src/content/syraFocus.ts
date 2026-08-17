@@ -9,6 +9,13 @@ export {
 export const SYRA_ONE_LINER =
   "Machine money for agents on Solana. Live today: pay-per-call crypto APIs over x402.";
 
+export const SYRA_SKILL_URL = "https://api.syraa.fun/skill.md";
+
+export const SYRA_SKILL_SETUP_LINE = "set up https://api.syraa.fun/skill.md";
+
+export const SYRA_CONSULT_FIRST_HINT =
+  "Ask your agent to set up https://api.syraa.fun/skill.md, then syra_consult, then the tool it returns (usually syra_spend_news).";
+
 export const SYRA_RAIL_MODULES = [
   {
     title: "Pay-per-call x402 APIs",
@@ -40,7 +47,7 @@ export const SYRA_VS_DIY = [
   {
     title: "Agent-native install",
     description:
-      "Curated MCP tools + auto-pay on HTTP 402 so Cursor/Claude agents succeed mid-task without human key pasting.",
+      "Paste set up https://api.syraa.fun/skill.md. Agents call syra_consult first, then a curated Spend tool, with auto-pay on HTTP 402.",
   },
   {
     title: "Unified discovery",
