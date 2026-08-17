@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Publish Syra npm packages in dependency order:
- *   @syra-ai/x402-payer → @syra-ai/sdk → @syra-ai/mcp-server
+ *   @syra-ai/x402-payer → @syra-ai/x402-refund → @syra-ai/sdk → @syra-ai/mcp-server
  *
  * npm (2025+) uses security keys (Windows Hello / Touch ID / passkey), NOT Google Authenticator.
  *
@@ -26,6 +26,7 @@ const interactive = process.argv.includes("--interactive");
 
 const packages = [
   { name: "@syra-ai/x402-payer", dir: "packages/syra-x402-payer" },
+  { name: "@syra-ai/x402-refund", dir: "packages/syra-x402-refund" },
   { name: "@syra-ai/sdk", dir: "syra-sdk" },
   { name: "@syra-ai/mcp-server", dir: "mcp-server" },
 ];

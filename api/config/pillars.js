@@ -110,6 +110,7 @@ export const PILLARS = {
       '/blocksize',
       '/dexter',
       '/mevx',
+      '/refund',
     ],
     toolIdPatterns: [/^blocksize-/, /^dexter-/, /^mevx-/],
   },

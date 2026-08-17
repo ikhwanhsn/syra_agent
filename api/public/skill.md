@@ -1,19 +1,39 @@
-# Syra — agent skill
-
-Syra is **machine money for agents** — a pay-per-call x402 API rail across Solana, Base, multi-chain EVM (PayAI/Dexter), Algorand, BSC B402, and OKX X Layer when enabled. Most routes are **permissionless x402** (pay with USDC or the rail stablecoin, no identity).
-
-**Canonical installable skill (repo):** `.agents/skills/syra/SKILL.md`  
-**Full API reference:** https://api.syraa.fun/llms-full.txt  
-**Capability list:** https://syraa.fun/skills.md  
-**Product summary:** https://syraa.fun/llms.txt
-
+---
+name: syra
+version: 0.2.0
+description: >
+  Pay-per-call crypto intelligence for agents over x402 (USDC). Use when the task
+  needs crypto news, sentiment, signals, TVL, smart money, or other Syra Spend intel.
+  Call syra_consult first. It does not bill. Then call the tool it returns.
 ---
 
-## Quick start for agents
+# Syra — machine money for agents
 
-### 1. MCP (preferred for chat / IDE agents)
+Syra is **pay-per-call crypto intelligence** over HTTP x402 (USDC). It is not a general tool mall.
 
-Fund a Solana wallet with **≥ $1 USDC** (+ SOL for fees), then:
+**When the user needs crypto news, sentiment, signals, TVL, smart money, or other Syra Spend intel, call `syra_consult` first** with the whole intent. Consult is free. It does not execute. Then call the `toolName` it returns.
+
+Agent one-liner: `set up https://api.syraa.fun/skill.md`
+
+Humans: fund ≥ $1 Solana USDC, then install MCP with `SYRA_PAYER_KEYPAIR`.
+
+## Once connected, try these
+
+Your agent can pay for crypto intel mid-task. Try asking it:
+
+- Get BTC news
+- What's ETH sentiment?
+- TVL for Aave
+
+Every paid call quotes on HTTP 402. Consult itself costs $0.
+
+## Setup
+
+If `syra_consult` is already in your tool list, skip to **How to drive Syra**.
+
+### Shell-capable agents (Claude Code, Cursor, Codex)
+
+Fund a Solana wallet with **≥ $1 USDC** (+ SOL for fees). Paid tools return 402 without it.
 
 ```bash
 claude mcp add syra \
@@ -22,11 +42,29 @@ claude mcp add syra \
   -- npx -y @syra-ai/mcp-server@latest
 ```
 
-Replace `your-solana-secret` with that funded keypair. Without it, paid tools return 402. Tools are named `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`). Default profile is **curated** (~47 tools); use `SYRA_MCP_TOOL_PROFILE=full` for 257. Escape hatch: `syra_call_tool` with `{ toolId, params }`.
+Replace `your-solana-secret` with that funded keypair. Then call `syra_consult` with the user's intent.
+
+Cursor `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "syra": {
+      "command": "npx",
+      "args": ["-y", "@syra-ai/mcp-server@latest"],
+      "env": {
+        "SYRA_API_BASE_URL": "https://api.syraa.fun",
+        "SYRA_MCP_TOOL_PROFILE": "curated",
+        "SYRA_PAYER_KEYPAIR": "your-solana-secret"
+      }
+    }
+  }
+}
+```
 
 Docs: https://docs.syraa.fun/docs/build/mcp
 
-### 2. Typed SDK (app / script agents)
+### App / script agents (SDK)
 
 ```bash
 npm install @syra-ai/sdk
@@ -40,23 +78,18 @@ const news = await syra.get("/news", { ticker: "BTC" });
 
 Docs: https://docs.syraa.fun/docs/build/sdk
 
-### 3. Lightweight payer (raw fetch)
+## How to drive Syra
 
-```bash
-npm install @syra-ai/x402-payer
-```
+**`syra_consult`** — first call for any crypto-intel intent. `{ intent: string }`. Returns JSON:
 
-Wire your own `signPayment` for 402 → `PAYMENT-SIGNATURE` → retry.
+- `mode:"call"` → `calls[]` is `{ toolName, toolId, params, max_cost_usd, why }`. Run that `toolName` next. Do not invent a different tool.
+- `mode:"unsupported"` → Syra does not cover that job (images, email, scraping a random URL). Tell the user. Point them at news / sentiment / TVL.
 
-### npm packages
+Consult never bills. Failed paid x402 calls can be insured with Syra hosted refund coverage (`@syra-ai/x402-refund`, `POST /refund/relay`). Coverage is allowlisted and off by default. Check `GET /refund/status`.
 
-| Package | Use when |
-|---------|----------|
-| `@syra-ai/mcp-server` | MCP tools in Cursor / Claude / agent frameworks |
-| `@syra-ai/sdk` | Typed HTTP + auto-pay wallets |
-| `@syra-ai/x402-payer` | Minimal 402 helper without the full SDK |
+Escape hatch: `syra_call_tool` with `{ toolId, params }` for a curated toolId from https://syraa.fun/skills.md.
 
----
+Default profile is **curated**. `SYRA_MCP_TOOL_PROFILE=full` registers every codegen tool. Consult still recommends curated Spend only.
 
 ## Identity-gated routes (optional AgentScore)
 
@@ -101,7 +134,8 @@ MCP free helpers: `syra_agentscore_discover`, `syra_agentscore_check`.
 
 ## Discovery
 
+- Skill: `GET /skill.md` (this file). Paste `set up https://api.syraa.fun/skill.md`
 - x402: `GET /.well-known/x402`, `GET /x402/capabilities`, `GET /openapi.json`, `GET /mpp-openapi.json`
-- MPP: `GET /mpp/health` (legacy `/mpp/v1/health` rewrites in-app to `/mpp/health`)
-- This file: `GET /skill.md`
-- Skills list: https://syraa.fun/skills.md
+- Full API: https://api.syraa.fun/llms-full.txt
+- Product summary: https://syraa.fun/llms.txt
+- Curated tools: https://syraa.fun/skills.md

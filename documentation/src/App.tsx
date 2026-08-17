@@ -27,6 +27,7 @@ import AgentCatalog from "./pages/docs/AgentCatalog";
 import SyraAgentCatalog from "./pages/docs/SyraAgentCatalog";
 import BuildMcp from "./pages/docs/BuildMcp";
 import BuildSdk from "./pages/docs/BuildSdk";
+import BuildRefund from "./pages/docs/BuildRefund";
 import BuildPricing from "./pages/docs/BuildPricing";
 import CrossmintX402 from "./pages/docs/CrossmintX402";
 import OutcomesCompletedWork from "./pages/docs/OutcomesCompletedWork";
@@ -65,6 +66,7 @@ const App = () => (
           <Route path="/docs/agent/system-prompt" element={<AgentSystemPrompt />} />
           <Route path="/docs/build/mcp" element={<BuildMcp />} />
           <Route path="/docs/build/sdk" element={<BuildSdk />} />
+          <Route path="/docs/build/refund" element={<BuildRefund />} />
           <Route path="/docs/build/pricing" element={<BuildPricing />} />
           <Route path="/docs/build/crossmint-x402" element={<CrossmintX402 />} />
           <Route path="/docs/build/outcomes" element={<OutcomesCompletedWork />} />

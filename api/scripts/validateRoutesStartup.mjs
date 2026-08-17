@@ -19,7 +19,8 @@ import { createTokensDossierRouter } from "../routes/agent/tokensDossier.js";
 import { createAgentWalletRouter } from "../routes/agent/wallet.js";
 import { createAgentBillingRouter } from "../routes/agent/billing.js";
 import { createAgentToolsRouter } from "../routes/agent/tools.js";
-import { createAgentPactRouter } from "../routes/agent/pact.js";
+import { createAgentPactRouter, createAgentRefundsRouter } from "../routes/agent/refunds.js";
+import { createRefundCoverageRouter } from "../routes/refund/relay.js";
 import { createAgentMarketplaceRouter } from "../routes/agent/marketplace.js";
 import { createAgentLeaderboardRouter } from "../routes/agent/leaderboard.js";
 import { createBnb8183Router } from "../routes/agent/bnb8183.js";
@@ -116,7 +117,9 @@ const factories = [
   ["createAgentWalletRouter", createAgentWalletRouter],
   ["createAgentBillingRouter", createAgentBillingRouter],
   ["createAgentToolsRouter", createAgentToolsRouter],
+  ["createAgentRefundsRouter", createAgentRefundsRouter],
   ["createAgentPactRouter", createAgentPactRouter],
+  ["createRefundCoverageRouter", createRefundCoverageRouter],
   ["createAgentMarketplaceRouter", createAgentMarketplaceRouter],
   ["createAgentLeaderboardRouter", createAgentLeaderboardRouter],
   ["createBnb8183Router", createBnb8183Router],

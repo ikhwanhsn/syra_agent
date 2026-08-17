@@ -26,6 +26,8 @@ describe("secrets.js", () => {
     assert.ok(isSecretEnvKey("AGENT_WALLET_SECRET_ENCRYPTION_KEY"));
     assert.ok(isSecretEnvKey("JWT_HS_SECRET"));
     assert.ok(SECRET_ENV_KEY_SET.has("OPENROUTER_API_KEY"));
+    assert.ok(isSecretEnvKey("REFUND_SOLANA_PRIVATE_KEY"));
+    assert.ok(isSecretEnvKey("REFUND_EVM_PRIVATE_KEY"));
   });
 
   it("does not treat public config keys as secrets", () => {

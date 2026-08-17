@@ -37,7 +37,8 @@ import { createTokensDossierRouter } from "./routes/agent/tokensDossier.js";
 import { createAgentWalletRouter } from "./routes/agent/wallet.js";
 import { createAgentBillingRouter } from "./routes/agent/billing.js";
 import { createAgentToolsRouter } from "./routes/agent/tools.js";
-import { createAgentPactRouter } from "./routes/agent/pact.js";
+import { createAgentRefundsRouter } from "./routes/agent/refunds.js";
+import { createRefundCoverageRouter } from "./routes/refund/relay.js";
 import { createAgentMarketplaceRouter } from "./routes/agent/marketplace.js";
 import { createAgentLeaderboardRouter } from "./routes/agent/leaderboard.js";
 import { createBnb8183Router } from "./routes/agent/bnb8183.js";
@@ -518,6 +519,8 @@ function isX402Route(p) {
   if (p === "/rerank" || p.startsWith("/rerank/")) return true;
   if (p === "/audio/speech" || p.startsWith("/audio/speech/")) return true;
   if (p === "/audio/transcriptions" || p.startsWith("/audio/transcriptions/")) return true;
+  if (p === "/refund/relay" || p.startsWith("/refund/relay")) return true;
+  if (p === "/refund/reprobe" || p.startsWith("/refund/reprobe")) return true;
   return false;
 }
 
@@ -1448,7 +1451,9 @@ app.use("/agent/tokens", createTokensDossierRouter());
 app.use("/agent/wallet/billing", await createAgentBillingRouter());
 app.use("/agent/wallet", await createAgentWalletRouter());
 app.use("/agent/tools", await createAgentToolsRouter());
-app.use("/agent/pact", createAgentPactRouter());
+app.use("/agent/refunds", createAgentRefundsRouter());
+app.use("/agent/pact", createAgentRefundsRouter());
+app.use("/refund", await createRefundCoverageRouter());
 app.use("/agent/marketplace/prompts", await createUserPromptsRouter());
 app.use("/agent/marketplace/skills", await createAgentSkillsRouter());
 app.use("/agent/marketplace", await createAgentMarketplaceRouter());

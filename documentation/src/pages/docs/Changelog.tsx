@@ -9,6 +9,13 @@ type QuarterStatus = "Shipped" | "In Progress" | "Planned";
 /** Dated release notes — append when you ship meaningful user-facing changes */
 const changelogEntries: { period: string; items: string[] }[] = [
   {
+    period: "August 2026",
+    items: [
+      "Hosted x402 refund coverage for external agents: POST /refund/relay (premium per covered call), GET /refund/status and /refund/claims, SDK @syra-ai/x402-refund (gated off until allowlist + caps are set)",
+      "In-house on-chain refund layer for Syra's own inbound/outbound x402 calls (replaces Pact Network)",
+    ],
+  },
+  {
     period: "July 2026",
     items: [
       "Crossmint fiat onramp (card → USDC) into existing Syra agent wallets — Buy USDC CTA on /wallet; webhook at /internal/crossmint/webhook; Privy custody unchanged",

@@ -44,11 +44,13 @@ Deeper partner integrations (Binance, Giza, Bankr, Neynar, SIWA, Nansen, Jupiter
 
 ---
 
-## 3. MCP server tools (`@syra-ai/mcp-server` v0.4.2)
+## 3. MCP server tools (`@syra-ai/mcp-server` v0.4.3)
 
 Install:
 
-Fund ≥ $1 Solana USDC first, then:
+Agents: `set up https://api.syraa.fun/skill.md`
+
+Humans: fund ≥ $1 Solana USDC first, then:
 
 ```bash
 claude mcp add syra \
@@ -57,7 +59,9 @@ claude mcp add syra \
   -- npx -y @syra-ai/mcp-server@latest
 ```
 
-The repository `mcp-server` exposes **257 codegen tools** from `api/config/agentTools.js` as stdio MCP tools. Default profile **`curated`** (**47** high-value tools + `syra_call_tool` + free helpers). Set **`SYRA_MCP_TOOL_PROFILE=full`** for every route.
+Call **`syra_consult`** first with the intent (free, does not execute). Then call the `toolName` it returns.
+
+The repository `mcp-server` exposes **257 codegen tools** from `api/config/agentTools.js` as stdio MCP tools. Default profile **`curated`** (**47** high-value tools + `syra_consult` + `syra_call_tool` + free helpers). Set **`SYRA_MCP_TOOL_PROFILE=full`** for every route.
 
 | Env | Purpose |
 |-----|---------|
@@ -69,7 +73,7 @@ The repository `mcp-server` exposes **257 codegen tools** from `api/config/agent
 
 **Server accepts vs auto-pay:** Syra 402 `accepts` can include Solana, Base, PayAI/Dexter multi-chain EVM (Polygon, Arbitrum, Avalanche, Sei, SKALE, Optimism, World, Monad, Robinhood, …), BSC B402, Algorand, and OKX X Layer when enabled. Facilitator failover is Dexter → GoPlausible → PayAI. MCP auto-pay signers today cover Solana / Base / Algorand; for other offers use a matching x402 client. Live: `GET https://api.syraa.fun/x402/capabilities`.
 
-Tool names follow `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`, `syra_invest_giza_protocols`). Escape hatch: **`syra_call_tool`** with `{ toolId, params }`.
+Tool names follow `syra_{pillar}_{toolId}` (e.g. `syra_spend_news`, `syra_invest_giza_protocols`). Start with **`syra_consult`**. Escape hatch: **`syra_call_tool`** with `{ toolId, params }`.
 
 ### Curated tools (default profile)
 
@@ -168,6 +172,7 @@ Escape hatch (always registered): **`syra_call_tool`** with `{ toolId, params }`
 | [`@syra-ai/mcp-server`](https://www.npmjs.com/package/@syra-ai/mcp-server) | Agent/IDE needs Syra tools over MCP (Cursor, Claude, frameworks) |
 | [`@syra-ai/sdk`](https://www.npmjs.com/package/@syra-ai/sdk) | App/agent code needs typed HTTP client + auto-pay |
 | [`@syra-ai/x402-payer`](https://www.npmjs.com/package/@syra-ai/x402-payer) | You only need 402 → sign → retry on raw `fetch` |
+| [`@syra-ai/x402-refund`](https://www.npmjs.com/package/@syra-ai/x402-refund) | Agent fetch needs hosted x402 refund coverage |
 
 Agent skill: [https://api.syraa.fun/skill.md](https://api.syraa.fun/skill.md) · Full reference: [llms-full.txt](https://api.syraa.fun/llms-full.txt)
 

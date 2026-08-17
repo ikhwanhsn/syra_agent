@@ -17,6 +17,7 @@ import { declareDiscoveryExtension, BAZAAR, sanitizeResourceServiceMetadata } fr
 import { BUILDER_CODE, declareBuilderCodeExtension } from "@x402/extensions/builder-code";
 import { getBaseBuilderCode } from "../config/baseBuilderCode.js";
 import { getPublicApiUrl } from "../config/runtime.js";
+import { registerInboundRefundGuard } from "../libs/refund/inboundRefundGuard.js";
 import {
   B402_BASE_URL as SETTLEMENT_B402_BASE_URL,
   B402_TOKEN as SETTLEMENT_B402_TOKEN,
@@ -2260,6 +2261,7 @@ export function requirePayment(options) {
       // Start settle in parallel with the route's upstream data fetch so paid
       // latency is verify + max(settle, data) instead of verify + data + settle.
       // Tradeoff: settle may complete even if the handler later returns 500.
+      // registerInboundRefundGuard refunds the payer on-chain in that case.
       req.x402Payment = {
         payload: payloadWithResource,
         accepted: acceptedForSettle,
@@ -2279,6 +2281,7 @@ export function requirePayment(options) {
       const settlePromise = settlePaymentWithFallback(payloadWithResource, acceptedForSettle, req);
       settlePromise.catch(() => {});
       req.x402Payment.settlePromise = settlePromise;
+      registerInboundRefundGuard(req, res);
 
       x402Log("verify_ok", {
         method: req.method,

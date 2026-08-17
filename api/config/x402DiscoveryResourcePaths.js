@@ -65,4 +65,5 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   // Grow / DeFi intelligence
   "topledger/wallet/analyze",
   "topledger/wallet/lending",
+  "refund/relay",
 ];

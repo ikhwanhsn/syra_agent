@@ -117,7 +117,7 @@ BlockRun-style traction and onboarding endpoints (no API key):
 
 **Base gateway:** configure `BASE_PAYTO` / `EVM_PAYTO` — see [`config/baseX402Gateway.js`](./config/baseX402Gateway.js).
 
-**MCP first paid call:** fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest`
+**MCP first paid call:** agents `set up https://api.syraa.fun/skill.md`. Humans: fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest`. Then `syra_consult` (`Get BTC news`) and the tool it returns.
 
 **Open-source payer:** [`packages/syra-x402-payer`](../packages/syra-x402-payer) (`@syra-ai/x402-payer`, MIT).
 
@@ -498,17 +498,42 @@ Periodically claim accrued Relay app-fee USDC to Base so treasury stays funded f
 
 ---
 
-## Pact Network (agent x402 refund coverage)
+## In-house x402 refunds
 
-Syra always wraps agent outbound paid `fetch()` with [`@q3labs/pact-sdk`](https://www.pactnetwork.io/docs) so failed x402 upstream calls (5xx, timeout, malformed body) can be refunded on-chain to the agent wallet. No API key is required — V1 uses the agent wallet's ed25519 signer for proxy auth.
+Syra refunds failed x402 calls on-chain from a dedicated treasury (no Pact Network / `@q3labs/pact-sdk`).
 
-**Defaults** (hardcoded in `api/libs/pactConfig.js`): mainnet, Pact Market proxy, ~$0.001 premium estimate in balance checks, auto `pact.setup()` on first covered fetch.
+**Outbound** (agent pays Nansen/Birdeye/etc.): `globalThis.fetch` → Sentinel → refund guard in `api/libs/agentFetch.js`. 5xx / timeout after a payment settled sends USDC back to the agent wallet.
 
-**Validate:** `npm run validate-pact -- --agent <anonymousId>`
+**Inbound** (client pays Syra): if eager settle completes and the handler then returns 5xx, Syra refunds the payer (`api/libs/refund/inboundRefundGuard.js`).
 
-**API:** `GET /agent/pact/status`, `GET /agent/pact/refunds?anonymousId=...`
+**Kill switch:** `REFUND_ENABLED=false`. Caps: `REFUND_MAX_USD` (default 1). Direction toggles: `REFUND_COVER_INBOUND` / `REFUND_COVER_OUTBOUND`. Optional host allowlist: `REFUND_PROVIDER_ALLOWLIST`.
 
-Composition: `globalThis.fetch` → Sentinel (if on) → Pact via `api/libs/agentFetch.js`.
+**Treasury keys** (optional dedicated, else existing merchant/agent keys): `REFUND_SOLANA_PRIVATE_KEY`, `REFUND_EVM_PRIVATE_KEY`, `REFUND_ALGORAND_PRIVATE_KEY` / `REFUND_ALGORAND_MNEMONIC`.
+
+**Validate:** `npm run validate-refund`
+
+**API (Syra-owned agents):** `GET /agent/refunds/status`, `GET /agent/refunds?anonymousId=...` (alias `/agent/pact/...`)
+
+### Hosted Refund-as-a-Service (external agents)
+
+External projects wrap agent `fetch` with `@syra-ai/x402-refund`. Covered calls go through `POST /refund/relay`. Syra observes the upstream outcome and refunds on-chain USDC on paid 5xx / timeout / network error. Premium is billed over x402 (`max(flat, coveredUsd × bps / 10_000)`).
+
+| Env | Default | Purpose |
+|-----|---------|---------|
+| `REFUND_HOSTED_ENABLED` | `false` | Master switch for hosted coverage |
+| `REFUND_HOSTED_ALLOWLIST` | empty (deny) | Comma-separated hostnames eligible for hosted payouts |
+| `REFUND_HOSTED_PER_WALLET_DAILY_USD` | `5` | Per-wallet daily payout cap |
+| `REFUND_HOSTED_DAILY_USD` | `50` | Global hosted daily payout cap |
+| `REFUND_POOL_MIN_BALANCE_USD` | `10` | Skip payouts that would drain the daily pool below this |
+| `X402_REFUND_PREMIUM_FLAT_USD` | `0.002` | Minimum premium per covered call |
+| `X402_REFUND_PREMIUM_BPS` | `50` | Extra premium as bps of covered call value |
+| `X402_REFUND_PREMIUM_CAP_USD` | `0.05` | Max premium per call |
+
+**Phase 1 (this ship):** relay + premium + ledger reads + SDK, gated off. **Phase 2:** GET re-probe hardening, holder-tier premium waiver, public coverage metrics on `/api/metrics`.
+
+**Public API:** `GET /refund/status`, `GET /refund/claims?wallet=`, `POST /refund/relay`, `POST /refund/reprobe`
+
+**Docs:** https://docs.syraa.fun/docs/build/refund
 
 ---
 

@@ -119,14 +119,18 @@ export type SpendTool = {
   priceUsd: number;
   path: string;
   method: string;
-  pactEligible?: boolean;
-  pactPremiumUsd?: number;
+  refundEligible?: boolean;
 };
 
 export type SpendToolsResponse = {
   success: boolean;
   tools: SpendTool[];
-  pact?: { enabled: boolean; premiumUsdDefault?: number };
+  refund?: {
+    enabled: boolean;
+    coverInbound?: boolean;
+    coverOutbound?: boolean;
+    maxRefundUsd?: number;
+  };
   error?: string;
 };
 

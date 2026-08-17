@@ -19,6 +19,7 @@ export const SYRA_X402_ROUTE_PREFIXES = [
     "/nansen",
     "/binance",
     "/8004",
+    "/refund",
 ];
 export function isSyraX402Path(pathname) {
     const p = pathname.toLowerCase();

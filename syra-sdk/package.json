@@ -1,6 +1,6 @@
 {
   "name": "@syra-ai/sdk",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Typed TypeScript client for Syra machine money — x402 pay-per-call APIs, auto-pay wallets, and agent treasury on Solana, Base & Algorand.",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,6 +13,10 @@
     "./payment": {
       "types": "./dist/payment/index.d.ts",
       "import": "./dist/payment/index.js"
+    },
+    "./refund": {
+      "types": "./dist/refund/index.d.ts",
+      "import": "./dist/refund/index.js"
     }
   },
   "files": ["dist", "README.md"],
@@ -64,6 +68,7 @@
     "@x402/extensions": "^2.16.0",
     "@x402/fetch": "^2.3.0",
     "@x402/svm": "^2.2.0",
+    "@syra-ai/x402-refund": "^0.1.0",
     "bs58": "^6.0.0",
     "viem": "^2.31.0"
   },

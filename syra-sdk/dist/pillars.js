@@ -37,6 +37,25 @@ export function createInvestModule(client) {
         deploy(body) {
             return client.post("/invest/deploy", body);
         },
+        /** Completed-work outcomes catalog (LP Autopilot, Treasury, Yield). */
+        outcomesCatalog() {
+            return client.get("/outcomes/catalog");
+        },
+        outcomesEvGate() {
+            return client.get("/outcomes/ev-gate");
+        },
+        createOutcomeMandate(body) {
+            return client.post("/outcomes/mandates", body);
+        },
+        runOutcomeJob(body) {
+            return client.post("/outcomes/jobs", body);
+        },
+        getOutcomeReport(reportId) {
+            return client.get(`/outcomes/reports/${reportId}`);
+        },
+        verifyOutcomeReport(reportId) {
+            return client.get(`/outcomes/reports/${reportId}/verify`);
+        },
     };
 }
 export function createSpendModule(client) {

@@ -60,7 +60,7 @@ import {
   purchVaultDownload,
 } from '../../libs/agentPurchVaultClient.js';
 import { getEffectivePriceUsd, X402_PAYSH_FLOOR_USD, PASSTHROUGH_MARGIN } from '../../config/x402Pricing.js';
-import { getEffectiveAgentToolPriceUsd } from '../../libs/pactPricing.js';
+import { getEffectiveAgentToolPriceUsd } from '../../libs/refundPricing.js';
 import { SYRA_TOKEN_MINT } from '../../libs/syraToken.js';
 import { isSyraHolderOrStakerEligible } from '../../libs/syraHolderBenefits.js';
 import {

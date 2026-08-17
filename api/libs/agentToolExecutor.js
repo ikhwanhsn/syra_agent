@@ -4,7 +4,7 @@
 import { getAgentTool, normalizeJupiterSwapParams } from '../config/agentTools.js';
 import { X402_PAYSH_FLOOR_USD, PASSTHROUGH_MARGIN } from '../config/x402Pricing.js';
 import { TEMPO_AGENT_PAYOUT } from '../config/settlement.js';
-import { getEffectiveAgentToolPriceUsd } from './pactPricing.js';
+import { getEffectiveAgentToolPriceUsd } from './refundPricing.js';
 import {
   callX402V2WithAgent,
   callX402V2WithAgentForSyraPath,

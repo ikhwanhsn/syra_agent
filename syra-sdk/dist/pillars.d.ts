@@ -124,6 +124,46 @@ export declare function createInvestModule(client: SyraClientLike): {
         data?: unknown;
         error?: string;
     }>;
+    /** Completed-work outcomes catalog (LP Autopilot, Treasury, Yield). */
+    outcomesCatalog(): Promise<{
+        success: boolean;
+        data?: unknown;
+        error?: string;
+    }>;
+    outcomesEvGate(): Promise<{
+        success: boolean;
+        data?: unknown;
+        error?: string;
+    }>;
+    createOutcomeMandate(body: {
+        anonymousId: string;
+        productId: string;
+        chain: string;
+        agentAddress: string;
+        policy?: Record<string, unknown>;
+    }): Promise<{
+        success: boolean;
+        data?: unknown;
+        error?: string;
+    }>;
+    runOutcomeJob(body: {
+        mandateId: string;
+        input?: Record<string, unknown>;
+    }): Promise<{
+        success: boolean;
+        data?: unknown;
+        error?: string;
+    }>;
+    getOutcomeReport(reportId: string): Promise<{
+        success: boolean;
+        data?: unknown;
+        error?: string;
+    }>;
+    verifyOutcomeReport(reportId: string): Promise<{
+        success: boolean;
+        data?: unknown;
+        error?: string;
+    }>;
 };
 export declare function createSpendModule(client: SyraClientLike): {
     /** Generic x402 route call (402 retry when signer configured on client). */

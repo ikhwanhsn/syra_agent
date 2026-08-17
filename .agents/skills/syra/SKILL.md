@@ -4,12 +4,23 @@ description: >
   Syra pay-per-call crypto intelligence for agents — x402 APIs, MCP tools, and typed SDK.
   Use when the user or agent needs crypto research (news, sentiment, signals, smart money),
   Solana/Base/Algorand micropayments on HTTP 402 (plus multi-chain PayAI/Dexter accepts, B402, OKX X Layer), Syra MCP setup, or @syra-ai/sdk / @syra-ai/x402-payer.
-version: 0.1.0
+  Call syra_consult first. It does not bill. Then call the tool it returns.
+version: 0.2.0
 ---
 
 # Syra — pay-per-call crypto intelligence for agents
 
 Syra is **pay-per-call crypto intelligence** over HTTP x402 (USDC). Prefer the MCP path for chat agents; prefer the SDK for app code.
+
+Agent one-liner: `set up https://api.syraa.fun/skill.md`
+
+**When the user needs crypto news, sentiment, signals, TVL, smart money, or other Syra Spend intel, call `syra_consult` first.** Consult is free. It does not execute. Then call the `toolName` it returns.
+
+Try asking:
+
+- Get BTC news
+- What's ETH sentiment?
+- TVL for Aave
 
 ## When to use
 
@@ -26,6 +37,7 @@ Syra is **pay-per-call crypto intelligence** over HTTP x402 (USDC). Prefer the M
 | Chat / IDE tools | `npx -y @syra-ai/mcp-server@latest` |
 | Typed HTTP client + auto-pay | `npm i @syra-ai/sdk` → `createSyraPaidClient` |
 | Raw `fetch` + 402 only | `npm i @syra-ai/x402-payer` |
+| Hosted x402 refund coverage | `npm i @syra-ai/x402-refund` → `wrapFetchWithSyraRefund` |
 
 ### One-line MCP
 
@@ -82,18 +94,19 @@ MCP injects `PAYMENT-SIGNATURE` on 402 when a payer is configured.
 
 - Pattern: `syra_{pillar}_{toolId}` — e.g. `syra_spend_news`, `syra_invest_squid_route`
 - Default profile **curated**: ~47 tools; set `SYRA_MCP_TOOL_PROFILE=full` for 257
+- **Consult first:** `syra_consult` with `{ intent }` (free, no execute)
 - Escape hatch: `syra_call_tool` with `{ toolId, params }` (toolId from `GET /agent/tools`)
 
 | Intent | Tool |
 |--------|------|
+| Any crypto-intel ask | `syra_consult` first |
 | News | `syra_spend_news` |
 | Sentiment | `syra_spend_sentiment` |
 | Signal | `syra_spend_signal` |
+| TVL | `syra_spend_defillama_tvl` |
 | Analytics | `syra_spend_analytics_summary` |
 | Smart money | `syra_spend_nansen_smart_money_netflow` |
 | Health | `syra_spend_health` |
-| Flint book | `syra_spend_flint_book` |
-| Flint pairs | `syra_spend_flint_pairs` |
 
 Full curated table: https://syraa.fun/skills.md
 

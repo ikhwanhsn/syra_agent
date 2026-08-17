@@ -542,6 +542,16 @@ export const X402_RESOURCE_CATALOG = {
       'Analyze a Solana wallet net worth including lending, perps, LP, staking, yield, rewards, and governance via TopLedger MPP. Use when an agent needs a full DeFi portfolio breakdown. Input: wallet (base58). Returns total_net_worth_usd and per-category breakdown.',
     suggestedPriceStx: 0.00048,
   },
+  'refund/relay': {
+    slug: 'refund-relay',
+    name: 'Syra Hosted x402 Refund Coverage',
+    category: 'payments',
+    methods: ['POST'],
+    summary: 'Insure an agent x402 call: Syra refunds USDC if the paid upstream fails',
+    description:
+      'Relay a paid x402 request through Syra. Use when an agent wants failed paid upstream calls refunded on-chain. Syra observes the upstream status first-hand and sends USDC back on 5xx, timeout, or network error after payment. Charge is a per-call coverage premium (flat + bps of covered value). Input: X-Refund-Target URL, optional X-Refund-To, X-Refund-Covered-Usd, X-Refund-Upstream-Payment. Returns the upstream response plus X-Syra-Coverage headers.',
+    suggestedPriceStx: 0.002,
+  },
   'topledger/wallet/lending': {
     slug: 'topledger-wallet-lending',
     name: 'TopLedger Lending Positions',

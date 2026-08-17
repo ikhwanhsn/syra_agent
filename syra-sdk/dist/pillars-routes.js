@@ -11,9 +11,11 @@ export const SYRA_PILLAR_ROUTES = {
         "/jupiter",
         "/experiment/lp-agent-real",
         "/experiment/lp-agent",
+        "/outcomes",
         "/rise",
         "/bankr",
         "/squid",
+        "/yield",
     ],
     spend: [
         "/brain",

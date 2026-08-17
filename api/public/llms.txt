@@ -16,7 +16,7 @@ GET /.well-known/x402          — x402 resource catalog + payment instructions
 GET /x402/capabilities         — live payment networks + facilitator failover
 GET /llms.txt                  — this file
 GET /llms-full.txt             — full route / pricing reference
-GET /skill.md                  — agent skill brief
+GET /skill.md                  — agent skill brief (paste: set up https://api.syraa.fun/skill.md)
 GET /favicon.ico               — brand mark
 
 How to pay
@@ -51,7 +51,10 @@ GET /api/metrics
 
 MCP / SDK
 ---------
-MCP: npx -y @syra-ai/mcp-server@latest
+Agents: set up https://api.syraa.fun/skill.md
+MCP (fund ≥ $1 Solana USDC first): claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest
+First paid MCP call: syra_consult with intent "Get BTC news" (free), then the tool it returns (usually syra_spend_news).
 SDK: @syra-ai/sdk — createSyraPaidClient({ baseUrl: "https://api.syraa.fun" })
+Refund coverage: @syra-ai/x402-refund — wrapFetchWithSyraRefund (POST /refund/relay, GET /refund/status)
 Docs: https://docs.syraa.fun
 Contact: support@syraa.fun

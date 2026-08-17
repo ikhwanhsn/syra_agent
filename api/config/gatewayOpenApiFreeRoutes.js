@@ -18,5 +18,7 @@ export function isGatewayOpenApiFreeRoute(p) {
   if (path === '/outcomes/catalog' || path.startsWith('/outcomes/catalog/')) return true;
   if (path === '/outcomes/ev-gate' || path.startsWith('/outcomes/ev-gate/')) return true;
   if (path === '/pillars' || path.startsWith('/pillars/')) return true;
+  if (path === '/refund/status' || path.startsWith('/refund/status')) return true;
+  if (path === '/refund/claims' || path.startsWith('/refund/claims')) return true;
   return false;
 }

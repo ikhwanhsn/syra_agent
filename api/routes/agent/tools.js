@@ -8,10 +8,9 @@ import { AGENT_TOOLS } from '../../config/agentTools.js';
 import { TEMPO_AGENT_PAYOUT } from '../../config/settlement.js';
 import {
   getDisplayAgentToolPriceUsd,
-  getPactPremiumUsd,
-  isPactEligibleAgentTool,
-} from '../../libs/pactPricing.js';
-import { isPactEnabled } from '../../libs/pactConfig.js';
+  isRefundEligibleAgentTool,
+} from '../../libs/refundPricing.js';
+import { getRefundResolvedConfig } from '../../config/refund.js';
 import { requireSession } from '../../utils/requireSession.js';
 import { executeAgentToolCall } from '../../libs/agentToolExecutor.js';
 
@@ -29,17 +28,14 @@ router.get('/', async (req, res) => {
       name: t.name,
       description: t.description,
       priceUsd: getDisplayAgentToolPriceUsd(t),
-      pactEligible: isPactEligibleAgentTool(t),
-      pactPremiumUsd: isPactEligibleAgentTool(t) ? getPactPremiumUsd() : 0,
+      refundEligible: isRefundEligibleAgentTool(t),
       path: t.path,
       method: t.method,
     }));
     return res.json({
       success: true,
       tools,
-      pact: isPactEnabled()
-        ? { enabled: true, premiumUsdDefault: getPactPremiumUsd() }
-        : { enabled: false },
+      refund: getRefundResolvedConfig(),
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });

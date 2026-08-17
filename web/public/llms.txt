@@ -12,6 +12,7 @@ Core value
 ------------
 - HTTP 402 / x402 micropayments (USDC) for crypto API routes.
 - MCP tools (@syra-ai/mcp-server) and typed SDK (@syra-ai/sdk) for agent builders.
+- Hosted x402 refund coverage (@syra-ai/x402-refund) for failed paid agent calls.
 - Real-time and contextual market data: news, sentiment, signals, smart money, risk.
 - Flint Solana multi-maker spot depth (books, venue stats, candles, external aggregator tape) via paid Spend tools, market data only, not live market-making.
 - Structured JSON output agents can act on immediately.
@@ -33,8 +34,9 @@ Where Syra runs
 - API discovery: GET https://api.syraa.fun/.well-known/x402
 - Public metrics: GET https://api.syraa.fun/api/metrics
 - Agent full reference: GET https://api.syraa.fun/llms-full.txt
-- Agent skill: GET https://api.syraa.fun/skill.md
+- Agent skill: GET https://api.syraa.fun/skill.md. Paste `set up https://api.syraa.fun/skill.md`
 - MCP install (fund ≥ $1 Solana USDC first): claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest
+- First paid MCP call: syra_consult with intent "Get BTC news", then the tool it returns (usually syra_spend_news)
 - API specs: GET https://api.syraa.fun/openapi.json and GET https://api.syraa.fun/mpp-openapi.json
 - Web agent: https://syraa.fun
 - Marketplace: https://syraa.fun/marketplace
@@ -64,7 +66,7 @@ For other accepts, use a matching x402 client or pick an offer those signers can
 Without a payer, production MCP tool calls may return 402 with pricing. Local testing: SYRA_USE_DEV_ROUTES=true against a local API.
 Agent execution wallets: solana | base | bsc (GET /agent/chains).
 
-Tool naming: MCP tools use syra_{pillar}_{toolId} (example: syra_spend_news). Escape hatch: syra_call_tool with { toolId, params }. See https://syraa.fun/skills.md for the curated list.
+Tool naming: MCP tools use syra_{pillar}_{toolId} (example: syra_spend_news). Start with syra_consult (free, no execute). Escape hatch: syra_call_tool with { toolId, params }. See https://syraa.fun/skills.md for the curated list.
 
 API vs browsable web apps
 --------------------------
@@ -86,4 +88,4 @@ Public URLs (main Syra domain):
 - Agent capability list (Markdown): https://syraa.fun/skills.md
 - Agent skill: https://api.syraa.fun/skill.md
 
-Last updated: 2026-07-20 (repository snapshot).
+Last updated: 2026-08-17 (repository snapshot).

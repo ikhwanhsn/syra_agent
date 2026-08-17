@@ -1,6 +1,6 @@
 /**
  * Treasury Solana keypair from AGENT_PRIVATE_KEY (base58).
- * Shared by x402 client and Pact fetch composition (avoids circular imports).
+ * Shared by x402 client and outbound refund composition (avoids circular imports).
  */
 import bs58 from 'bs58';
 import { Keypair } from '@solana/web3.js';

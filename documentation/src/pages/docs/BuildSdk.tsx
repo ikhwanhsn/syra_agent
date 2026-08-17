@@ -141,6 +141,12 @@ if (news.success) {
             </a>{" "}
             — minimal 402 helper for raw <code>fetch</code>
           </li>
+          <li>
+            <Link to="/docs/build/refund" className="text-primary hover:underline">
+              @syra-ai/x402-refund
+            </Link>{" "}
+            — hosted x402 refund coverage for agent <code>fetch</code>
+          </li>
         </ul>
       </DocSection>
 

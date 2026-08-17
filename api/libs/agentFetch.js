@@ -1,9 +1,9 @@
 /**
- * Composed agent outbound fetch: globalThis.fetch → Sentinel (audit/budget) → Pact (refund coverage).
+ * Composed agent outbound fetch: globalThis.fetch → Sentinel (audit/budget) → refund guard.
  * Single entry point for all agent-paid x402 upstream calls.
  */
 import { getSentinelFetch, SentinelBudgetError } from './sentinelFetch.js';
-import { wrapFetchWithPact } from './pactFetch.js';
+import { wrapFetchWithRefundGuard } from './refund/outboundRefundGuard.js';
 import { getAgentKeypair } from './agentWallet.js';
 import { getTreasuryKeypair } from './agentTreasuryKey.js';
 import connectMongoose, { isMongooseConnected } from '../config/mongoose.js';
@@ -20,7 +20,7 @@ const SYSTEM_AGENT_IDS = new Set([
 ]);
 
 /**
- * Resolve keypair for Pact signer attribution / refunds.
+ * Resolve keypair for outbound refund destination.
  * @param {string} agentId
  * @returns {Promise<import('@solana/web3.js').Keypair | null>}
  */
@@ -39,7 +39,7 @@ async function resolveKeypairForAgent(agentId) {
 }
 
 /**
- * Get the composed fetch for an agent: Sentinel inner, Pact outer (when enabled).
+ * Get the composed fetch for an agent: Sentinel inner, refund guard outer.
  * @param {string} [agentId] - anonymousId, 'treasury', or system id
  * @param {{ budget?: boolean }} [opts] - Sentinel budget policy (default: standardPolicy)
  * @returns {Promise<typeof fetch>}
@@ -48,5 +48,5 @@ export async function getAgentFetch(agentId, opts = {}) {
   const id = agentId || process.env.SENTINEL_AGENT_ID || 'syra-api';
   const sentinelFetch = getSentinelFetch(id, opts);
   const keypair = await resolveKeypairForAgent(id);
-  return wrapFetchWithPact(sentinelFetch, { agentId: id, keypair });
+  return wrapFetchWithRefundGuard(sentinelFetch, { agentId: id, keypair });
 }

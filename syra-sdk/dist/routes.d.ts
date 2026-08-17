@@ -2,7 +2,7 @@
  * Public Syra x402 route prefixes — keep in sync with web/src/lib/publicX402Routes.ts
  * and api/config/x402DiscoveryResourcePaths.js
  */
-export declare const SYRA_X402_ROUTE_PREFIXES: readonly ["/brain", "/news", "/signal", "/sentiment", "/event", "/trending-headline", "/sundown-digest", "/health", "/mpp/v1", "/arbitrage", "/analytics/summary", "/x", "/x-analyzer", "/nansen", "/binance", "/8004"];
+export declare const SYRA_X402_ROUTE_PREFIXES: readonly ["/brain", "/news", "/signal", "/sentiment", "/event", "/trending-headline", "/sundown-digest", "/health", "/mpp/v1", "/arbitrage", "/analytics/summary", "/x", "/x-analyzer", "/nansen", "/binance", "/8004", "/refund"];
 export declare function isSyraX402Path(pathname: string): boolean;
 /** High-value routes agents pay for repeatedly. */
 export declare const SYRA_HIGH_VALUE_ROUTES: {

@@ -1,0 +1,53 @@
+{
+  "name": "@syra-ai/x402-refund",
+  "version": "0.1.0",
+  "description": "Wrap an agent fetch with Syra hosted x402 refund coverage. Failed paid upstream calls are refunded on-chain; a per-call premium is billed over x402.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "license": "MIT",
+  "author": "Syra",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ikhwanhsn/syra_agent.git",
+    "directory": "packages/syra-x402-refund"
+  },
+  "homepage": "https://github.com/ikhwanhsn/syra_agent/tree/main/packages/syra-x402-refund#readme",
+  "bugs": {
+    "url": "https://github.com/ikhwanhsn/syra_agent/issues"
+  },
+  "keywords": [
+    "x402",
+    "refund",
+    "usdc",
+    "agents",
+    "syra",
+    "http-402",
+    "insurance",
+    "typescript",
+    "fetch"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@syra-ai/x402-payer": "^0.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

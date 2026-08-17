@@ -81,6 +81,7 @@ Run the Syra API locally from the monorepo `api/` package first.
 | Resource | URL |
 |----------|-----|
 | Install docs | https://docs.syraa.fun/docs/build/sdk |
+| Refund coverage | https://docs.syraa.fun/docs/build/refund |
 | Agent skill | https://api.syraa.fun/skill.md |
 | OpenAPI | https://api.syraa.fun/openapi.json |
 | x402 discovery | https://api.syraa.fun/.well-known/x402 |

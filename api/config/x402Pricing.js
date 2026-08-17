@@ -146,6 +146,42 @@ const PLAYGROUND_DEV_WALLETS = [X402_PLAYGROUND_DEV_WALLET, X402_PLAYGROUND_DEV_
 export const X402_DEXTER_MIN_PAYMENT_USD = 0.002;
 
 /**
+ * Hosted x402 refund coverage premium (per covered call).
+ * Charge = max(flat, coveredUsd × bps / 10_000), clamped to cap, floored at Dexter min.
+ * Env overrides: X402_REFUND_PREMIUM_FLAT_USD, X402_REFUND_PREMIUM_BPS,
+ * X402_REFUND_PREMIUM_CAP_USD, X402_REFUND_EXPECTED_LOSS_RATE.
+ * Keep premium above expectedLossRate × avgCallValue so the pool stays solvent.
+ */
+export const X402_REFUND_PREMIUM_FLAT_USD = 0.002;
+export const X402_REFUND_PREMIUM_BPS = 50;
+export const X402_REFUND_PREMIUM_CAP_USD = 0.05;
+/** Assumed refund incidence used when reviewing premium vs pool risk (2%). */
+export const X402_REFUND_EXPECTED_LOSS_RATE = 0.02;
+
+function envNumber(name, fallback) {
+  const raw = process.env[name];
+  if (raw == null || String(raw).trim() === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+/**
+ * Premium charged on POST /refund/relay and POST /refund/reprobe.
+ * @param {number | string | null | undefined} coveredUsd - USDC value of the insured upstream call
+ * @returns {number}
+ */
+export function computeHostedRefundPremiumUsd(coveredUsd) {
+  const flat = envNumber("X402_REFUND_PREMIUM_FLAT_USD", X402_REFUND_PREMIUM_FLAT_USD);
+  const bps = envNumber("X402_REFUND_PREMIUM_BPS", X402_REFUND_PREMIUM_BPS);
+  const cap = envNumber("X402_REFUND_PREMIUM_CAP_USD", X402_REFUND_PREMIUM_CAP_USD);
+  const covered = Number(coveredUsd);
+  const variable = Number.isFinite(covered) && covered > 0 ? (covered * bps) / 10_000 : 0;
+  const raw = Math.max(flat, variable);
+  const limited = Math.min(raw, cap > 0 ? cap : raw);
+  return applyDexterPriceFloor(limited);
+}
+
+/**
  * Effective price for a given payer. In production, when payerAddress matches
  * a playground dev wallet (Solana or Base), returns price as if local (cheap).
  * Otherwise returns priceUsd unchanged (sync path — no on-chain lookup).
@@ -577,3 +613,6 @@ export const X402_DISPLAY_PRICE_VIDEOS_GENERATIONS_USD = displayInternal(0.1);
 
 /** Outcome / completed-work billing floor (performance fee settlement via x402). */
 export const X402_OUTCOME_BILLING_FLOOR_USD = displayInternal(OUTCOME_MIN_PERFORMANCE_FEE_USD);
+
+/** Hosted refund coverage premium — catalog/display (production flat). */
+export const X402_DISPLAY_PRICE_REFUND_PREMIUM_USD = displayInternal(X402_REFUND_PREMIUM_FLAT_USD);
