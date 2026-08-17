@@ -3,8 +3,8 @@ import { BookMarked, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { PromptCard } from "@/components/earn/PromptCard";
 import { PromptForm } from "@/components/earn/PromptForm";
-import { EarnCardGridSkeleton } from "@/components/earn/EarnSkeleton";
 import { playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
+import { Bone } from "@/components/ui/bone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -146,9 +146,8 @@ export function EarnPromptPanel({
         </div>
       </div>
 
-      {showSkeleton ? (
-        <EarnCardGridSkeleton count={6} heightClass="h-[14rem]" />
-      ) : promptsQ.isError ? (
+      <Bone name="earn-prompt-grid" loading={showSkeleton}>
+      {promptsQ.isError ? (
         <div className="flex flex-col items-center justify-center rounded-[1.35rem] border border-border/40 bg-card/30 px-6 py-20 text-center">
           <p className="font-display text-lg font-semibold tracking-tight">Couldn’t load playbooks</p>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">Try again in a moment.</p>
@@ -202,6 +201,7 @@ export function EarnPromptPanel({
           ))}
         </ul>
       )}
+      </Bone>
 
       {anonymousId ? (
         <PromptForm

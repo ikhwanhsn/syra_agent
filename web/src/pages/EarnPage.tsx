@@ -6,9 +6,8 @@ import { EarnPromptPanel } from "@/components/earn/EarnPromptPanel";
 import { EarnSkillsPanel } from "@/components/earn/EarnSkillsPanel";
 import { EarnTokenPanel } from "@/components/earn/EarnTokenPanel";
 import { EarnYieldPanel } from "@/components/earn/EarnYieldPanel";
-import { EarnPageSkeleton, type EarnSkeletonTrack } from "@/components/earn/EarnSkeleton";
 import { EarnTrackTabs } from "@/components/earn/EarnTrackTabs";
-import { BouncyAccordion } from "@/components/motion/bouncy-accordion";
+import { Bone } from "@/components/ui/bone";
 import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
@@ -87,38 +86,10 @@ export default function EarnPage() {
     void queryClient.invalidateQueries({ queryKey: ["earn", "llm"] });
   };
 
-  const trackSkeleton = activeTrack as EarnSkeletonTrack;
-
   return (
     <PillarLayout embedded hideHeader title="Earn">
-      <div className="mb-6">
-        <BouncyAccordion
-          defaultValue="yield"
-          items={[
-            {
-              id: "yield",
-              title: "Yield",
-              description:
-                "Deploy USDC into managed LP and yield jobs. Agents pay when the work is done.",
-            },
-            {
-              id: "token",
-              title: "Token",
-              description:
-                "Launch or manage a token from the Earn wallet. Listing stays on Syra surfaces.",
-            },
-            {
-              id: "catalog",
-              title: "Prompts, skills, and LLM",
-              description:
-                "List prompts, skills, and LLM routes other agents can buy with x402. Connect a wallet to publish.",
-            },
-          ]}
-        />
-      </div>
-      {!key ? (
-        <EarnPageSkeleton track={trackSkeleton} />
-      ) : (
+      <Bone name="earn-page" loading={!key}>
+        {key ? (
         <EarnTrackTabs
           activeTrack={activeTrack}
           onTrackChange={handleTrackChange}
@@ -178,7 +149,8 @@ export default function EarnPage() {
             />
           }
         />
-      )}
+        ) : null}
+      </Bone>
     </PillarLayout>
   );
 }

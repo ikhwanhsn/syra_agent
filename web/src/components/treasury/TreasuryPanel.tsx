@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { TreasuryPanelSkeleton } from "@/components/treasury/TreasurySkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import type { BalanceChangeResult } from "@/lib/treasuryBalanceHistory";
@@ -105,7 +105,7 @@ export function TreasuryPanel({
   ];
 
   if (showSkeleton) {
-    return <TreasuryPanelSkeleton />;
+    return <BoneFallback name="treasury-panel" />;
   }
 
   const allocated = rows.reduce((sum, row) => sum + row.usd, 0);

@@ -2,8 +2,8 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { Lock, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { EarnYieldPanelSkeleton } from "@/components/earn/EarnSkeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { Bone } from "@/components/ui/bone";
 import {
   fetchEarnYieldBoard,
   fetchEarnYieldStatus,
@@ -72,9 +72,8 @@ export function EarnYieldPanel({
 
   return (
     <div className="space-y-6">
-      {boardQ.isLoading ? (
-        <EarnYieldPanelSkeleton />
-      ) : boardQ.isError ? (
+      <Bone name="earn-yield-panel" loading={boardQ.isLoading}>
+      {boardQ.isError ? (
         <div className={cn(overviewCardShell, "space-y-2 p-4")}>
           <p className="text-sm font-medium text-destructive">Couldn&apos;t load yield strategies.</p>
           <p className="text-xs text-muted-foreground">Try refreshing the page in a moment.</p>
@@ -142,6 +141,7 @@ export function EarnYieldPanel({
           )}
         </>
       )}
+      </Bone>
     </div>
   );
 }

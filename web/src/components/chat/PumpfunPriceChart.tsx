@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { fetchAgentChartUsdSeries, type PumpChartRange } from "@/lib/pumpTokenChartData";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import {
   buildPumpfunDefaultChartOptions,
   buildPumpfunTerminalChartOptions,
@@ -407,7 +408,7 @@ export function PumpfunPriceChart({
         <div className="relative">
           {status === "loading" ? (
             <div className="absolute inset-0 z-10 flex items-end px-3 pb-8 pt-4 sm:px-4">
-              <Skeleton className="h-[280px] w-full rounded-xl" />
+              <BoneFallback name="pumpfun-price-chart" />
             </div>
           ) : null}
           {status === "error" && error ? (

@@ -1,6 +1,6 @@
 import { BadgeCheck, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
@@ -60,21 +60,7 @@ export function SwapTokenXPosts({
             </Button>
           </div>
         ) : isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex gap-3 border-b border-border/40 pb-3 last:border-0 last:pb-0"
-              >
-                <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-3.5 w-28 rounded-md" />
-                  <Skeleton className="h-3 w-full rounded-md" />
-                  <Skeleton className="h-3 w-[80%] rounded-md" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <BoneFallback name="swap-x-posts" />
         ) : posts.length > 0 ? (
           <div className="space-y-3">
             {posts.map((post) => {

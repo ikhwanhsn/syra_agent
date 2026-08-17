@@ -53,7 +53,7 @@ import {
   writeAgentSetupString,
 } from "@/lib/agentSetupStorage";
 import { AgentWalletsManager } from "@/components/settings/AgentWalletsManager";
-import { AgentSetupSectionsSkeleton } from "@/components/settings/AgentSetupPageSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 
 const STALE_MS = 45_000;
 
@@ -585,7 +585,7 @@ function AgentSetupSections({
   const showAdminExperimentDesks = isAdminWallet(connected, address);
 
   if (setupLoading && !activeAgent) {
-    return <AgentSetupSectionsSkeleton />;
+    return <BoneFallback name="agent-setup-sections" />;
   }
 
   if (!activeAgent && setupLoadError) {

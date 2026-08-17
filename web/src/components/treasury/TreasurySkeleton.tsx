@@ -43,17 +43,13 @@ function BalanceCardSkeleton() {
 
 function SpendCardSkeleton({
   className,
-  labelled = false,
 }: {
   className?: string;
-  labelled?: boolean;
 }) {
   return (
     <section
       className={cn("flex h-full min-h-0 flex-col", className)}
-      aria-busy={labelled || undefined}
-      aria-label={labelled ? "Loading spend" : undefined}
-      aria-hidden={labelled ? undefined : true}
+      aria-hidden
     >
       <div
         className={cn(
@@ -143,9 +139,4 @@ export function TreasuryPanelSkeleton() {
       </section>
     </div>
   );
-}
-
-/** Compact spend card skeleton (billing dashboard). */
-export function TreasurySpendSkeleton({ className }: { className?: string }) {
-  return <SpendCardSkeleton className={className} labelled />;
 }

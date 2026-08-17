@@ -6,7 +6,7 @@ import { useStakingProtocolSummary } from "@/hooks/useStakingProtocolSummary";
 import { formatCompactAmount, formatCompactAmountFloor, formatUnits } from "@/lib/format";
 import type { UserLockRow } from "@/lib/streamflowStaking";
 import { STREAMFLOW_LOCK_SOL_RECOMMENDED } from "@/lib/streamflowStaking";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { cn } from "@/lib/utils";
 
 function sumLockAmountRaw(locks: UserLockRow[]): bigint {
@@ -66,35 +66,6 @@ function MetricCell({
   );
 }
 
-function MetricsSkeleton() {
-  return (
-    <div className="glass-card rounded-2xl border border-foreground/[0.08]" aria-hidden>
-      <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-border/45">
-        {[0, 1].map((group) => (
-          <div
-            key={group}
-            className={cn(
-              "p-5 sm:p-6",
-              group === 0 && "border-b border-border/45 lg:border-b-0",
-            )}
-          >
-            <Skeleton className="mb-4 h-3 w-16" />
-            <div className="grid grid-cols-2 gap-5 sm:gap-6">
-              {[0, 1].map((i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-7 w-28 sm:h-8" />
-                  <Skeleton className="h-3 w-32 max-w-full" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export interface StakingStatsStripProps {
   symbol: string;
   tokenDecimals: number;
@@ -144,7 +115,7 @@ export function StakingStatsStrip({
   if (loading && !summary && openLocks.length === 0) {
     return (
       <section aria-label="Staking overview">
-        <MetricsSkeleton />
+        <BoneFallback name="staking-stats" />
       </section>
     );
   }

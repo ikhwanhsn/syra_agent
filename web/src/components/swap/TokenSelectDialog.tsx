@@ -11,6 +11,7 @@ import { BottomSheet } from "@/components/motion/bottom-sheet";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -188,21 +189,6 @@ function TokenRowSkeleton({ delay = 0 }: { delay?: number }) {
         <Skeleton className="h-3 w-28 rounded-md" />
       </div>
       <Skeleton className="h-3 w-10 shrink-0 rounded-md" />
-    </div>
-  );
-}
-
-function TokenListLoading({ count = 6, label }: { count?: number; label?: string }) {
-  return (
-    <div className="space-y-0.5 py-1">
-      {label ? (
-        <p className="px-3 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-          {label}
-        </p>
-      ) : null}
-      {Array.from({ length: count }, (_, i) => (
-        <TokenRowSkeleton key={i} delay={i * 45} />
-      ))}
     </div>
   );
 }
@@ -405,10 +391,7 @@ export function TokenSelectDialog({
             ) : null}
 
             {showListSkeleton ? (
-              <TokenListLoading
-                count={6}
-                label={isSearchMode ? "Searching" : "Verified"}
-              />
+              <BoneFallback name="swap-token-list" />
             ) : null}
 
             {!showListSkeleton && !tokensQ.isError && searchResults.length > 0 ? (

@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { PumpfunAnalysisSkeleton } from "@/components/pumpfun/PumpfunAnalysisSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { PumpfunCallShareModal } from "@/components/pumpfun/PumpfunCallShareModal";
 import { PumpfunCallerLeaderboard } from "@/components/pumpfun/PumpfunCallerLeaderboard";
 import { PumpfunLiveCallsPanel } from "@/components/pumpfun/PumpfunLiveCallsPanel";
@@ -336,7 +336,9 @@ export default function PumpfunAnalyzer() {
           </TabsList>
 
           <TabsContent value="scan" className="mt-6 space-y-6">
-            {showSkeleton ? <PumpfunAnalysisSkeleton /> : null}
+            {showSkeleton ? (
+              <BoneFallback name="pumpfun-analysis" />
+            ) : null}
 
             {analysisQ.isError ? (
               <Card className={cn(overviewCardShell, "max-w-xl border-destructive/40")}>

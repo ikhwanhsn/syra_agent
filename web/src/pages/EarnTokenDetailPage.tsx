@@ -15,7 +15,7 @@ import { Link, useParams } from "react-router-dom";
 import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
 import { TokensOhlcvChart } from "@/components/dossier/TokensOhlcvChart";
 import { playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
-import { EarnTokenDetailSkeleton } from "@/components/RouteFallback";
+import { Bone } from "@/components/ui/bone";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
@@ -246,9 +246,9 @@ export default function EarnTokenDetailPage() {
               <Link to="/earn?track=token">Back to tokens</Link>
             </Button>
           </div>
-        ) : detailQ.isLoading ? (
-          <EarnTokenDetailSkeleton />
-        ) : detailQ.isError || !launch ? (
+        ) : (
+          <Bone name="earn-token-detail" loading={detailQ.isLoading}>
+        {detailQ.isError || !launch ? (
           <div className={cn(surfaceClass, "flex flex-col items-center justify-center px-6 py-20 text-center")}>
             <p className="font-display text-lg font-semibold tracking-tight">Token not found</p>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
@@ -530,6 +530,8 @@ export default function EarnTokenDetailPage() {
               </aside>
             </div>
           </div>
+        )}
+          </Bone>
         )}
       </div>
     </div>

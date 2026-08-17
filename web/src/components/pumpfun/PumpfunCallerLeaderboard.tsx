@@ -1,6 +1,6 @@
 import { Crown, Medal, Share2, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import {
   matchesTokenSearch,
   PumpfunListToolbar,
@@ -150,7 +150,9 @@ export function PumpfunCallerLeaderboard() {
   const showSkeleton = useDelayedMinimumSkeleton(leaderboardQ.isLoading, 450);
 
   if (showSkeleton) {
-    return <PumpfunListPanelSkeleton rows={10} variant="leaderboard" />;
+    return (
+      <BoneFallback name="pumpfun-leaderboard" />
+    );
   }
 
   if (leaderboardQ.isError) {

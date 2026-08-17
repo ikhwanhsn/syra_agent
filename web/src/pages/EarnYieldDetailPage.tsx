@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Clock, ExternalLink, Lock, Pause, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { EarnYieldDetailSkeleton } from "@/components/earn/EarnSkeleton";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
+import { Bone } from "@/components/ui/bone";
 import { Button } from "@/components/ui/button";
 import { useAgentWallet } from "@/contexts/AgentWalletContext";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
@@ -183,9 +183,9 @@ export default function EarnYieldDetailPage() {
 
         {!productId ? (
           <EmptyState title="Missing strategy" body="This link is missing a strategy id." />
-        ) : boardQ.isLoading ? (
-          <EarnYieldDetailSkeleton />
-        ) : boardQ.isError ? (
+        ) : (
+          <Bone name="earn-yield-detail" loading={boardQ.isLoading}>
+        {boardQ.isError ? (
           <EmptyState
             title="Couldn't load this strategy"
             body="Try again from Earn."
@@ -422,6 +422,8 @@ export default function EarnYieldDetailPage() {
               )}
             </section>
           </div>
+        )}
+          </Bone>
         )}
       </div>
     </div>

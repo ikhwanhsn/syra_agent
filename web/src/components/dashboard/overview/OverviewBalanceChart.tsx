@@ -6,6 +6,7 @@ import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
 import { cn } from "@/lib/utils";
 import { formatCompactUsd, formatSol } from "@/lib/dashboardOverviewAggregates";
@@ -189,7 +190,7 @@ export function OverviewBalanceChart({
   const chartHeight = compact ? 108 : 240;
 
   const chartPanel = loading ? (
-    <Skeleton className="w-full rounded-xl" style={{ height: chartHeight }} />
+    <BoneFallback name="overview-chart" />
   ) : showTrend ? (
     <div
       className={cn(

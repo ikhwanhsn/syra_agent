@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Dropdown } from "@/components/interior/dropdown";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { useLlmModels } from "@/hooks/useLlmPlayground";
 import {
   formatLlmPrice,
@@ -45,7 +45,7 @@ export function ModelSelector({ modality, value, onChange, disabled }: ModelSele
     return (
       <div className="space-y-2">
         <Label>Model</Label>
-        <Skeleton className="h-10 w-full" />
+        <BoneFallback name="llm-model-selector" />
       </div>
     );
   }

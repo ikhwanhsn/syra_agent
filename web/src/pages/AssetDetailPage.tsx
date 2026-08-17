@@ -13,7 +13,7 @@ import {
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
 import { MintDossierView } from "@/components/dossier/MintDossierView";
-import { AssetDetailSkeleton } from "@/components/assets/AssetDetailSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { AssetIntelligenceSection } from "@/components/assets/intelligence/AssetIntelligenceSection";
 import {
   ASSETS_HUB_QUERY_KEY,
@@ -129,13 +129,8 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
           name={dossierData?.asset?.name ?? assetKey}
         />
 
-        {showInitialSkeleton ? (
-          <div className="space-y-6">
-            <AssetDetailSkeleton />
-          </div>
-        ) : null}
-
-        {dossierQ.isError && !dossierData ? (
+        <Bone name="asset-detail" loading={showInitialSkeleton}>
+        {showInitialSkeleton ? null : dossierQ.isError && !dossierData ? (
           <Card className={cn(overviewCardShell, "max-w-xl border-destructive/40 animate-in fade-in")}>
             <CardContent className="pt-6">
               <p className="text-sm font-medium text-destructive">
@@ -172,6 +167,7 @@ export default function AssetDetailPage({ embedded }: { embedded?: boolean }) {
             />
           </div>
         ) : null}
+        </Bone>
       </div>
     </div>
   );

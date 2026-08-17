@@ -5,7 +5,7 @@ import { MarketplaceApiDetailView } from "@/components/marketplace/MarketplaceAp
 import { PlaygroundSessionProvider } from "@/contexts/PlaygroundSessionContext";
 import { useMarketplaceCatalogFlows } from "@/hooks/useMarketplaceCatalogFlows";
 import { MARKETPLACE_ROUTE } from "@/lib/marketplaceConstants";
-import { GenericPageSkeleton } from "@/components/RouteFallback";
+import { Bone } from "@/components/ui/bone";
 
 function MarketplaceApiDetailInner() {
   const { flowId } = useParams<{ flowId: string }>();
@@ -17,7 +17,9 @@ function MarketplaceApiDetailInner() {
     return (
       <PlaygroundPageShell>
         <div className="relative z-[1]">
-          <GenericPageSkeleton />
+          <Bone name="marketplace-api-detail" loading>
+            {null}
+          </Bone>
         </div>
       </PlaygroundPageShell>
     );

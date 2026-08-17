@@ -926,28 +926,6 @@ export function ChatMessage({
   );
 }
 
-export function SkeletonMessage() {
-  return (
-    <div className="flex min-w-0 animate-fade-in items-start gap-3 py-1.5 sm:gap-4 sm:py-2">
-      <div className="h-9 w-9 shrink-0 rounded-full skeleton-shimmer ring-1 ring-border/40 ring-offset-2 ring-offset-background sm:h-9 sm:w-9" />
-      <div className="min-w-0 flex-1 pr-1 sm:pr-2">
-        <div className="relative overflow-hidden rounded-2xl border border-border/55 bg-[hsl(var(--message-agent)/0.85)] p-4 shadow-[0_0_0_1px_hsl(var(--foreground)/0.04)_inset,0_24px_56px_-28px_rgba(0,0,0,0.65)] sm:p-5">
-          <div className="pointer-events-none absolute inset-y-3 left-0 w-px rounded-full bg-gradient-to-b from-primary/0 via-primary/20 to-primary/0" aria-hidden />
-          <div className="mb-4 flex gap-2 border-b border-border/35 pb-3">
-            <div className="h-5 w-16 rounded-full skeleton-shimmer" />
-            <div className="h-4 w-32 rounded-md skeleton-shimmer" />
-          </div>
-          <div className="space-y-2.5 rounded-xl border border-border/25 bg-background/[0.1] p-4">
-            <div className="h-4 w-full rounded-md skeleton-shimmer" />
-            <div className="h-4 w-[92%] rounded-md skeleton-shimmer" />
-            <div className="h-4 w-[78%] rounded-md skeleton-shimmer" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** Beautiful UI loading + task rows while the agent prepares a reply. */
 export function LoadingStepMessage({
   lastUserMessage,

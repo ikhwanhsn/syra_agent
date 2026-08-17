@@ -1,4 +1,4 @@
-import { CallLogTableSkeleton } from "@/components/labs/LabsSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -112,7 +112,7 @@ export function CallLogTable({ calls, isLoading, chain = "solana" }: CallLogTabl
   const visibleCalls = calls.slice(0, MAX_VISIBLE_CALLS);
 
   if (showSkeleton) {
-    return <CallLogTableSkeleton />;
+    return <BoneFallback name="labs-call-log" />;
   }
 
   if (visibleCalls.length === 0) {

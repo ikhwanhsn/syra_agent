@@ -2,7 +2,7 @@ import { Link } from "@/lib/navigation";
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight, Lock } from "lucide-react";
 import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { cn } from "@/lib/utils";
 import type { PillarId } from "@/lib/pillarsApi";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
@@ -77,7 +77,7 @@ export function PillarCard({
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
 
           {balanceLoading ? (
-            <Skeleton className="mt-3 h-6 w-24" />
+            <BoneFallback name="pillar-card" />
           ) : balance && (balance.usdc != null || balance.sol != null) ? (
             <p className="mt-3 font-mono text-lg font-semibold tabular-nums tracking-tight text-foreground">
               {balance.usdc != null ? (

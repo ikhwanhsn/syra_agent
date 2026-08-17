@@ -1,5 +1,5 @@
 import { Copy, Wallet, ArrowDownToLine, Play } from "lucide-react";
-import { WalletListSkeleton } from "@/components/labs/LabsSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ export function WalletList({
   };
 
   if (showSkeleton) {
-    return <WalletListSkeleton />;
+    return <BoneFallback name="labs-wallet-list" />;
   }
 
   if (wallets.length === 0) {

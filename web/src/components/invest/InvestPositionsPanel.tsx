@@ -6,7 +6,7 @@ import {
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import type { InvestPosition } from "@/lib/pillarsApi";
 import { cn } from "@/lib/utils";
 
@@ -47,10 +47,7 @@ export function InvestPositionsPanel({
         <p className={overviewKickerClass}>Your positions</p>
 
         {isLoading ? (
-          <div className="mt-4 space-y-3" aria-busy="true" aria-label="Loading positions">
-            <Skeleton className="h-12 w-full rounded-xl" />
-            <Skeleton className="h-12 w-full rounded-xl" />
-          </div>
+          <BoneFallback name="invest-page" />
         ) : isError ? (
           <div className="mt-4 space-y-3">
             <p className="text-sm text-muted-foreground leading-relaxed">

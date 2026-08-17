@@ -12,6 +12,7 @@ import {
   type OverviewAccent,
 } from "@/components/dashboard/overview/overviewStyles";
 import { BalanceChangeIndicator } from "@/components/dashboard/overview/BalanceChangeIndicator";
+import { BoneFallback } from "@/components/ui/bone";
 import type { BalanceChangeResult } from "@/lib/treasuryBalanceHistory";
 
 export interface OverviewStatCardProps {
@@ -83,10 +84,7 @@ export function OverviewStatCard({
         </header>
 
         {isLoading ? (
-          <div className="flex flex-1 flex-col justify-center gap-2 py-2">
-            <div className="h-8 w-24 animate-pulse rounded-md bg-muted/60" />
-            <div className="h-3 w-32 animate-pulse rounded bg-muted/40" />
-          </div>
+          <BoneFallback name="overview-stat" />
         ) : (
           <>
             <p

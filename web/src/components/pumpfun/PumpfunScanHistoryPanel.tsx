@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ExternalLink, Share2, TrendingUp } from "lucide-react";
-import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import {
   matchesTokenSearch,
   PumpfunListToolbar,
@@ -181,7 +181,7 @@ export function PumpfunScanHistoryPanel({
   }
 
   if (showSessionSkeleton) {
-    return <PumpfunListPanelSkeleton rows={10} />;
+    return <BoneFallback name="pumpfun-list" />;
   }
 
   if (!syraAuthenticated) {
@@ -200,7 +200,7 @@ export function PumpfunScanHistoryPanel({
   }
 
   if (showHistorySkeleton) {
-    return <PumpfunListPanelSkeleton rows={10} />;
+    return <BoneFallback name="pumpfun-list" />;
   }
 
   if (historyQ.isError) {

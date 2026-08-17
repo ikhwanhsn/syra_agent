@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConnectWalletPrompt } from "./ConnectWalletPrompt";
 import { ShareChatModal } from "./ShareChatModal";
 import { ChatSidebarItem } from "./ChatSidebarItem";
-import { ChatSidebarSkeleton } from "./ChatSidebarSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { cn } from "@/lib/utils";
 import { CHAT_SIDEBAR_TRANSITION } from "@/lib/layoutConstants";
 
@@ -288,7 +288,7 @@ export function Sidebar({
                 </div>
               </div>
             ) : chatsLoading ? (
-              <ChatSidebarSkeleton />
+              <BoneFallback name="chat-sidebar" />
             ) : !hasChats ? (
               <div className="flex flex-col items-center px-4 py-10 text-center">
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-muted/40">

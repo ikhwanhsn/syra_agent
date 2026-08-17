@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { AssetIntelligencePayload } from "@/lib/tokensDossierApi";
-import { AssetIntelligenceSkeleton } from "@/components/assets/intelligence/AssetIntelligenceSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { AssetNewsList } from "@/components/assets/intelligence/AssetNewsList";
 import { AssetSentimentCard } from "@/components/assets/intelligence/AssetSentimentCard";
 import { AssetEventsList } from "@/components/assets/intelligence/AssetEventsList";
@@ -78,7 +78,13 @@ export function AssetIntelligenceSection({
   errorMessage?: string;
   className?: string;
 }) {
-  if (isLoading) return <AssetIntelligenceSkeleton className={className} />;
+  if (isLoading) {
+    return (
+      <Bone name="asset-intelligence" loading>
+        {null}
+      </Bone>
+    );
+  }
 
   const blocks = resolveBlocks(data, isError, errorMessage);
 

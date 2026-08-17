@@ -3,7 +3,8 @@ import { Bot, Copy, Plus, Search, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { LlmCard } from "@/components/earn/LlmCard";
 import { LlmForm } from "@/components/earn/LlmForm";
-import { EarnCardGridSkeleton } from "@/components/earn/EarnSkeleton";
+import { EarnDialogShell } from "@/components/earn/EarnDialogShell";
+import { Bone } from "@/components/ui/bone";
 import { playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,7 @@ export function EarnLlmPanel({
 }: EarnLlmPanelProps) {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [playgroundOpen, setPlaygroundOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [policy, setPolicy] = useState("cheapest");
   const [snippet, setSnippet] = useState(() =>
@@ -175,13 +177,26 @@ export function EarnLlmPanel({
             or most callable.
           </p>
         </div>
-        <Button
-          className="h-11 shrink-0 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
-          onClick={() => void handleCreate()}
-        >
-          <Plus className="h-4 w-4" />
-          List LLM
-        </Button>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium"
+            aria-haspopup="dialog"
+            aria-expanded={playgroundOpen}
+            onClick={() => setPlaygroundOpen(true)}
+          >
+            <Bot className="h-4 w-4 opacity-70" aria-hidden />
+            Agent playground
+          </Button>
+          <Button
+            className="h-11 gap-2 rounded-full px-5 text-[13px] font-medium shadow-sm"
+            onClick={() => void handleCreate()}
+          >
+            <Plus className="h-4 w-4" />
+            List LLM
+          </Button>
+        </div>
       </header>
 
       {connected && syraAuthenticated ? (
@@ -216,40 +231,6 @@ export function EarnLlmPanel({
         </div>
       ) : null}
 
-      <div className="space-y-3 rounded-[1.35rem] border border-border/40 bg-muted/10 p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-[13px] font-medium text-foreground">
-            <Bot className="h-4 w-4 text-muted-foreground" aria-hidden />
-            Agent playground
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={policy} onValueChange={(v) => refreshSnippet(v)}>
-              <SelectTrigger className="h-9 w-[140px] rounded-full border-border/40 bg-background/80 text-[13px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cheapest">Cheapest</SelectItem>
-                <SelectItem value="reliable">Reliable</SelectItem>
-                <SelectItem value="fastest">Fastest</SelectItem>
-                <SelectItem value="quality">Quality</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-9 gap-1.5 rounded-full px-3"
-              onClick={() => void copySnippet()}
-            >
-              <Copy className="h-3.5 w-3.5 opacity-60" />
-              Copy
-            </Button>
-          </div>
-        </div>
-        <pre className="overflow-x-auto rounded-xl border border-border/30 bg-background/70 p-3 font-mono text-[12px] leading-relaxed text-muted-foreground">
-          {snippet}
-        </pre>
-      </div>
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative min-w-0 flex-1 sm:max-w-sm">
           <Search
@@ -270,9 +251,8 @@ export function EarnLlmPanel({
         </div>
       </div>
 
-      {showSkeleton ? (
-        <EarnCardGridSkeleton count={6} heightClass="h-[17rem]" />
-      ) : publishedQ.isError ? (
+      <Bone name="earn-llm-grid" loading={showSkeleton}>
+      {publishedQ.isError ? (
         <div className="rounded-[1.35rem] border border-border/40 bg-card/40 p-8 text-center">
           <p className="text-sm text-muted-foreground">
             Could not load the LLM marketplace. Try again shortly.
@@ -311,6 +291,47 @@ export function EarnLlmPanel({
           ))}
         </ul>
       )}
+      </Bone>
+
+      <EarnDialogShell
+        open={playgroundOpen}
+        onOpenChange={setPlaygroundOpen}
+        icon={Bot}
+        title="Agent playground"
+        description="Call POST /llm/route. First response is HTTP 402. Retry with PAYMENT-SIGNATURE after settling x402."
+        className="sm:max-w-2xl md:max-w-2xl lg:max-w-2xl xl:max-w-2xl"
+        footer={
+          <Button
+            type="button"
+            className="h-10 w-full gap-2 rounded-xl sm:w-auto"
+            onClick={() => void copySnippet()}
+          >
+            <Copy className="h-4 w-4 opacity-70" aria-hidden />
+            Copy snippet
+          </Button>
+        }
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[13px] font-medium text-foreground">Routing policy</p>
+          <Select value={policy} onValueChange={(v) => refreshSnippet(v)}>
+            <SelectTrigger
+              className="h-10 w-[160px] rounded-xl border-border/40 bg-muted/25 text-[13px]"
+              aria-label="Routing policy"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cheapest">Cheapest</SelectItem>
+              <SelectItem value="reliable">Reliable</SelectItem>
+              <SelectItem value="fastest">Fastest</SelectItem>
+              <SelectItem value="quality">Quality</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <pre className="overflow-x-auto rounded-xl border border-border/40 bg-background p-4 font-mono text-[12px] leading-relaxed text-foreground/80">
+          {snippet}
+        </pre>
+      </EarnDialogShell>
 
       <LlmForm
         open={createOpen}

@@ -14,7 +14,7 @@ import { SimulationPanel } from "@/components/labs/x402/SimulationPanel";
 import { VolumeProgressCard } from "@/components/labs/x402/VolumeProgressCard";
 import { CallLogTable } from "@/components/labs/x402/CallLogTable";
 import { TreasuryHealthBanner } from "@/components/labs/x402/TreasuryHealthBanner";
-import { EndpointsGridSkeleton } from "@/components/labs/LabsSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import type { LabChain, LabDepositDistributeResult, LabWallet } from "@/lib/labsX402Api";
 
@@ -381,7 +381,9 @@ export function X402LabTab({ chain }: X402LabTabProps) {
             Available endpoints
           </h3>
           {showEndpointsSkeleton ? (
-            <EndpointsGridSkeleton />
+            <Bone name="labs-endpoints" loading>
+              {null}
+            </Bone>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {visibleEndpoints.map((ep) => (

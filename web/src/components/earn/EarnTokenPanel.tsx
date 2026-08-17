@@ -15,7 +15,7 @@ import { useState } from "react";
 import { EarnTokenForm } from "@/components/earn/EarnTokenForm";
 import { EarnTokenLogo } from "@/components/earn/EarnTokenLogo";
 import { playgroundStaggerStyle, playgroundTabPanelEnter } from "@/components/playground/playgroundMotion";
-import { EarnCardGridSkeleton } from "@/components/earn/EarnSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -424,9 +424,8 @@ export function EarnTokenPanel({
         </div>
       ) : null}
 
-      {showSkeleton ? (
-        <EarnCardGridSkeleton count={6} heightClass="h-[17rem]" />
-      ) : marketQ.isError ? (
+      <Bone name="earn-token-grid" loading={showSkeleton}>
+      {marketQ.isError ? (
         <div className="flex flex-col items-center justify-center rounded-[1.35rem] border border-border/40 bg-card/30 px-6 py-20 text-center">
           <p className="font-display text-lg font-semibold tracking-tight">Couldn’t load launches</p>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">Try again in a moment.</p>
@@ -471,6 +470,7 @@ export function EarnTokenPanel({
           ))}
         </ul>
       )}
+      </Bone>
 
       <EarnTokenForm
         open={launchOpen}

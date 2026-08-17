@@ -4,6 +4,7 @@ import { Link } from "@/lib/navigation";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -308,7 +309,7 @@ export function SwapMarketPanel({
           </div>
 
           {showChartSkeleton ? (
-            <Skeleton className="h-[280px] w-full rounded-xl sm:h-[320px]" />
+            <BoneFallback name="swap-market" />
           ) : chartQ.isError && !chartQ.data ? (
             <div className="flex h-[280px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/50 bg-muted/15 px-4 text-center sm:h-[320px]">
               <p className="text-sm text-muted-foreground">

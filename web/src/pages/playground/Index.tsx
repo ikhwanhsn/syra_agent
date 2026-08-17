@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "@/lib/navigation";
 import { PlaygroundPageShell } from "@/components/playground/PlaygroundPageShell";
-import { PlaygroundCatalogSkeleton } from "@/components/playground/PlaygroundCatalogSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { PlaygroundCustomTester } from "@/pages/playground/PlaygroundCustomTester";
 import { PlaygroundModals } from "@/components/playground/PlaygroundModals";
 import { usePlaygroundSession } from "@/contexts/PlaygroundSessionContext";
@@ -129,7 +129,9 @@ const Index = () => {
       <PlaygroundPageShell>
         <div className={cn("relative z-[1] flex min-h-0 flex-1 flex-col", MAIN_CONTENT_PB_SAFE_CLASS)}>
           <div className="px-4 py-8 sm:px-6">
-            <PlaygroundCatalogSkeleton count={4} />
+            <Bone name="playground-catalog-share" loading>
+              {null}
+            </Bone>
           </div>
         </div>
         <PlaygroundModals />

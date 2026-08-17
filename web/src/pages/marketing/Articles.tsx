@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { ArticleCard } from "@/components/marketing/ArticleCard";
-import { ArticlesPageSkeleton } from "@/components/marketing/ArticlesSkeleton";
+import { Bone } from "@/components/ui/bone";
 import {
   ArticleTagFilter,
   FeaturedArticleHero,
@@ -87,9 +87,8 @@ export default function Articles() {
         Back to Syra
       </Link>
 
-      {showSkeleton ? (
-        <ArticlesPageSkeleton />
-      ) : (
+      <Bone name="articles-list" loading={showSkeleton}>
+      {!showSkeleton ? (
         <>
           <motion.header
             initial={{ opacity: 0, y: 16 }}
@@ -188,7 +187,8 @@ export default function Articles() {
             </a>
           </motion.aside>
         </>
-      )}
+      ) : null}
+      </Bone>
     </ArticlePageShell>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { usePublicMetrics, type PublicMetricsSnapshot } from "@/lib/publicMetricsApi";
 import { SYRA_LIVE_SUBLINE, SYRA_OUTCOMES_SUBLINE, SYRA_TAGLINE } from "@/lib/syraBranding";
+import { SYRA_SKILL_SETUP_LINE } from "@/content/syraFocus";
 import { SyraBuyButton } from "@/components/syra/SyraBuyButton";
 import { GrowthTokenSection } from "@/components/growth/GrowthTokenSection";
 import { GrowthTestimonials } from "@/components/growth/GrowthTestimonials";
@@ -23,7 +24,7 @@ import { Magnetic } from "@/components/motion/magnetic";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { TextReveal } from "@/components/motion/text-reveal";
 import { TiltCard } from "@/components/motion/tilt-card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { cn } from "@/lib/utils";
 import {
   growthCtaPrimaryClass,
@@ -41,6 +42,7 @@ import {
   growthStatValueClass,
   growthTerminalFrameClass,
   growthTerminalTitlebarClass,
+  growthTileClass,
 } from "@/components/growth/growthHomeStyles";
 
 function formatNum(n: number): string {
@@ -67,116 +69,23 @@ const HOW_STEPS = [
   },
   {
     n: "02",
-    title: "Install MCP with payer",
-    body: "Add Syra in Cursor or Claude with SYRA_PAYER_KEYPAIR in env. Same path as the marketplace Integrate tab.",
+    title: "Paste the skill or install MCP",
+    body: `Agents: ${SYRA_SKILL_SETUP_LINE}. Humans: add Syra in Cursor or Claude with SYRA_PAYER_KEYPAIR. Same path as marketplace Integrate.`,
     href: "https://docs.syraa.fun/docs/build/mcp",
     external: true,
     icon: Plug,
-    chip: "MCP · env",
+    chip: "skill.md · MCP",
   },
   {
     n: "03",
-    title: "Call syra_spend_news",
-    body: "First settled paid call in about five minutes, then expand the catalog.",
+    title: "Consult, then syra_spend_news",
+    body: "Call syra_consult with the intent (free). Then run the tool it returns. First settled paid call in about five minutes.",
     href: "/marketplace",
     external: false,
     icon: Terminal,
     chip: "x402 · settled",
   },
 ] as const;
-
-function ProofStatSkeleton({ large }: { large?: boolean }) {
-  return (
-    <div className="min-w-0" aria-hidden>
-      <Skeleton className="h-2.5 w-24 rounded-sm" />
-      <Skeleton
-        className={cn(
-          "mt-2 rounded-md",
-          large ? "h-9 w-28 sm:h-10 sm:w-32" : "h-8 w-24 sm:h-8 sm:w-28",
-        )}
-      />
-      <Skeleton className="mt-1.5 h-3 w-28 max-w-full rounded-sm" />
-    </div>
-  );
-}
-
-function MetricSkeleton() {
-  return (
-    <div className="space-y-8" aria-hidden>
-      <div className="grid gap-6 border-b border-border/35 pb-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-        <ProofStatSkeleton large />
-        <ProofStatSkeleton large />
-        <ProofStatSkeleton />
-        <ProofStatSkeleton />
-      </div>
-
-      <div className={cn(growthPanelQuietClass, "p-5 sm:p-6")}>
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
-          <div className="space-y-2">
-            <Skeleton className="h-2.5 w-16 rounded-sm" />
-            <Skeleton className="h-5 w-48 max-w-full rounded-md" />
-          </div>
-          <Skeleton className="h-3 w-28 rounded-sm" />
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <ProofStatSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-
-      <div className={cn(growthPanelQuietClass, "p-5 sm:p-6")}>
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
-          <div className="space-y-2">
-            <Skeleton className="h-2.5 w-20 rounded-sm" />
-            <Skeleton className="h-5 w-56 max-w-full rounded-md" />
-          </div>
-          <Skeleton className="h-3 w-24 rounded-sm" />
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <ProofStatSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className={cn(growthTerminalFrameClass, "p-5 sm:p-6 lg:col-span-2")}>
-          <Skeleton className="mb-4 h-4 w-24 rounded-md" />
-          <Skeleton className="mb-4 h-3 w-full rounded-sm" />
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Skeleton className="h-2.5 w-20 rounded-sm" />
-              <Skeleton className="h-3 w-full rounded-sm" />
-            </div>
-            <div className="space-y-1.5">
-              <Skeleton className="h-2.5 w-16 rounded-sm" />
-              <Skeleton className="h-3 w-4/5 rounded-sm" />
-            </div>
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-border/35 pt-4">
-            <ProofStatSkeleton />
-            <ProofStatSkeleton />
-          </div>
-        </div>
-        <div className={cn(growthTerminalFrameClass, "overflow-hidden lg:col-span-3")}>
-          <div className={growthTerminalTitlebarClass}>
-            <Skeleton className="h-3 w-28 rounded-sm" />
-            <Skeleton className="h-3 w-12 rounded-sm" />
-          </div>
-          <div className="space-y-3 p-5 sm:p-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between gap-3">
-                <Skeleton className="h-3 w-32 max-w-[50%] rounded-sm" />
-                <Skeleton className="h-3 w-16 rounded-sm" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ProofStat({
   label,
@@ -679,18 +588,17 @@ export default function GrowthHomePage() {
 
             {HOW_STEPS.map(({ n, title, body, href, external, icon: Icon, chip }, stepIndex) => {
               const className = cn(
-                "group relative flex min-h-[15rem] flex-col bg-background/92 p-7 sm:p-8 xl:p-10",
-                "transition-colors duration-200 hover:bg-card",
-                "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "group min-h-[15rem] p-7 sm:p-8 xl:p-10",
+                growthTileClass,
               );
               const inner = (
                 <>
                   <div className="mb-6 flex flex-col gap-5 sm:mb-8 lg:items-center">
-                    <span className="relative z-[2] flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-background text-foreground/70 shadow-[0_0_0_6px_hsl(var(--background))] transition-colors group-hover:border-border/65 group-hover:bg-card group-hover:text-foreground group-hover:shadow-[0_0_0_6px_hsl(var(--card))]">
+                    <span className="relative z-[2] flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-card text-foreground/70 shadow-[0_0_0_6px_hsl(var(--card))] transition-colors group-hover:border-border/65 group-hover:bg-muted group-hover:text-foreground group-hover:shadow-[0_0_0_6px_hsl(var(--muted))]">
                       <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
                     </span>
                     <div className="flex w-full items-center gap-2.5">
-                      <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-foreground/75">
+                      <span className="font-mono text-[11px] font-medium tracking-[0.22em] text-muted-foreground">
                         {n}
                       </span>
                       {stepIndex < HOW_STEPS.length - 1 ? (
@@ -705,10 +613,10 @@ export default function GrowthHomePage() {
                   <h3 className="font-display text-lg font-semibold tracking-[-0.03em] text-foreground">
                     {title}
                   </h3>
-                  <p className="mt-3 flex-1 text-sm leading-[1.7] text-muted-foreground">
+                  <p className="mt-3 flex-1 text-sm leading-[1.7] text-foreground/70">
                     {body}
                   </p>
-                  <span className="mt-8 inline-flex items-center gap-1.5 text-xs font-medium text-foreground/75 transition-colors group-hover:text-foreground">
+                  <span className="mt-8 inline-flex items-center gap-1.5 text-xs font-medium text-foreground/85 transition-colors group-hover:text-foreground">
                     Continue
                     <ArrowRight
                       className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -779,7 +687,7 @@ export default function GrowthHomePage() {
           </div>
 
           <div className={cn(growthPanelClass, "p-5 sm:p-8 lg:p-10")}>
-            {isLoading && !data ? <MetricSkeleton /> : null}
+            {isLoading && !data ? <BoneFallback name="growth-metrics" /> : null}
             {isError && !data ? (
               <p className="text-sm text-destructive">
                 {error instanceof Error ? error.message : "Failed to load metrics"}

@@ -12,8 +12,8 @@ import { marketplaceApiDetailPath } from "@/lib/marketplaceConstants";
 import { useConnectModal } from "@/contexts/ConnectModalContext";
 import { usePlaygroundSession } from "@/contexts/PlaygroundSessionContext";
 import { SyraApiCard } from "@/components/playground/SyraApiCard";
-import { PlaygroundCatalogSkeleton } from "@/components/playground/PlaygroundCatalogSkeleton";
 import { PlaygroundEmptyState } from "@/components/playground/PlaygroundEmptyState";
+import { Bone } from "@/components/ui/bone";
 import { MarketplaceBrowseHeader } from "@/components/marketplace/MarketplaceBrowseHeader";
 import { MarketplacePartnerGroups } from "@/components/marketplace/MarketplacePartnerGroups";
 import { PLAYGROUND_PAGE_CLASS } from "@/components/playground/playgroundStyles";
@@ -85,9 +85,8 @@ export function SyraApiCatalog() {
         onConnectWallet={() => openConnectModal()}
       />
 
-      {catalogLoading && allFlows.length === 0 ? (
-        <PlaygroundCatalogSkeleton count={activeTier === "core" ? 8 : 12} />
-      ) : filteredFlows.length === 0 ? (
+      <Bone name="playground-catalog" loading={catalogLoading && allFlows.length === 0}>
+      {filteredFlows.length === 0 ? (
         <PlaygroundEmptyState
           title={
             tierFlows.length === 0
@@ -139,6 +138,7 @@ export function SyraApiCatalog() {
           })}
         </div>
       )}
+      </Bone>
     </div>
   );
 }

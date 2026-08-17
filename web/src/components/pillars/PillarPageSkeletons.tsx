@@ -234,68 +234,6 @@ export function SpendPageSkeleton() {
   );
 }
 
-/** Compact skeleton for Spend free-preview panel. */
-export function SpendPreviewSkeleton() {
-  return (
-    <div className="space-y-2" aria-busy="true" aria-label="Loading preview">
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-5/6" />
-      <Skeleton className="h-4 w-2/3" />
-    </div>
-  );
-}
-
-/** Grow portfolio analysis skeleton (shown after address submit; address form stays mounted). */
-export function GrowAnalysisSkeleton() {
-  return (
-    <div
-      className="w-full space-y-6 animate-in fade-in duration-300 sm:space-y-8"
-      aria-busy="true"
-      aria-label="Loading portfolio analysis"
-    >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:gap-4">
-        <div
-          className={cn(
-            overviewCardShell,
-            "flex flex-col justify-end p-4 sm:col-span-2 sm:p-5 lg:col-span-5 lg:p-6",
-          )}
-        >
-          <Skeleton className="h-3 w-16" />
-          <Skeleton className="mt-2 h-10 w-44 max-w-full sm:h-12 sm:w-52" />
-          <Skeleton className="mt-2 h-3 w-40" />
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-3 lg:col-span-7 lg:gap-4">
-          <GlassMetricSkeleton />
-          <GlassMetricSkeleton />
-          <GlassMetricSkeleton />
-        </div>
-      </div>
-      <div className="grid gap-6 sm:grid-cols-2 lg:gap-8">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <section key={i} className={cn(overviewCardShell, "p-4 sm:p-6")}>
-            <Skeleton className="mb-1 h-5 w-24" />
-            <Skeleton className="mb-4 h-4 w-36" />
-            <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, j) => (
-                <ProgressRowSkeleton key={j} />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-      <section>
-        <Skeleton className="mb-1 h-5 w-28 sm:h-6" />
-        <Skeleton className="mb-3 h-4 w-56 sm:mb-4" />
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <SuggestionCardSkeleton />
-          <SuggestionCardSkeleton />
-          <SuggestionCardSkeleton />
-        </ul>
-      </section>
-    </div>
-  );
-}
-
 function GrowAddressFormSkeleton() {
   return (
     <section className={cn(overviewCardShell, "p-4 sm:p-5")}>

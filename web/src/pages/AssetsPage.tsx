@@ -34,7 +34,7 @@ import {
 import { AnimatedMetric } from "@/components/assets/AnimatedMetric";
 import { AssetsCommandPalette } from "@/components/assets/AssetsCommandPalette";
 import { AssetsSortableHeader } from "@/components/assets/AssetsSortableHeader";
-import { AssetsTableSkeleton } from "@/components/assets/AssetsTableSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { PremiumTablePagination } from "@/components/experiment/PremiumTablePagination";
 
 const ASSETS_PAGE_SIZE = 10;
@@ -214,9 +214,8 @@ export default function AssetsPage({ embedded }: { embedded?: boolean }) {
 
         <Card className={cn(overviewCardShell, "overflow-hidden border-border/60 bg-card/80")}>
           <CardContent className="p-0">
-            {assetsQ.isLoading ? (
-              <AssetsTableSkeleton rows={ASSETS_PAGE_SIZE} />
-            ) : assetsQ.isError ? (
+            <Bone name="assets-table" loading={assetsQ.isLoading}>
+            {assetsQ.isError ? (
               <div className="px-6 py-12 text-center">
                 <p className="text-sm font-medium text-destructive">Could not load assets.</p>
                 <Button type="button" variant="outline" className="mt-4 h-9" onClick={() => assetsQ.refetch()}>
@@ -389,6 +388,7 @@ export default function AssetsPage({ embedded }: { embedded?: boolean }) {
                 />
               </>
             )}
+            </Bone>
           </CardContent>
         </Card>
 

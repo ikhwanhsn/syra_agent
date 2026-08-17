@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { cn } from "@/lib/utils";
 import type { JupiterQuoteDisplay } from "@/hooks/useJupiterQuote";
 
@@ -62,7 +62,7 @@ export function SwapDetails({
       >
         <span className="text-xs text-muted-foreground">
           {isLoading ? (
-            <Skeleton className="h-3.5 w-36 rounded-md" />
+            <BoneFallback name="swap-details" />
           ) : isDebouncing ? (
             "Updating route…"
           ) : display?.rateFormatted ? (

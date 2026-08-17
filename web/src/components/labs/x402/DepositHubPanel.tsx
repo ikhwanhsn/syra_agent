@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { cn } from "@/lib/utils";
 import type { LabDepositDistributeResult, LabDepositHub } from "@/lib/labsX402Api";
@@ -68,15 +68,7 @@ export function DepositHubPanel({
 
   if (showSkeleton) {
     return (
-      <div
-        className={cn(overviewCardShell, "space-y-4 p-5 animate-in fade-in duration-300")}
-        aria-busy="true"
-        aria-label="Loading deposit hub"
-      >
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="h-40 w-40 mx-auto rounded-xl" />
-        <Skeleton className="h-10 w-full" />
-      </div>
+      <BoneFallback name="labs-deposit-hub" />
     );
   }
 

@@ -1,6 +1,6 @@
 import { Navigate, useParams } from "react-router-dom";
 import { PostDeck } from "@/components/post/PostDeck";
-import { PostDeckPageSkeleton } from "@/components/post/PostStudioSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { getVideoPostByNumber } from "@/content/posts";
 import { usePostStudioQuery } from "@/hooks/usePostStudio";
 import {
@@ -21,7 +21,7 @@ export default function PostVideoPage() {
   const updateNumber = parseUpdateNumber(raw);
 
   if (isLoading) {
-    return <PostDeckPageSkeleton />;
+    return <BoneFallback name="post-studio" />;
   }
 
   if (updateNumber == null) {

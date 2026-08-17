@@ -1,6 +1,7 @@
 import { Link } from "@/lib/navigation";
 import { ChevronRight, Medal, TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { cn } from "@/lib/utils";
 import { formatLpUsd } from "@/lib/lpAgentExperimentApi";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
@@ -25,23 +26,6 @@ function runOutcomeLabel(status: string): { label: string; tone: string } {
   return { label: status, tone: "bg-muted text-muted-foreground" };
 }
 
-function LeaderboardSkeleton() {
-  return (
-    <div className="space-y-2.5">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className={cn(overviewCardShell, "flex items-center gap-4 rounded-2xl px-4 py-3.5")}>
-          <Skeleton className="h-10 w-10 shrink-0 rounded-xl" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-2/5" />
-            <Skeleton className="h-3 w-1/3" />
-          </div>
-          <Skeleton className="h-5 w-16" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export interface LpExperimentLabSummaryProps {
   agents: LpAgentStats[];
   recentRuns: LpRunRow[];
@@ -60,7 +44,9 @@ export function LpExperimentLabSummary({ agents, recentRuns, refSolUsd, loading 
   return (
     <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
       <div className="space-y-3">
-        {loading && topAgents.length === 0 ? <LeaderboardSkeleton /> : null}
+        {loading && topAgents.length === 0 ? (
+          <BoneFallback name="experiment-leaderboard" />
+        ) : null}
 
         {!loading && topAgents.length === 0 ? (
           <div

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Radar, TrendingUp } from "lucide-react";
-import { PumpfunListPanelSkeleton } from "@/components/pumpfun/PumpfunListPanelSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import {
   matchesTokenSearch,
   PumpfunListToolbar,
@@ -151,7 +151,7 @@ export function PumpfunLiveCallsPanel({ onScanMint, scanning = false }: PumpfunL
   const showSkeleton = useDelayedMinimumSkeleton(liveQ.isLoading, 450);
 
   if (showSkeleton) {
-    return <PumpfunListPanelSkeleton rows={10} />;
+    return <BoneFallback name="pumpfun-list" />;
   }
 
   if (liveQ.isError) {

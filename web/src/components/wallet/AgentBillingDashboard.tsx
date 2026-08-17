@@ -20,8 +20,7 @@ import {
   overviewChartTopShine,
   overviewKickerClass,
 } from "@/components/dashboard/overview/overviewStyles";
-import { TreasurySpendSkeleton } from "@/components/treasury/TreasurySkeleton";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { fetchAgentBillingSummary, type BillingSpendWindow } from "@/lib/agentBillingApi";
 import { ensureAccessToken } from "@/lib/agentAuthApi";
 import { useSyraAuth } from "@/contexts/SyraAuthContext";
@@ -203,41 +202,6 @@ function TopToolsBreakdown({
   );
 }
 
-function BillingSkeleton({ compact, className }: { compact?: boolean; className?: string }) {
-  if (compact) {
-    return <TreasurySpendSkeleton className={className} />;
-  }
-
-  return (
-    <div
-      className={cn(overviewCardShell, "overflow-hidden")}
-      aria-busy="true"
-      aria-label="Loading spend"
-    >
-      <div
-        className={overviewCardGlow}
-        style={{ background: overviewAccentBackground("internal") }}
-        aria-hidden
-      />
-      <div className="relative z-[1] space-y-4 p-5 sm:p-6">
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-6 w-40" />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
-          ))}
-        </div>
-        <div className="grid gap-3 lg:grid-cols-5">
-          <Skeleton className="h-36 rounded-xl lg:col-span-3" />
-          <Skeleton className="h-36 rounded-xl lg:col-span-2" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function BillingEmptyState({ className }: { className?: string }) {
   return (
     <div className={cn(overviewCardShell, "overflow-hidden", className)}>
@@ -290,10 +254,10 @@ export function AgentBillingDashboard({ className, compact = false }: AgentBilli
 
   if (showSkeleton) {
     return compact ? (
-      <BillingSkeleton compact className={className} />
+      <BoneFallback name="treasury-spend" className={className} />
     ) : (
       <section className={className}>
-        <BillingSkeleton />
+        <BoneFallback name="treasury-spend" />
       </section>
     );
   }

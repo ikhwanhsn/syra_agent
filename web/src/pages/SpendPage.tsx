@@ -4,10 +4,7 @@ import { Activity, Search, Sparkles, Wrench } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { PillarConnectCTA } from "@/components/pillars/PillarConnectCTA";
-import {
-  SpendPageSkeleton,
-  SpendPreviewSkeleton,
-} from "@/components/pillars/PillarPageSkeletons";
+import { Bone } from "@/components/ui/bone";
 import { SpendToolCard } from "@/components/spend/SpendToolCard";
 import { AgentBillingDashboard } from "@/components/wallet/AgentBillingDashboard";
 import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
@@ -223,9 +220,8 @@ export default function SpendPage() {
         </Button>
       }
     >
-      {showSkeleton ? (
-        <SpendPageSkeleton />
-      ) : (
+      <Bone name="spend-page" loading={showSkeleton}>
+      {!showSkeleton ? (
         <div className="w-full space-y-6 sm:space-y-8">
           {!syraAuthenticated ? (
             <PillarConnectCTA
@@ -395,7 +391,9 @@ export default function SpendPage() {
                   </div>
                   <div className={cn(overviewChartPanelShell, "mt-5 min-h-[6.5rem] p-3.5 sm:p-4")}>
                     {showPreviewSkeleton ? (
-                      <SpendPreviewSkeleton />
+                      <Bone name="spend-preview" loading>
+                        {null}
+                      </Bone>
                     ) : previewMutation.isError ? (
                       <p className="text-sm text-muted-foreground">Preview unavailable.</p>
                     ) : previewResult ? (
@@ -413,7 +411,8 @@ export default function SpendPage() {
             </aside>
           </div>
         </div>
-      )}
+      ) : null}
+      </Bone>
     </PillarLayout>
   );
 }

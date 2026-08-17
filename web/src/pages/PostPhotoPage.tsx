@@ -1,6 +1,6 @@
 import { Navigate, useParams } from "react-router-dom";
 import { PostPhotoDeck } from "@/components/post/photo/PostPhotoDeck";
-import { PostPhotoPageSkeleton } from "@/components/post/PostStudioSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { getPhotoPostByNumber } from "@/content/posts";
 import { usePostStudioQuery } from "@/hooks/usePostStudio";
 import {
@@ -21,7 +21,7 @@ export default function PostPhotoPage() {
   const updateNumber = parseUpdateNumber(raw);
 
   if (isLoading) {
-    return <PostPhotoPageSkeleton />;
+    return <BoneFallback name="post-studio" />;
   }
 
   if (updateNumber == null) {

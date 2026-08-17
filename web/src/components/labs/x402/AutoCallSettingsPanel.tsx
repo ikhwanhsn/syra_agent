@@ -1,6 +1,6 @@
 import { Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
-import { AutoCallSettingsSkeleton } from "@/components/labs/LabsSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,7 +107,7 @@ export function AutoCallSettingsPanel({
   ]);
 
   if (showSkeleton) {
-    return <AutoCallSettingsSkeleton />;
+    return <BoneFallback name="labs-auto-call" />;
   }
 
   const todayCap =

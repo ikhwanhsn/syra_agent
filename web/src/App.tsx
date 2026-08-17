@@ -89,6 +89,9 @@ const PostPage = lazy(() => import("@/pages/PostPage"));
 const PostVideoPage = lazy(() => import("@/pages/PostVideoPage"));
 const PostPhotoPage = lazy(() => import("@/pages/PostPhotoPage"));
 const XLayerAnnouncePage = lazy(() => import("@/pages/XLayerAnnouncePage"));
+const BonesCapturePage = import.meta.env.DEV
+  ? lazy(() => import("@/pages/BonesCapturePage"))
+  : null;
 
 function LegacyPumpfunPageRedirect() {
   const { search } = useLocation();
@@ -427,6 +430,16 @@ const App = () => (
           </Route>
         </Route>
 
+        {BonesCapturePage ? (
+          <Route
+            path="/__bones"
+            element={
+              <Suspense fallback={null}>
+                <BonesCapturePage />
+              </Suspense>
+            }
+          />
+        ) : null}
         <Route
           path="*"
           element={

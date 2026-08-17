@@ -5,7 +5,7 @@ import { ArrowDownUp, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatefulButton, type ButtonState } from "@/components/motion/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { useWalletContext } from "@/contexts/WalletContext";
 import { useJupiterQuote } from "@/hooks/useJupiterQuote";
 import { useDelayedMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
@@ -448,7 +448,7 @@ export function SwapCard({ onTokensChange }: SwapCardProps) {
               </div>
               <div className="min-w-[6rem] text-right">
                 {showQuoteSkeleton ? (
-                  <Skeleton className="ml-auto h-8 w-28 rounded-lg" />
+                  <BoneFallback name="swap-details" />
                 ) : (
                   <p
                     className={cn(

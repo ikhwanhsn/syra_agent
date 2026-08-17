@@ -1,6 +1,6 @@
 import { ArrowLeftRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { formatBtcPct, formatBtcUsd, type BtcOverview } from "@/lib/btcApi";
 import { btcCardInset, btcKickerClass } from "@/components/btc/btcStyles";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ function ExchangeTile({
           />
         </div>
         {loading ? (
-          <Skeleton className="mt-3 h-8 w-36 rounded-lg" />
+          <BoneFallback name="btc-exchange" />
         ) : (          <p className="mt-2 font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground">
             {formatBtcUsd(price, 2)}
           </p>
@@ -108,7 +108,7 @@ export function BtcExchangeCompare({
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-border/45 bg-background/30 px-4 py-3 text-center backdrop-blur-sm">
             <p className={btcKickerClass}>Premium</p>
             {loading ? (
-              <Skeleton className="h-7 w-16 rounded-md" />
+              <BoneFallback name="btc-exchange" />
             ) : (
               <p
                 className={cn(

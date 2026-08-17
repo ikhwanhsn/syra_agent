@@ -72,6 +72,16 @@ export const growthCtaPrimaryClass = cn(
   "active:scale-[0.98]",
 );
 
+/**
+ * Opaque tile inside a 1px-gap grid. Avoids page atmosphere bleeding through
+ * translucent backgrounds and keeps a three-up strip even.
+ */
+export const growthTileClass = cn(
+  "relative flex h-full flex-col bg-card",
+  "transition-colors duration-200 hover:bg-muted",
+  "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+);
+
 /** Inner-content lift for cards inside overflow-hidden grids. */
 export const growthInnerLiftClass = cn(
   "motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out",

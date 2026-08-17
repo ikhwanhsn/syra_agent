@@ -4,7 +4,7 @@ import { ArrowRight, Layers, Percent, Wallet } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { PillarConnectCTA } from "@/components/pillars/PillarConnectCTA";
-import { InvestPageSkeleton } from "@/components/pillars/PillarPageSkeletons";
+import { Bone } from "@/components/ui/bone";
 import { InvestDepositModal } from "@/components/invest/InvestDepositModal";
 import {
   InvestOpportunityCard,
@@ -142,9 +142,8 @@ export default function InvestPage() {
         </Button>
       }
     >
-      {showSkeleton ? (
-        <InvestPageSkeleton connected={connected} />
-      ) : (
+      <Bone name="invest-page" loading={showSkeleton}>
+      {!showSkeleton ? (
         <div className="w-full space-y-6 sm:space-y-8">
           {!connected ? (
             <PillarConnectCTA
@@ -332,7 +331,8 @@ export default function InvestPage() {
             }}
           />
         </div>
-      )}
+      ) : null}
+      </Bone>
     </PillarLayout>
   );
 }

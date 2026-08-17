@@ -4,7 +4,7 @@ import { Coins, Gift, Layers, Link2, Wallet } from "lucide-react";
 import { Link } from "@/lib/navigation";
 import { PillarLayout } from "@/components/pillars/PillarLayout";
 import { PillarConnectCTA } from "@/components/pillars/PillarConnectCTA";
-import { GrowAnalysisSkeleton } from "@/components/pillars/PillarPageSkeletons";
+import { BoneFallback } from "@/components/ui/bone";
 import { GrowRecommendationCard } from "@/components/grow/GrowRecommendationCard";
 import { OverviewStatCard } from "@/components/dashboard/overview/OverviewStatCard";
 import {
@@ -268,7 +268,7 @@ export default function GrowPage() {
           </div>
         ) : null}
 
-        {showSkeleton ? <GrowAnalysisSkeleton /> : null}
+        {showSkeleton ? <BoneFallback name="grow-analysis" /> : null}
 
         {hasError ? (
           <div

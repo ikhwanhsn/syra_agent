@@ -3,7 +3,7 @@ import { ClipboardList, Plus } from "lucide-react";
 import { AdminDashboardGate } from "@/components/dashboard/AdminDashboardGate";
 import { DeleteEntryDialog } from "@/components/organize/DeleteEntryDialog";
 import { EntryDialog } from "@/components/organize/EntryDialog";
-import { OrganizeSummarySkeleton } from "@/components/organize/OrganizeSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { OrganizeTable } from "@/components/organize/OrganizeTable";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -114,9 +114,8 @@ export default function OrganizePage() {
           </Button>
         </div>
 
-        {showSkeleton ? (
-          <OrganizeSummarySkeleton />
-        ) : (
+        <Bone name="organize-summary" loading={showSkeleton}>
+        {!showSkeleton ? (
           <div className="mb-6 grid gap-3 sm:grid-cols-3">
             <div className={cn(overviewCardShell, "p-4")}>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -139,7 +138,8 @@ export default function OrganizePage() {
               </p>
             </div>
           </div>
-        )}
+        ) : null}
+        </Bone>
 
         {mutationError ? (
           <Alert variant="destructive" className="mb-4">

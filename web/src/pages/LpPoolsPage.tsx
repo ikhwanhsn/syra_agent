@@ -1,6 +1,6 @@
 import { OverviewPageBackdrop } from "@/components/dashboard/overview/OverviewPageBackdrop";
 import { overviewCardShell } from "@/components/dashboard/overview/overviewStyles";
-import { LpPoolsContentSkeleton } from "@/components/lp/LpPoolsContentSkeleton";
+import { Bone } from "@/components/ui/bone";
 import { Button } from "@/components/ui/button";
 import { useMinimumSkeleton } from "@/hooks/useMinimumSkeleton";
 import {
@@ -117,9 +117,8 @@ export default function LpPoolsPage() {
             </p>
           </header>
 
-          {showSkeleton ? (
-            <LpPoolsContentSkeleton poolCount={Math.max(pools.length, 3)} />
-          ) : poolsQ.isError ? (
+          <Bone name="lp-pools" loading={showSkeleton}>
+          {poolsQ.isError ? (
             <div className={cn(overviewCardShell, "animate-in fade-in duration-300 p-6 text-center")}>
               <p className="text-sm font-medium text-destructive">Could not load SYRA pools.</p>
               <Button
@@ -163,6 +162,7 @@ export default function LpPoolsPage() {
               </div>
             </div>
           )}
+          </Bone>
         </div>
       </div>
     </div>

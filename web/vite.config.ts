@@ -122,6 +122,7 @@ export default defineConfig(({ mode }) => {
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "boneyard-js/shared": path.resolve(__dirname, "node_modules/boneyard-js/dist/shared.js"),
       "@farcaster/mini-app-solana": path.resolve(__dirname, "./src/stubs/farcaster-mini-app-solana.ts"),
       "viem/_esm/chains/definitions/tempo.js": path.resolve(__dirname, "./src/stubs/viem-tempo-chain.ts"),
       "viem/chains/definitions/tempo": path.resolve(__dirname, "./src/stubs/viem-tempo-chain.ts"),
@@ -132,7 +133,7 @@ export default defineConfig(({ mode }) => {
   optimizeDeps: {
     esbuildOptions: { define: { global: "globalThis" } },
     include: ["@solana/web3.js"],
-    exclude: ["random-avatar-generator", "@resvg/resvg-wasm", "remotion", "@remotion/player", "@remotion/web-renderer"],
+    exclude: ["random-avatar-generator", "@resvg/resvg-wasm", "remotion", "@remotion/player", "@remotion/web-renderer", "boneyard-js"],
   },
   build: {
     rollupOptions: {

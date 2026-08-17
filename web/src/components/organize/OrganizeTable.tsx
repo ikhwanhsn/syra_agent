@@ -1,5 +1,5 @@
 import { ExternalLink, Pencil, Trash2 } from "lucide-react";
-import { OrganizeTableSkeleton } from "@/components/organize/OrganizeSkeleton";
+import { BoneFallback } from "@/components/ui/bone";
 import { ContextMenu } from "@/components/interior/context-menu";
 import { Dropdown } from "@/components/interior/dropdown";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +89,7 @@ export function OrganizeTable({
   onDelete,
 }: OrganizeTableProps) {
   if (isLoading) {
-    return <OrganizeTableSkeleton />;
+    return <BoneFallback name="organize-table" />;
   }
 
   const typeLabel =

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 import { Badge } from "@/components/ui/badge";
 
-import { Skeleton } from "@/components/ui/skeleton";
+import { BoneFallback } from "@/components/ui/bone";
 
 import { cn } from "@/lib/utils";
 
@@ -246,7 +246,7 @@ export function BtcPageHero({
 
                 {loading ? (
 
-                  <Skeleton className="h-14 w-56 rounded-2xl" />
+                  <BoneFallback name="btc-hero" />
 
                 ) : (
 
