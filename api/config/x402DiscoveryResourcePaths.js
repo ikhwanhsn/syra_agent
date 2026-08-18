@@ -33,6 +33,8 @@ export const X402_DISCOVERY_RESOURCE_PATHS = [
   "dexscreener/pairs",
   "geckoterminal/pools",
   "defillama/tvl",
+  "agent-economy/on-chain",
+  "agent-economy/off-chain",
   "rugcheck/report",
   "pyth/price",
   "flint/pairs",

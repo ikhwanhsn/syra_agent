@@ -242,6 +242,26 @@ export const X402_RESOURCE_CATALOG = {
       'Total value locked for a DeFi protocol or blockchain from DefiLlama. Use when an agent assesses protocol scale, chain dominance, or macro DeFi health. Inputs: protocol (slug e.g. aave) OR chain (e.g. Solana, Ethereum). Returns currentTvlUsd, tvlHistory summary, name, category, chains[] when protocol.',
     suggestedPriceStx: 0.001,
   },
+  'agent-economy/on-chain': {
+    slug: 'agent-economy-on-chain',
+    name: 'Agent Economy On-Chain',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Full on-chain agent-economy feed from agenteconomy.to',
+    description:
+      'Full measured on-chain agent-payment feed from agenteconomy.to (data.json): x402, Olas, Virtuals ACP, ERC-8004 registry, Base agentic, Tempo MPP, sources, updatedAt. External ecosystem context, not Syra first-party traction. Attribution included. No inputs.',
+    suggestedPriceStx: 0.001,
+  },
+  'agent-economy/off-chain': {
+    slug: 'agent-economy-off-chain',
+    name: 'Agent Economy Off-Chain',
+    category: 'analytics',
+    methods: ['GET'],
+    summary: 'Full off-chain agent-economy feed from agenteconomy.to',
+    description:
+      'Full sourced off-chain agent-economy feed from agenteconomy.to (web-sources.json): agentTokens, x402Services, agentSupply, virtuals, devAdoption, masumi, solanaAgents, standardsAdoption, inferenceDemand, x402TokenSplit. External ecosystem context, not Syra first-party traction. Attribution included. No inputs.',
+    suggestedPriceStx: 0.001,
+  },
   'rugcheck/report': {
     slug: 'rugcheck-report',
     name: 'RugCheck Token Report',

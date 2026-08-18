@@ -493,6 +493,10 @@ export const X402_API_PRICE_GECKOTERMINAL_POOLS_USD = price(X402_TIER_1_USD);
 /** DefiLlama protocol/chain TVL — free upstream, Tier 1 */
 export const X402_API_PRICE_DEFILLAMA_TVL_USD = price(X402_TIER_1_USD);
 
+/** agenteconomy.to full on-chain / off-chain dumps — free upstream, Tier 1 */
+export const X402_API_PRICE_AGENT_ECONOMY_ON_CHAIN_USD = price(X402_TIER_1_USD);
+export const X402_API_PRICE_AGENT_ECONOMY_OFF_CHAIN_USD = price(X402_TIER_1_USD);
+
 /** RugCheck Solana token risk report — free upstream, Tier 2 */
 export const X402_API_PRICE_RUGCHECK_REPORT_USD = price(X402_TIER_2_USD);
 
@@ -587,6 +591,8 @@ export const X402_DISPLAY_PRICE_INDICATOR_USD = displayInternal(X402_TIER_2_USD)
 export const X402_DISPLAY_PRICE_DEXSCREENER_PAIRS_USD = displayInternal(X402_TIER_1_USD);
 export const X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD = displayInternal(X402_TIER_1_USD);
 export const X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_AGENT_ECONOMY_ON_CHAIN_USD = displayInternal(X402_TIER_1_USD);
+export const X402_DISPLAY_PRICE_AGENT_ECONOMY_OFF_CHAIN_USD = displayInternal(X402_TIER_1_USD);
 export const X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD = displayInternal(X402_TIER_2_USD);
 export const X402_DISPLAY_PRICE_PYTH_PRICE_USD = displayInternal(X402_TIER_1_USD);
 export const X402_DISPLAY_PRICE_FLINT_PAIRS_USD = displayInternal(X402_TIER_1_USD);

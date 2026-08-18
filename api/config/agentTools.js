@@ -20,6 +20,8 @@ import {
   X402_API_PRICE_DEXSCREENER_PAIRS_USD,
   X402_API_PRICE_GECKOTERMINAL_POOLS_USD,
   X402_API_PRICE_DEFILLAMA_TVL_USD,
+  X402_API_PRICE_AGENT_ECONOMY_ON_CHAIN_USD,
+  X402_API_PRICE_AGENT_ECONOMY_OFF_CHAIN_USD,
   X402_API_PRICE_RUGCHECK_REPORT_USD,
   X402_API_PRICE_PYTH_PRICE_USD,
   X402_API_PRICE_FLINT_PAIRS_USD,
@@ -66,6 +68,8 @@ import {
   X402_DISPLAY_PRICE_DEXSCREENER_PAIRS_USD,
   X402_DISPLAY_PRICE_GECKOTERMINAL_POOLS_USD,
   X402_DISPLAY_PRICE_DEFILLAMA_TVL_USD,
+  X402_DISPLAY_PRICE_AGENT_ECONOMY_ON_CHAIN_USD,
+  X402_DISPLAY_PRICE_AGENT_ECONOMY_OFF_CHAIN_USD,
   X402_DISPLAY_PRICE_RUGCHECK_REPORT_USD,
   X402_DISPLAY_PRICE_PYTH_PRICE_USD,
   X402_DISPLAY_PRICE_FLINT_PAIRS_USD,
@@ -1347,6 +1351,50 @@ export const AGENT_TOOLS = [
     name: 'DefiLlama TVL',
     description:
       'Protocol or chain TVL from DefiLlama — protocol slug (e.g. aave) OR chain name (e.g. Solana).',
+  },
+  {
+    id: 'agent-economy-summary',
+    agentDirect: false,
+    path: '/agent-economy/summary',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'Agent Economy Summary',
+    description:
+      'Free curated headlines from agenteconomy.to: x402 txs/volume, ERC-8004 agents, x402 bazaar providers, MCP supply. External ecosystem context, not Syra /api/metrics.',
+  },
+  {
+    id: 'agent-economy-freshness',
+    agentDirect: false,
+    path: '/agent-economy/freshness',
+    method: 'GET',
+    priceUsd: 0,
+    displayPriceUsd: 0,
+    name: 'Agent Economy Freshness',
+    description:
+      'Free dual-feed updatedAt and off-chain section asOf ages from agenteconomy.to. No params.',
+  },
+  {
+    id: 'agent-economy-on-chain',
+    agentDirect: false,
+    path: '/agent-economy/on-chain',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_AGENT_ECONOMY_ON_CHAIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_AGENT_ECONOMY_ON_CHAIN_USD,
+    name: 'Agent Economy On-Chain',
+    description:
+      'Full on-chain agent-economy feed from agenteconomy.to (data.json): x402, olas, virtualsAcp, erc8004Registry, baseAgentic, tempoMpp. Attribution included.',
+  },
+  {
+    id: 'agent-economy-off-chain',
+    agentDirect: false,
+    path: '/agent-economy/off-chain',
+    method: 'GET',
+    priceUsd: X402_API_PRICE_AGENT_ECONOMY_OFF_CHAIN_USD,
+    displayPriceUsd: X402_DISPLAY_PRICE_AGENT_ECONOMY_OFF_CHAIN_USD,
+    name: 'Agent Economy Off-Chain',
+    description:
+      'Full off-chain agent-economy feed from agenteconomy.to (web-sources.json): agentTokens, x402Services, agentSupply, virtuals, devAdoption, and more. Attribution included.',
   },
   {
     id: 'rugcheck-report',
