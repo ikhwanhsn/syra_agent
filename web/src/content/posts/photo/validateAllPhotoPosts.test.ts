@@ -18,6 +18,7 @@ const PHOTO_MODULES = [
   () => import("./covenantPhoto"),
   () => import("./aipIntegrationPhoto"),
   () => import("./llmExchangePhoto"),
+  () => import("./agentEconomyApisPhoto"),
 ];
 
 describe("all ship-log photo decks", () => {

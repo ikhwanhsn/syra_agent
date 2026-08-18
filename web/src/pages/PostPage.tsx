@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useMemo } from "react";
 import { ImageIcon, Lock, Video } from "lucide-react";
 import { PostBackLink } from "@/components/post/PostBackLink";
-import { PostAgentEconomyPulse } from "@/components/post/PostAgentEconomyPulse";
 import { PostShipLogUpdateList } from "@/components/post/PostShipLogUpdateList";
 import { PostStudioContentSkeleton } from "@/components/post/PostStudioSkeleton";
 import {
@@ -132,8 +131,6 @@ export default function PostPage() {
                 </Link>
               </div>
             </div>
-
-            <PostAgentEconomyPulse />
 
             <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
               <Link
