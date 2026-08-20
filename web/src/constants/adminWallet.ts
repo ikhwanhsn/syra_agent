@@ -1,6 +1,7 @@
 /** Hardcoded admin wallet, internal dashboard + admin API routes. */
 export const ADMIN_DASHBOARD_WALLETS = Object.freeze([
   "FiejqEgqQ8bxtUJpZMy5p1wVCcejKyy5PgZ4cwmLBvYD",
+  "Ce3sDe9aWfvF5TXoRV67FRZmHQdHgXjj1LJhMuW53YH4",
 ] as const);
 
 /** Primary admin, shown in access-denied UI. */
