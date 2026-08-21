@@ -3,7 +3,7 @@ import { DocsLayout } from "@/components/docs/DocsLayout";
 import { DocPageHeader } from "@/components/docs/DocPageHeader";
 import { DocSection } from "@/components/docs/DocSection";
 import { Callout } from "@/components/docs/Callout";
-import { SYRA_API_URL, SYRA_MARKETPLACE_URL } from "@/content/syraUrls";
+import { SYRA_API_URL, SYRA_MARKETPLACE_URL, SYRA_SKILL_URL } from "@/content/syraUrls";
 
 const tocItems = [
   { id: "what", title: "What you get", level: 2 },
@@ -32,6 +32,10 @@ export default function BuildMcp() {
       <DocSection id="what" title="What you get" prose>
         <ul>
           <li>
+            <strong>syra_consult</strong> maps a plain-language intent to one curated Spend tool. Free. Does not
+            execute or bill. Call it first, then the returned tool.
+          </li>
+          <li>
             <strong>257</strong> codegen tools from the live agent catalog (default profile: <strong>47 curated</strong>)
           </li>
           <li>stdio MCP transport — no HTTP port to manage</li>
@@ -48,13 +52,18 @@ export default function BuildMcp() {
         </p>
         <ol>
           <li>
+            Agent one-liner: <code className="text-sm">set up {SYRA_SKILL_URL}</code>
+          </li>
+          <li>
             Fund a Solana wallet with ≥ $1 USDC (+ a little SOL). Set that keypair as{" "}
             <code className="text-sm">SYRA_PAYER_KEYPAIR</code>
             {" - "}or buy USDC with a card into your Syra agent wallet at{" "}
             <a href="https://syraa.fun/wallet" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
               syraa.fun/wallet
             </a>
-            {" "}(<Link to="/docs/build/crossmint-x402" className="text-primary hover:underline">Crossmint onramp</Link>).
+            {" "}(<Link to="/docs/build/crossmint-x402" className="text-primary hover:underline">Crossmint onramp</Link>
+            {" · "}
+            <Link to="/docs/build/cloudflare-agents-x402" className="text-primary hover:underline">Cloudflare Agents</Link>).
             Paid tools return 402 without a funded payer.
           </li>
           <li>
@@ -65,7 +74,9 @@ export default function BuildMcp() {
             </code>
           </li>
           <li>
-            Call <code className="text-sm">syra_spend_news</code> with ticker <code className="text-sm">BTC</code>
+            Call <code className="text-sm">syra_consult</code> with intent{" "}
+            <code className="text-sm">Get BTC news</code> (free). Then call the tool it returns, usually{" "}
+            <code className="text-sm">syra_spend_news</code> with ticker <code className="text-sm">BTC</code>
           </li>
           <li>
             Confirm settled HTTP 402 → JSON. Live proof:{" "}
@@ -105,6 +116,10 @@ export default function BuildMcp() {
           >
             @syra-ai/mcp-server
           </a>
+          . Also:{" "}
+          <Link to="/docs/build/openclaw" className="text-primary hover:underline">
+            OpenClaw → Syra MCP
+          </Link>
           .
         </p>
       </DocSection>
@@ -167,7 +182,7 @@ export default function BuildMcp() {
       <DocSection id="tools" title="Tool naming" prose>
         <p>
           Tools use <code>syra_&#123;pillar&#125;_&#123;toolId&#125;</code> — for example <code>syra_spend_news</code>,{" "}
-          <code>syra_invest_squid_route</code>. Legacy <code>syra_v2_*</code> names are obsolete.
+          <code>syra_invest_squid_route</code>. Start with <code>syra_consult</code>. Legacy <code>syra_v2_*</code> names are obsolete.
         </p>
         <p>
           Curated list:{" "}
@@ -175,8 +190,8 @@ export default function BuildMcp() {
             syraa.fun/skills.md
           </a>
           . Agent skill:{" "}
-          <a href={`${SYRA_API_URL}/skill.md`} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-            {SYRA_API_URL}/skill.md
+          <a href={SYRA_SKILL_URL} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+            {SYRA_SKILL_URL}
           </a>
           .
         </p>

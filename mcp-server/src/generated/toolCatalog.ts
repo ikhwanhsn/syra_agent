@@ -910,6 +910,54 @@ export const MCP_TOOL_CATALOG: McpToolCatalogEntry[] = [
     "curated": true
   },
   {
+    "toolName": "syra_spend_agent_economy_freshness",
+    "toolId": "agent-economy-freshness",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Agent Economy Freshness",
+    "description": "Free dual-feed updatedAt and off-chain section asOf ages from agenteconomy.to. No params.",
+    "priceUsd": 0,
+    "curated": false,
+    "path": "/agent-economy/freshness"
+  },
+  {
+    "toolName": "syra_spend_agent_economy_off_chain",
+    "toolId": "agent-economy-off-chain",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Agent Economy Off-Chain",
+    "description": "Full off-chain agent-economy feed from agenteconomy.to (web-sources.json): agentTokens, x402Services, agentSupply, virtuals, devAdoption, and more. Attribution included.",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/agent-economy/off-chain"
+  },
+  {
+    "toolName": "syra_spend_agent_economy_on_chain",
+    "toolId": "agent-economy-on-chain",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Agent Economy On-Chain",
+    "description": "Full on-chain agent-economy feed from agenteconomy.to (data.json): x402, olas, virtualsAcp, erc8004Registry, baseAgentic, tempoMpp. Attribution included.",
+    "priceUsd": 0.00001,
+    "curated": true,
+    "path": "/agent-economy/on-chain"
+  },
+  {
+    "toolName": "syra_spend_agent_economy_summary",
+    "toolId": "agent-economy-summary",
+    "pillar": "spend",
+    "access": "http",
+    "method": "GET",
+    "name": "Agent Economy Summary",
+    "description": "Free curated headlines from agenteconomy.to: x402 txs/volume, ERC-8004 agents, x402 bazaar providers, MCP supply. External ecosystem context, not Syra /api/metrics.",
+    "priceUsd": 0,
+    "curated": true,
+    "path": "/agent-economy/summary"
+  },
+  {
     "toolName": "syra_spend_aip_delegate",
     "toolId": "aip-delegate",
     "pillar": "spend",

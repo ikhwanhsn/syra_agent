@@ -26,7 +26,7 @@ Try asking:
 
 - Crypto news, sentiment, signals, analytics, memecoin/scout screens
 - Smart-money / on-chain research via Syra APIs
-- Setting up Cursor / Claude / any MCP client against Syra
+- Setting up Cursor / Claude / OpenClaw / any MCP client against Syra
 - Building TypeScript agents that auto-pay on HTTP 402
 - Handling `402 Payment Required` from `api.syraa.fun`
 
@@ -67,6 +67,21 @@ claude mcp add syra \
   }
 }
 ```
+
+### OpenClaw
+
+```bash
+openclaw mcp set syra '{"command":"npx","args":["-y","@syra-ai/mcp-server@latest"],"env":{"SYRA_API_BASE_URL":"https://api.syraa.fun","SYRA_MCP_TOOL_PROFILE":"curated","SYRA_PAYER_KEYPAIR":"your-solana-secret"}}'
+openclaw mcp doctor syra --probe
+```
+
+From a Syra repo clone, install this skill:
+
+```bash
+openclaw skills install ./.agents/skills/syra --as syra
+```
+
+Docs: https://docs.syraa.fun/docs/build/openclaw · https://github.com/ikhwanhsn/syra_agent/blob/main/docs/OPENCLAW_MCP_QUICKSTART.md
 
 ### SDK snippet
 
@@ -121,6 +136,7 @@ Full curated table: https://syraa.fun/skills.md
 | x402 resources | https://api.syraa.fun/.well-known/x402 |
 | OpenAPI | https://api.syraa.fun/openapi.json |
 | Install MCP docs | https://docs.syraa.fun/docs/build/mcp |
+| OpenClaw MCP | https://docs.syraa.fun/docs/build/openclaw |
 | Install SDK docs | https://docs.syraa.fun/docs/build/sdk |
 
 ## AgentScore (optional identity gate)

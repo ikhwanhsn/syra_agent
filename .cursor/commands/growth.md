@@ -26,3 +26,7 @@ Direct a division instead of routing: `@.cursor/agents/<slug>.md run this`
 | Sentinel | payments-security |
 | Keel | platform-health |
 | Bench | hire |
+| Hone | prompt-improve |
+
+Hone is lookup-only here. Invoke with `/improve`, not `/growth`.
+Chronicle Ideas mode is `/ideas`, not `/growth`.

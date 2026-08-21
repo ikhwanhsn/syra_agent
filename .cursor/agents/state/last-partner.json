@@ -1,0 +1,40 @@
+{
+  "date": "2026-08-20",
+  "updatedAt": "2026-08-20T15:10:00.000Z",
+  "source": "https://api.syraa.fun/api/metrics",
+  "mode": "trending-partners",
+  "chaseOrder": ["openclaw", "nevermined", "cloudflare"],
+  "chaseFirst": "openclaw",
+  "doc": "docs/TRENDING_PARTNER_INTEGRATIONS.md",
+  "openclawQuickstart": "docs/OPENCLAW_MCP_QUICKSTART.md",
+  "neverminedQuickstart": "docs/NEVERMINED_X402_QUICKSTART.md",
+  "neverminedPath": "/partners/nevermined/news",
+  "gtm": "docs/AGENT_BUILDER_GTM.md",
+  "proof": {
+    "paidCallsLast7d": 47127,
+    "usdSettledLast7d": 6645.65,
+    "uniquePayingWalletsLast7d": 111,
+    "lifetimeUsdSettled": 15776.12,
+    "lifetimeUniquePayingWallets": 129,
+    "settleFailRate24h": 0.0129,
+    "meetsLaunchGuardrail24h": true
+  },
+  "shipped": {
+    "openclaw": [
+      "docs/OPENCLAW_MCP_QUICKSTART.md",
+      "api/public/skill.md OpenClaw section",
+      ".agents/skills/syra/SKILL.md OpenClaw section",
+      "documentation /docs/build/openclaw",
+      "mcp-server README OpenClaw install"
+    ],
+    "nevermined": [
+      "api/libs/neverminedPayments.js",
+      "api/routes/neverminedNews.js",
+      "GET /partners/nevermined/news",
+      "docs/NEVERMINED_X402_QUICKSTART.md",
+      "@nevermined-io/payments dependency"
+    ]
+  },
+  "skippedAlreadyTouched": ["bankr", "virtuals", "ampersend", "payai", "dexter", "crossmint"],
+  "nextAction": "Set NEVERMINED_X402_ENABLED + NVM_API_KEY + NVM_PLAN_ID (sandbox); founder paid call on /partners/nevermined/news; send Nevermined outreach from TRENDING_PARTNER_INTEGRATIONS.md."
+}

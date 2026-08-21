@@ -6,7 +6,7 @@
 
 **MCP server for Syra pay-per-call APIs**
 
-240+ crypto & agent tools · x402 auto-pay · Cursor / Claude / any MCP client
+240+ crypto & agent tools · x402 auto-pay · Cursor / Claude / OpenClaw / any MCP client
 
 [![npm version](https://img.shields.io/npm/v/@syra-ai/mcp-server.svg)](https://www.npmjs.com/package/@syra-ai/mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ikhwanhsn/syra_agent/blob/main/LICENSE)
@@ -25,13 +25,13 @@
 
 | Audience | How to use it |
 |----------|----------------|
-| **Developers** | Add MCP in Cursor / Claude; pull news, signals, research in chat |
+| **Developers** | Add MCP in Cursor / Claude / OpenClaw; pull news, signals, research in chat |
 | **Agents** | `npx -y @syra-ai/mcp-server` + payer env → auto-pay x402 routes |
 | **Researchers / traders** | Sentiment, smart money, memecoin screens, analytics via natural language |
 
 **Transport:** stdio (JSON-RPC). No HTTP port — the MCP client spawns this process.
 
-**For agents:** default tool profile is `curated` (**47** high-value tools + `syra_call_tool` + free helpers). Set `SYRA_MCP_TOOL_PROFILE=full` for **257** tools. Naming: `syra_{pillar}_{toolId}`. Full agent docs: [llms-full.txt](https://api.syraa.fun/llms-full.txt) · [skill.md](https://api.syraa.fun/skill.md).
+**For agents:** paste `set up https://api.syraa.fun/skill.md`. Default tool profile is `curated` (**47** high-value tools + `syra_consult` + `syra_call_tool` + free helpers). Set `SYRA_MCP_TOOL_PROFILE=full` for **257** tools. Naming: `syra_{pillar}_{toolId}`. Full agent docs: [llms-full.txt](https://api.syraa.fun/llms-full.txt) · [skill.md](https://api.syraa.fun/skill.md).
 
 | Need | Use |
 |------|-----|
@@ -46,12 +46,23 @@
 
 **Fund first:** put **≥ $1 USDC** on Solana (plus a little SOL for fees) in the wallet you will set as `SYRA_PAYER_KEYPAIR`. Without a funded payer, paid tools return HTTP 402.
 
+Agents: `set up https://api.syraa.fun/skill.md`
+
 ```bash
 claude mcp add syra \
   -e SYRA_API_BASE_URL=https://api.syraa.fun \
   -e SYRA_PAYER_KEYPAIR=your-solana-secret \
   -- npx -y @syra-ai/mcp-server@latest
 ```
+
+**OpenClaw:**
+
+```bash
+openclaw mcp set syra '{"command":"npx","args":["-y","@syra-ai/mcp-server@latest"],"env":{"SYRA_API_BASE_URL":"https://api.syraa.fun","SYRA_MCP_TOOL_PROFILE":"curated","SYRA_PAYER_KEYPAIR":"your-solana-secret"}}'
+openclaw mcp doctor syra --probe
+```
+
+Docs: https://docs.syraa.fun/docs/build/openclaw · [OPENCLAW_MCP_QUICKSTART.md](../docs/OPENCLAW_MCP_QUICKSTART.md)
 
 Or run directly (same env required for production):
 
@@ -114,7 +125,7 @@ SYRA_USE_DEV_ROUTES=true
 }
 ```
 
-Restart Cursor or reload MCP. Replace `your-solana-secret` with a real keypair whose wallet holds ≥ $1 USDC. Then ask for crypto news — call `syra_spend_news` (ticker `BTC`) for the first settled paid call.
+Restart Cursor or reload MCP. Replace `your-solana-secret` with a real keypair whose wallet holds ≥ $1 USDC. Then `syra_consult` with `Get BTC news` and call the tool it returns (`syra_spend_news`).
 
 ---
 
@@ -146,6 +157,7 @@ Restart Claude Desktop after editing.
 
 ## Features
 
+- **`syra_consult`** maps a plain-language intent to one curated Spend tool. Free. Does not execute or bill.
 - **257 tools** codegen from Syra `agentTools` (47 curated or full profile)
 - **x402 v2 auto-pay** via `@x402/fetch` + `PAYMENT-SIGNATURE` (Solana / Base / Algorand signers; server may also offer PayAI/Dexter multi-chain, B402, OKX)
 - **`syra_call_tool`** escape hatch for any toolId when using curated profile
@@ -156,10 +168,11 @@ Restart Claude Desktop after editing.
 
 ## How it works
 
-1. MCP client sends a tool call over stdio (e.g. `syra_spend_news` + `{ params: { ticker: "BTC" } }`).
-2. Server builds `GET https://api.syraa.fun/news?ticker=BTC` (or POST where required).
-3. On **402**, if a payer is configured, signs payment and retries.
-4. Returns response body (or status + body on error) to the model.
+1. Agent or human: `syra_consult` with a plain-language intent (free, no execute).
+2. MCP client sends the returned tool call over stdio (e.g. `syra_spend_news` + `{ params: { ticker: "BTC" } }`).
+3. Server builds `GET https://api.syraa.fun/news?ticker=BTC` (or POST where required).
+4. On **402**, if a payer is configured, signs payment and retries.
+5. Returns response body (or status + body on error) to the model.
 
 Built with [`@modelcontextprotocol/sdk`](https://github.com/modelcontextprotocol/sdk). Server name: `syra-mcp-server`.
 
@@ -206,6 +219,9 @@ Tools return the raw API body on **200**. Non-200 responses include status + bod
 | `syra_invest_yield_reward_history` | `yield-reward-history` | invest | Historical APY / reward-rate snapshots for a yield. Params: yieldId (required); optional period (1d–all), interval (day\|week\|month), limit, offset. |
 | `syra_invest_yield_risk` | `yield-risk` | invest | Aggregate risk rating for a yield (letter grade, numeric score, provider URL). Strongest coverage for vault-type yields. Param: yieldId (required). |
 | `syra_invest_yield_tvl_history` | `yield-tvl-history` | invest | Historical TVL snapshots for a yield. Params: yieldId (required); optional period, interval, limit, offset. Strongest coverage for vault-type yields. |
+| `syra_spend_agent_economy_off_chain` | `agent-economy-off-chain` | spend | Full off-chain agent-economy feed from agenteconomy.to (web-sources.json): agentTokens, x402Services, agentSupply, virtuals, devAdoption, and more. Attribution included. |
+| `syra_spend_agent_economy_on_chain` | `agent-economy-on-chain` | spend | Full on-chain agent-economy feed from agenteconomy.to (data.json): x402, olas, virtualsAcp, erc8004Registry, baseAgentic, tempoMpp. Attribution included. |
+| `syra_spend_agent_economy_summary` | `agent-economy-summary` | spend | Free curated headlines from agenteconomy.to: x402 txs/volume, ERC-8004 agents, x402 bazaar providers, MCP supply. External ecosystem context, not Syra /api/metrics. |
 | `syra_spend_analytics_summary` | `analytics-summary` | spend | Bundled analytics: Jupiter trending, Nansen smart money, Binance correlation |
 | `syra_spend_arbitrage` | `arbitrage` | spend | CMC top tradable assets plus live cross-CEX USDT spot snapshots; ranked best buy/sell routes (gross spread, not financial advice) |
 | `syra_spend_browser_use` | `browser-use` | spend | Run a natural-language browser task (e.g. open a URL, extract data); returns text or structured output. Body: task (required), optional model (bu-mini / bu-max), maxCostUsd. |
@@ -237,8 +253,10 @@ Tools return the raw API body on **200**. Non-200 responses include status + bod
 
 Escape hatch (always registered): **`syra_call_tool`** with `{ toolId, params }` for any catalog tool.
 
-*Auto-generated by `scripts/sync-mcp-tools.mjs` — 62 curated / 281 total. Do not edit by hand.*
+*Auto-generated by `scripts/sync-mcp-tools.mjs` — 65 curated / 285 total. Do not edit by hand.*
 <!-- END:CURATED_MCP_TOOLS -->
+
+Always registered (not in the table): **`syra_consult`** (free intent map, no execute) and **`syra_call_tool`**.
 
 **Full catalog:** set `SYRA_MCP_TOOL_PROFILE=full`, or call `syra_call_tool` with any toolId. Source map: [agentTools.js](https://github.com/ikhwanhsn/syra_agent/blob/main/api/config/agentTools.js).
 

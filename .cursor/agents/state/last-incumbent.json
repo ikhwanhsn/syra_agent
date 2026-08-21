@@ -1,0 +1,30 @@
+{
+  "date": "2026-08-18",
+  "updatedAt": "2026-08-18T00:00:00.000Z",
+  "mode": "incumbent",
+  "angles": [
+    "spend-seats",
+    "agents-cannot-pay",
+    "llm-exchange",
+    "mcp-skill",
+    "refund",
+    "outcomes"
+  ],
+  "hooks": [
+    "crypto intelligence is still a seat industry that sells monthly keys to humans.",
+    "agent apis still run on humans filling forms, buying seats, and pasting keys.",
+    "spare llm capacity still sits idle while agents hardcode one vendor and pray.",
+    "crypto tools still ship as docs, keys, and a human in the loop.",
+    "agent payments still treat a 5xx like a closed tab. paid, then gone.",
+    "money work still runs on humans billing hours."
+  ],
+  "doNotRepeat": [
+    "spend-seats",
+    "agents-cannot-pay",
+    "llm-exchange",
+    "mcp-skill",
+    "refund",
+    "outcomes"
+  ],
+  "oneAction": "Next /incumbent: pick a fresh angle (bridge, proof metrics, or a newly shipped surface) or remix with a new industry line."
+}

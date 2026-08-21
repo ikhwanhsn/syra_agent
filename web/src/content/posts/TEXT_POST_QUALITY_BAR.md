@@ -99,6 +99,49 @@ Never invent endpoints, fee splits, or “live” claims that are not shipped.
 - Arrow CTA chrome (`Try →`) in share captions when ship-log photo rules apply; prefer plain URLs
 - Mixing five pillars in one post
 
+## Named format: image + short text hype
+
+When the user asks for `/hype`, **image + short text hype**, or a mood still plus short invite caption, follow [`.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`](../../../.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md). This is **not** a launch post.
+
+Gold caption for this format (portal post, Aug 2026):
+
+```
+The catalog is on the other side.
+
+Paste set up https://api.syraa.fun/skill.md into your agent.
+syra_consult first. Then the tool it names.
+
+https://syraa.fun/marketplace
+
+What are you calling first?
+```
+
+Do not force line 1 to `X is live.` when that ship was already posted. Shape: 2-4 short beats, real URL, one question. Still: new metaphor every run. Skip hooks in `.cursor/agents/state/last-hype.json` `doNotRepeat`.
+
+Launch posts still use the LLM Exchange gold.
+
+## Named format: incumbent hype text
+
+When the user asks for `/incumbent`, **incumbent hype**, “text like the replaceable post,” or “zauth-style for Syra,” follow [`.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`](../../../.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md). This is **not** a launch post and **not** `/hype` (no still unless asked).
+
+Gold caption for this format (Aug 2026):
+
+```
+crypto intelligence is still a seat industry that sells monthly keys to humans.
+
+a data terminal takes a contract and a sales cycle. ours starts at $0.001 a call and the first paid call is about 5 minutes.
+
+syra is machine money for agents.
+
+the incumbents are replaceable.
+
+https://syraa.fun/marketplace
+```
+
+Spine: industry old process → old vs Syra → `syra is …` → `the … are replaceable.` → real URL. No invented TAM. Skip angles in `.cursor/agents/state/last-incumbent.json` `doNotRepeat`. Default 1 post; “more N” → N different shipped surfaces.
+
+Launch posts still use the LLM Exchange gold.
+
 ## Definition of done
 
 1. Main post reads as a product launch, not a changelog dump.

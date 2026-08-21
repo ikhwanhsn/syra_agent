@@ -1,0 +1,32 @@
+{
+  "date": "2026-08-20",
+  "updatedAt": "2026-08-20T14:30:00.000Z",
+  "mode": "hype",
+  "hypeNoticed": [
+    "@PayAINetwork / @coinbase / @dexteraisol watchFor: x402 pay-per-call rails and agent buyer CTAs (structure only)",
+    "@BankrBot / @virtuals_io / @elizaOS watchFor: agents that spend onchain, ship cadence, demos",
+    "@autonolas watchFor: machine-to-machine money narrative",
+    "Industry week: agentic x402 spend volume is the feed story (structure only, not their numbers)"
+  ],
+  "syraFact": "Live GET /api/metrics: 47,303 paid calls last 7d, $6,670.56 settled, avg $0.12/call; 7,082 paid calls / $883.09 last 24h",
+  "metaphor": "solitary chrome payphone booth in fog, handset off the hook, white light spilling onto wet asphalt",
+  "hook": "Agents are already paying for calls.",
+  "layout": "thesis",
+  "pickedReference": "hype-working",
+  "image": "web/public/images/threads/syra-xlayer-hype.png",
+  "doNotRepeat": [
+    "Pay-per-call APIs are live on Syra.",
+    "Agents need wallets, not API keys.",
+    "Pay per call / One wallet. No vendor keys.",
+    "First call / Consult first. Then call.",
+    "lone wooden door in a foggy field",
+    "The catalog is on the other side.",
+    "Agents are already paying for calls.",
+    "solitary chrome payphone booth in fog, handset off the hook"
+  ],
+  "fetch": {
+    "ok": false,
+    "reason": "X_BEARER_TOKEN_MISSING"
+  },
+  "oneAction": "Paste main caption with syra-xlayer-hype.png"
+}

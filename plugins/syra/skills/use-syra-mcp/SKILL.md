@@ -16,7 +16,7 @@ description: Use the Syra MCP server in Cursor for crypto research, signals, sma
 
 - Syra Cursor plugin installed (or manual MCP config)
 - Node.js 18+ (MCP server runs via `npx @syra-ai/mcp-server`)
-- Optional: `SYRA_PAYER_KEYPAIR` for auto-pay on production routes
+- Required: `SYRA_PAYER_KEYPAIR` (funded ≥ $1 Solana USDC) for a settled paid call
 
 ## Verify MCP is loaded
 
@@ -30,30 +30,31 @@ description: Use the Syra MCP server in Cursor for crypto research, signals, sma
 |----------|---------|---------|
 | `SYRA_API_BASE_URL` | API host | `https://api.syraa.fun` |
 | `SYRA_MCP_TOOL_PROFILE` | `curated` or `full` | `curated` |
-| `SYRA_PAYER_KEYPAIR` | Solana x402 auto-pay | not set |
+| `SYRA_PAYER_KEYPAIR` | Solana x402 auto-pay | required for paid calls |
 | `SYRA_MCP_API_KEY` | Agent-direct bridge tools | not set |
 | `SYRA_USE_DEV_ROUTES` | Local `/dev` paths | not set |
 
 ## Common prompts
 
+Call `syra_consult` first with the user's intent. It does not bill. Then call the tool it returns.
+
 Try these in Cursor chat after MCP is connected:
 
-- "Get the latest crypto news for BTC"
-- "What's the market sentiment for ETH?"
+- "Get BTC news"
+- "What's ETH sentiment?"
+- "TVL for Aave"
 - "Show me smart money flows on Solana"
-- "Get the analytics summary"
-- "Get a trading signal for bitcoin"
-- "Check Syra API health status"
-- "Memecoins with fastest holder growth"
 
 ## Tool selection guide
 
 | User intent | Tool |
 |-------------|------|
+| Any crypto-intel ask | `syra_consult` first |
 | News | `syra_spend_news` |
 | Events | `syra_spend_event` |
 | Sentiment | `syra_spend_sentiment` |
 | Trading signal | `syra_spend_signal` |
+| TVL | `syra_spend_defillama_tvl` |
 | Analytics / trending | `syra_spend_analytics_summary` |
 | Smart money | `syra_spend_nansen_smart_money_netflow` |
 | Health | `syra_spend_health` |
@@ -95,6 +96,6 @@ Naming: `syra_{pillar}_{toolId}`. Full curated list: https://syraa.fun/skills.md
 
 - Docs: https://docs.syraa.fun/docs/build/mcp
 - Skills catalog: https://syraa.fun/skills.md
-- Agent skill: https://api.syraa.fun/skill.md
+- Agent skill: https://api.syraa.fun/skill.md (`set up https://api.syraa.fun/skill.md`)
 - Marketplace: https://syraa.fun/marketplace
 - One-line CLI: fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest`

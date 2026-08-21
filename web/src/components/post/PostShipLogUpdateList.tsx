@@ -114,10 +114,12 @@ export function PostShipLogUpdateList({ updates }: PostShipLogUpdateListProps) {
     <>
       <div className="mt-8 w-full min-w-0 text-left sm:mt-10">
         <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
-            Ship log updates
-            <span className="ml-2 text-white/25">({updates.length})</span>
-          </p>
+          <h2 className="text-sm font-medium text-white/80 sm:text-base">
+            All updates
+            <span className="ml-2 font-mono text-[11px] font-normal text-white/35">
+              ({updates.length})
+            </span>
+          </h2>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-white/30">
               <span className="text-emerald-400/80">● Posted</span>

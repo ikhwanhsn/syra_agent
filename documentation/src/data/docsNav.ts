@@ -66,6 +66,8 @@ export const navigation: NavItem[] = [
       { title: "Completed-Work Outcomes", href: "/docs/build/outcomes" },
       { title: "Pricing vs DIY", href: "/docs/build/pricing" },
       { title: "Crossmint → Syra x402", href: "/docs/build/crossmint-x402" },
+      { title: "Cloudflare Agents → Syra x402", href: "/docs/build/cloudflare-agents-x402" },
+      { title: "OpenClaw → Syra MCP", href: "/docs/build/openclaw" },
     ],
   },
   {

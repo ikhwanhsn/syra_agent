@@ -86,6 +86,8 @@ import {
   createNewsRouterRegular,
   createSentimentRouterRegular,
 } from "./routes/partner/cryptonews.js";
+import { createNeverminedNewsRouter } from "./routes/neverminedNews.js";
+import { NEVERMINED_NEWS_MOUNT } from "./libs/neverminedPayments.js";
 import { createSignalRouter as createV2SignalRouter } from "./routes/signal.js";
 // web-search, crawl, browser-use, jupiter/swap/order, smart-money, token-god-mode, trending-jupiter, pumpfun, squid, bubblemaps,
 // 8004scan, heylol, quicknode: agent-direct (POST /agent/tools/call); public HTTP routes removed for those.
@@ -123,6 +125,7 @@ import { createMeridianExperimentRouter } from "./routes/meridianExperiment.js";
 import { createMeridianRealRouter } from "./routes/meridianReal.js";
 import { createAyeLabsExperimentRouter } from "./routes/ayeLabsExperiment.js";
 import { createAyeLabsRealRouter } from "./routes/ayeLabsReal.js";
+import { createDelphiExperimentRouter } from "./routes/delphiExperiment.js";
 import {
   MOMENTUM_CRON,
   LST_LOOP_CRON,
@@ -130,6 +133,7 @@ import {
   MERIDIAN_CRON,
   MERIDIAN_ENGINE,
   AYE_LABS_CRON,
+  DELPHI_CRON,
 } from "./config/onchainEarnExperiments.js";
 import { createOkxTradingRouter } from "./routes/okxTrading.js";
 import { createShipLogStudioRouter } from "./routes/shipLogStudio.js";
@@ -1324,6 +1328,7 @@ app.get("/", (req, res) => {
 app.use("/info", await createInfoRouter());
 app.use("/syra-analytics", createSyraDuneAnalyticsRouter());
 app.use("/wallet/solana", createWalletSolanaBalanceRouter());
+app.use(NEVERMINED_NEWS_MOUNT, createNeverminedNewsRouter());
 app.use("/", await createCryptonewsRouter());
 
 // Preview/landing routes (no x402) – dashboard-summary, binance-ticker, preview/news|sentiment|signal
@@ -1498,6 +1503,7 @@ app.use("/experiment/meridian-real", createMeridianRealRouter());
 // AyeLabs — GMGN V/L radar + DLMM paper lab (ayehuasca/gmgn-vl-radar)
 app.use("/experiment/ayelabs", createAyeLabsExperimentRouter());
 app.use("/experiment/ayelabs-real", createAyeLabsRealRouter());
+app.use("/experiment/delphi", createDelphiExperimentRouter());
 // OKX.AI Trading Hackathon — Syra Trading ASP (automated on-chain trading loop)
 app.use("/experiment/okx-trading", createOkxTradingRouter());
 // Stocks news experiment — paper xStocks trading via Jupiter + news signals
@@ -2029,6 +2035,8 @@ app.listen(PORT, () => {
   const MERIDIAN_RESOLVE_MS = scalePaperMs(MERIDIAN_CRON.paperResolveMs, 5_000);
   const AYE_LABS_SIGNAL_MS = scalePaperMs(AYE_LABS_CRON.paperSignalMs, 60_000);
   const AYE_LABS_RESOLVE_MS = scalePaperMs(AYE_LABS_CRON.paperResolveMs, 5_000);
+  const DELPHI_SIGNAL_MS = scalePaperMs(DELPHI_CRON.paperSignalMs, 60_000);
+  const DELPHI_RESOLVE_MS = scalePaperMs(DELPHI_CRON.paperResolveMs, 5_000);
   const MOMENTUM_REAL_SIGNAL_MS = MOMENTUM_CRON.realSignalMs;
   const MOMENTUM_REAL_RESOLVE_MS = MOMENTUM_CRON.realResolveMs;
   const LST_LOOP_REAL_SIGNAL_MS = LST_LOOP_CRON.realSignalMs;
@@ -2123,6 +2131,23 @@ app.listen(PORT, () => {
   );
   if (AYE_LABS_SIGNAL_MS >= 60_000) setInterval(runAyeLabsSignal, AYE_LABS_SIGNAL_MS);
   if (AYE_LABS_RESOLVE_MS >= 5_000) setInterval(runAyeLabsResolve, AYE_LABS_RESOLVE_MS);
+
+  const runDelphiSignal = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/delphiService.js")
+        .then(({ runDelphiSignalCycle }) => runDelphiSignalCycle())
+        .catch((err) => console.warn("[Delphi] signal failed:", err?.message || err)),
+    ),
+  );
+  const runDelphiResolve = runIfMongoConnected(
+    withSingleFlight(() =>
+      import("./libs/delphiService.js")
+        .then(({ resolveOpenDelphiRuns }) => resolveOpenDelphiRuns())
+        .catch((err) => console.warn("[Delphi] resolve failed:", err?.message || err)),
+    ),
+  );
+  if (DELPHI_SIGNAL_MS >= 60_000) setInterval(runDelphiSignal, DELPHI_SIGNAL_MS);
+  if (DELPHI_RESOLVE_MS >= 5_000) setInterval(runDelphiResolve, DELPHI_RESOLVE_MS);
 
   const runMomentumRealSignal = runIfMongoConnected(
     withSingleFlight(() =>
@@ -2441,6 +2466,7 @@ app.listen(PORT, () => {
     ["./libs/sniperEvolution.js", "Sniper"],
     ["./libs/meridianEvolution.js", "Meridian"],
     ["./libs/ayeLabsEvolution.js", "AyeLabs"],
+    ["./libs/delphiEvolution.js", "Delphi"],
   ]) {
     import(mod)
       .then((m) => {
@@ -2449,13 +2475,15 @@ app.listen(PORT, () => {
           m.lstLoopEvolutionConfigFromEnv ||
           m.sniperEvolutionConfigFromEnv ||
           m.meridianEvolutionConfigFromEnv ||
-          m.ayeLabsEvolutionConfigFromEnv;
+          m.ayeLabsEvolutionConfigFromEnv ||
+          m.delphiEvolutionConfigFromEnv;
         const runFn =
           m.runMomentumExperimentEvolution ||
           m.runLstLoopExperimentEvolution ||
           m.runSniperExperimentEvolution ||
           m.runMeridianExperimentEvolution ||
-          m.runAyeLabsExperimentEvolution;
+          m.runAyeLabsExperimentEvolution ||
+          m.runDelphiExperimentEvolution;
         if (!cfgFn || !runFn) return;
         const evo = cfgFn();
         if (!evo.enabled || evo.ms < 60_000) return;

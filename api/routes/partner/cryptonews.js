@@ -121,7 +121,7 @@ async function fetchNewsForTicker(ticker) {
   return cap(a.concat(b));
 }
 
-async function getNewsForRequest(ticker) {
+export async function getNewsForRequest(ticker) {
   let news = getCachedNews(ticker);
   if (news === null) {
     news = await fetchNewsForTicker(ticker);
@@ -272,7 +272,7 @@ function setPaymentResponseAndSendTrending(res, data, settle) {
 }
 
 // --- Resolve ticker helper (RSS news only needs a symbol label — no CoinGecko network call) ---
-function resolveNewsTicker(rawTicker) {
+export function resolveNewsTicker(rawTicker) {
   return resolveTickerLocal(rawTicker);
 }
 

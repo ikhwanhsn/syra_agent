@@ -6,18 +6,19 @@ Three-tier Cursor-native org. **Goal:** move a north-star metric every day, even
 Helix — Orchestrator (always on: every Cursor prompt)
   ├── Spark      Activation          time-to-first-paid-call
   ├── Beacon     Distribution        new unique payers / reach
-  ├── Chronicle  Content & Proof     proof posts / articles / video
+  ├── Chronicle  Content & Proof     proof posts / articles / video / `/ideas` / `/hype` / `/incumbent`
   ├── Mint       Token & Marketcap   buyback / holders / treasury SYRA
   ├── Ledger     Revenue & Pricing   USDC settled / ARPU
   ├── Compass    Product             ship items that move north star
   ├── Wager      Profit Experiments  experiment ROI / learnings
   ├── Sentinel   Payments & Security settle fail rate / incidents
   ├── Keel       Platform Health     reliability / tech debt
-  └── Bench      Hire                no-fit → add a new named agent
+  ├── Bench      Hire                no-fit → add a new named agent
+  └── Hone       Prompt improve      /improve → ask, then rewrite + run
         └── each division spawns a 3–4 named specialist micro-team
 ```
 
-Always-on rule: `.cursor/rules/helix.mdc` (`alwaysApply: true`). If no lead owns the ask, Helix routes to **Bench**.
+Always-on rule: `.cursor/rules/helix.mdc` (`alwaysApply: true`). If no lead owns the ask, Helix routes to **Bench**. `/improve` routes to **Hone** (ask if ambiguous; rewrite + Helix executes when the brief is complete). `/ideas` routes to **Chronicle** Ideas mode. `/hype` routes to **Chronicle** Hype mode (image + short text hype). `/incumbent` routes to **Chronicle** Incumbent mode (incumbent hype text).
 
 ## Named roster
 
@@ -42,13 +43,19 @@ Always-on rule: `.cursor/rules/helix.mdc` (`alwaysApply: true`). If no lead owns
 | **Keel** | Platform Health | [platform-health.md](platform-health.md) |
 | **Bench** | Hire | [hire.md](hire.md) |
 
-### Tier 3 — Micro-teams (36)
+### Workflow leads (not weekday `/growth`)
+
+| Name | Role | File | Invoke |
+| --- | --- | --- | --- |
+| **Hone** | Prompt improve | [prompt-improve.md](prompt-improve.md) | `/improve` |
+
+### Tier 3 — Micro-teams (41)
 
 **Spark (Activation):** Stride (quickstart) · Plug (MCP+SDK) · Echo (error-DX) · Bridge (free→paid)
 
 **Beacon (Distribution):** Atlas (registry/listing) · Scout (hackathon/partnership) · Catalog (npm) · Agora (social/community)
 
-**Chronicle (Content & Proof):** Log (ship-log) · Quill (X/article copy) · Frame (video/asset)
+**Chronicle (Content & Proof):** Log (ship-log) · Quill (X/article copy) · Frame (video/asset) · Swipe (style-swipe)
 
 **Mint (Token & Marketcap):** Receipt (buyback-proof) · Claim (rewards-loop) · Lock (staking) · Desk (listing/KOL)
 
@@ -63,6 +70,8 @@ Always-on rule: `.cursor/rules/helix.mdc` (`alwaysApply: true`). If no lead owns
 **Keel (Platform Health):** Prune (dead-code) · Spec (tests) · Speed (perf) · Ops (devops)
 
 **Bench (Hire):** Gap (gap-finder) · Draft (role-writer) · Crew (micro-team designer) · Patch (org-patcher)
+
+**Hone (Prompt improve):** Probe (ambiguity) · Query (questions) · Craft (rewrite) · Fit (Helix route)
 
 These prompts compound what already ships: public buyback proof (`/token`, `GET /api/metrics`), usage rewards (`/rewards`), holder/staker x402 discounts, MCP/SDK activation. They do **not** restart the product from zero.
 
@@ -101,13 +110,45 @@ or `@.cursor/agents/orchestrator.md run this` (Helix)
 /growth week
 ```
 
+**Sharpen a prompt (ask if ambiguous; rewrite + run when complete):**
+
+```
+/improve <raw prompt>
+```
+
+or `@.cursor/agents/prompt-improve.md`
+
+**Daily X-informed content idea board:**
+
+```
+/ideas
+```
+
+or `@.cursor/agents/content-proof.md` Ideas mode
+
+**Image + short text hype (mood still + short caption, new photograph every run):**
+
+```
+/hype
+```
+
+or “image + short text hype.” Spec: `.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`
+
+**Incumbent hype text (four-beat replaceable spine):**
+
+```
+/incumbent
+```
+
+or “incumbent hype” / “text like the replaceable post.” Spec: `.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`
+
 **Direct a division (skip routing):**
 
 ```
 @.cursor/agents/activation.md run this
 ```
 
-Say the callsign if you want (Spark, Beacon, Chronicle, Mint, Ledger, Compass, Wager, Sentinel, Keel, Bench). Slug still wins.
+Say the callsign if you want (Spark, Beacon, Chronicle, Mint, Ledger, Compass, Wager, Sentinel, Keel, Bench, Hone). Slug still wins.
 
 Optional: add one sentence of human context after the @ mention (e.g. "blocked on wallet funding"). Never required. Add `IMPLEMENT` to apply patches; default is propose-only.
 
@@ -136,9 +177,13 @@ The Agent must:
 - Rewards unfunded while treasury SYRA > 0 → co-route **Mint**.
 - Unique paying wallets 7d flat ≥14 days → co-route **Spark**, not token posts.
 - User message names a division or callsign → that division only.
+- `/improve` → **Hone** first (no metrics during sharpen). Ask if ambiguous. When the brief is complete, Helix executes the rewritten prompt in the same turn. Do not wait for “run it.”
+- `/ideas` → **Chronicle** Ideas mode (run `contentSwipeFetch.mjs`; do not run the ship-log prompt).
+- `/hype` or **image + short text hype** → **Chronicle** Hype mode (`.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`). Swipe 15 accounts, create caption + new still. Do not run the idea board.
+- `/incumbent` or **incumbent hype** → **Chronicle** Incumbent mode (`.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`). Four-beat industry → contrast → `syra is` → replaceable → URL. Do not force launch spine.
 - No existing lead owns the problem → **Bench** (hire). Do not silently invent a permanent new role.
 
-Route at most **two** divisions per turn. Synthesize one action (except Bench, whose action is the hire spec).
+Route at most **two** divisions per turn. Synthesize one action (except Bench, whose action is the hire spec, and Hone, whose action is ask-or-run).
 
 ## Shared guardrails (every agent)
 
@@ -170,7 +215,7 @@ See [state/README.md](state/README.md). Orchestrator writes `last-run.json`. Fri
 | Helix | [orchestrator.md](orchestrator.md) | Always-on routing + `/growth` + Friday board |
 | Spark | [activation.md](activation.md) | Time-to-first-paid-call |
 | Beacon | [distribution.md](distribution.md) | New payers / reach |
-| Chronicle | [content-proof.md](content-proof.md) | Proof posts / articles / video |
+| Chronicle | [content-proof.md](content-proof.md) | Proof posts / articles / video / `/ideas` / `/hype` / `/incumbent` |
 | Mint | [token-marketcap.md](token-marketcap.md) | Buyback / rewards / holders |
 | Ledger | [revenue-pricing.md](revenue-pricing.md) | Unit economics / price ladder |
 | Compass | [product.md](product.md) | RICE / kill / ship |
@@ -178,6 +223,7 @@ See [state/README.md](state/README.md). Orchestrator writes `last-run.json`. Fri
 | Sentinel | [payments-security.md](payments-security.md) | x402 / treasury / secrets |
 | Keel | [platform-health.md](platform-health.md) | Dead code / tests / perf / devops |
 | Bench | [hire.md](hire.md) | No-fit → hire a new named agent |
+| Hone | [prompt-improve.md](prompt-improve.md) | `/improve` → ask, then rewrite + run |
 
 ## Related anchors
 

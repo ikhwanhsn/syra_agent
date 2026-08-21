@@ -11,6 +11,7 @@ import {
   growthProseClass,
   growthSectionTitleClass,
   growthStatValueClass,
+  growthTileClass,
 } from "@/components/growth/growthHomeStyles";
 
 /**
@@ -47,9 +48,8 @@ export function GrowthTestimonials({ className }: { className?: string }) {
               rel="noopener noreferrer"
               aria-label={testimonial.ariaLabel}
               className={cn(
-                "group relative flex h-full min-h-[16.5rem] flex-col bg-background/92 p-6 sm:p-7",
-                "transition-colors duration-200 hover:bg-card",
-                "focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "group min-h-[16.5rem] p-6 sm:p-7",
+                growthTileClass,
               )}
             >
               <div className={cn("flex h-full min-h-0 flex-col", growthInnerLiftClass)}>
@@ -73,7 +73,7 @@ export function GrowthTestimonials({ className }: { className?: string }) {
                 />
               </div>
 
-              <p className="flex-1 text-[15px] leading-[1.65] text-muted-foreground transition-colors group-hover:text-foreground/90">
+              <p className="flex-1 text-[15px] leading-[1.65] text-foreground/78 transition-colors group-hover:text-foreground">
                 &ldquo;{testimonial.quote}&rdquo;
               </p>
 
@@ -101,7 +101,7 @@ export function GrowthTestimonials({ className }: { className?: string }) {
                   <div className={cn(growthStatValueClass, "text-sm")}>
                     {testimonial.metric}
                   </div>
-                  <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                     {testimonial.metricLabel}
                   </div>
                 </div>

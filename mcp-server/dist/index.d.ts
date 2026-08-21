@@ -10,6 +10,7 @@
  * - X402_PREFERRED_NETWORK — solana (default) | base | algorand
  * - SYRA_MCP_API_KEY — for agent-direct tools via POST /mcp/tools/call
  * - SYRA_MCP_TOOL_PROFILE — curated (default) | full
+ * - syra_consult is always registered: maps intent to one curated tool, does not bill
  * - SYRA_USE_DEV_ROUTES — append /dev for local testing
  * - SYRA_CONNECTED_WALLET — optional X-Connected-Wallet for dev/playground pricing
  */

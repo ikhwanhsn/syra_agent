@@ -29,6 +29,16 @@ Whenever the user asks to create, design, make, generate, or iterate a **post im
 
 Gold reference: `web/public/images/threads/syra-xlayer-showcase.png` (Design 2).
 
+## Image + short text hype
+
+When the user asks for `/hype` or **image + short text hype**, follow [`.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`](../agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md).
+
+- Auto-pick: `findBestHypeReference()` in `web/src/content/announce/hypeReferences.ts`. **Read the matched PNG.**
+- Default layout: working copy left thesis (`syra-xlayer-hype.png`). Other gold: original door (`syra-xlayer-portal.png`).
+- New bg plate every run (`bg-hype.png`). Never overwrite catalog plates or gold PNGs.
+- Working deliverable: `web/public/images/threads/syra-xlayer-hype.png`.
+- Metaphor comes from **this** caption, not the matched reference's `subject`.
+
 ## Pipeline
 
 1. Classify content → pick or invent archetype.

@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node --max-old-space-size=448 index.js",
     "dev": "nodemon --exec node --max-old-space-size=448 index.js",
-    "test": "node --test config/**/*.test.js libs/**/*.test.js services/**/*.test.js utils/**/*.test.js routes/refund/**/*.test.js",
+    "test": "node --test config/**/*.test.js libs/**/*.test.js services/**/*.test.js utils/**/*.test.js routes/refund/**/*.test.js routes/neverminedNews.test.js",
     "register-8004": "node scripts/register-8004-agent.js",
     "create-8004-collection": "node scripts/create-8004-collection.js",
     "register-8004-with-collection": "node scripts/register-8004-agent-with-collection.js",
@@ -38,6 +38,7 @@
     "register-ampersend:until-listed": "node -r dotenv/config scripts/registerAmpersendMarketplace.js --until-listed --pay",
     "register-agent402": "node -r dotenv/config scripts/registerAgent402.js",
     "register-agent402:check": "node -r dotenv/config scripts/registerAgent402.js --check",
+    "content-swipe": "node scripts/contentSwipeFetch.mjs",
     "validate:routes": "node scripts/validateRoutesStartup.mjs",
     "verify:tokens-api": "node scripts/verify-tokens-api-health.js",
     "publish:dune": "node -r dotenv/config scripts/dune/publishSyraDune.mjs"
@@ -54,6 +55,7 @@
     "@marinade.finance/marinade-ts-sdk": "^6.0.0",
     "@meteora-ag/dlmm": "^1.9.10",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@nevermined-io/payments": "^1.11.0",
     "@okxweb3/x402-core": "^0.1.0",
     "@okxweb3/x402-evm": "^0.2.1",
     "@oobe-protocol-labs/synapse-sap-sdk": "^0.6.3",

@@ -777,6 +777,355 @@ function ComparisonLayout({ card, assets }: { card: XLayerCardDef; assets: Asset
   );
 }
 
+function PortalLayout({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
+  switch (card.portalVariant) {
+    case "top":
+      return <PortalTop card={card} assets={assets} />;
+    case "thesis":
+      return <PortalThesis card={card} assets={assets} />;
+    case "panel":
+      return <PortalPanel card={card} assets={assets} />;
+    case "bar":
+      return <PortalBar card={card} assets={assets} />;
+    case "corner":
+      return <PortalCorner card={card} assets={assets} />;
+    default:
+      return <PortalBottom card={card} assets={assets} />;
+  }
+}
+
+function PortalBottom({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
+  const logoSrc = assets[LOGO_PATH];
+  return (
+    <SquareCanvas bgSrc={assets[card.bgImage]}>
+      <StudioHeader logoSrc={logoSrc} label={card.topLabel} />
+      <div style={{ display: "flex", flex: 1, width: "100%" }} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 28%, rgba(248,248,248,0.92) 100%)",
+          paddingTop: 56,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 14,
+            width: "100%",
+            paddingLeft: S.padX,
+            paddingRight: S.padX,
+            paddingBottom: 8,
+          }}
+        >
+          <BoxedHeadline lines={card.headlineLines} size="md" />
+          <Subtitle text={card.subtitle} />
+        </div>
+        <Disclaimer />
+      </div>
+    </SquareCanvas>
+  );
+}
+
+function PortalTop({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
+  const logoSrc = assets[LOGO_PATH];
+  return (
+    <SquareCanvas bgSrc={assets[card.bgImage]}>
+      <StudioHeader logoSrc={logoSrc} label={card.topLabel} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 16,
+          width: "100%",
+          paddingTop: 28,
+          paddingLeft: S.padX,
+          paddingRight: S.padX,
+        }}
+      >
+        <BoxedHeadline lines={card.headlineLines} size="lg" />
+        <Subtitle text={card.subtitle} />
+      </div>
+      <div style={{ display: "flex", flex: 1, width: "100%" }} />
+      <Disclaimer />
+    </SquareCanvas>
+  );
+}
+
+function PortalThesis({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
+  const logoSrc = assets[LOGO_PATH];
+  const line = card.quote ?? card.headlineLines.join(" ");
+  return (
+    <SquareCanvas bgSrc={assets[card.bgImage]}>
+      <StudioHeader logoSrc={logoSrc} label={card.topLabel} />
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          flexDirection: "column",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          gap: 22,
+          paddingLeft: S.padX,
+          paddingRight: 420,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontFamily: PHOTO_TYPE.display,
+            fontSize: 108,
+            fontWeight: 700,
+            color: PHOTO.fg,
+            lineHeight: 0.7,
+          }}
+        >
+          {"\u201C"}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            fontFamily: PHOTO_TYPE.display,
+            fontSize: 72,
+            fontWeight: 700,
+            letterSpacing: "-0.03em",
+            lineHeight: 1.05,
+            color: PHOTO.fg,
+            maxWidth: 520,
+          }}
+        >
+          {line}
+        </div>
+        {card.subtitle ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", width: 40, height: 2, background: PHOTO.fg }} />
+            <div
+              style={{
+                display: "flex",
+                fontFamily: PHOTO_TYPE.mono,
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: PHOTO.muted,
+              }}
+            >
+              {card.subtitle}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <Disclaimer align="left" />
+    </SquareCanvas>
+  );
+}
+
+function PortalPanel({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
+  const logoSrc = assets[LOGO_PATH];
+  return (
+    <SquareCanvas bgSrc={assets[card.bgImage]}>
+      <StudioHeader logoSrc={logoSrc} label={card.topLabel} />
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+          width: "100%",
+          paddingLeft: S.padX,
+          paddingRight: S.padX,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            width: 400,
+            height: 520,
+            padding: 36,
+            borderRadius: 28,
+            background: SURFACE,
+            border: "1px solid rgba(255,255,255,0.14)",
+            boxShadow: "0 28px 60px rgba(0,0,0,0.32)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              fontFamily: PHOTO_TYPE.mono,
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.55)",
+            }}
+          >
+            {card.topLabel}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 18,
+              width: "100%",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                fontFamily: PHOTO_TYPE.display,
+                fontSize: 56,
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.05,
+                color: PHOTO.white,
+              }}
+            >
+              {card.headlineLines.join(" ")}
+            </div>
+            {card.subtitle ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontFamily: PHOTO_TYPE.body,
+                  fontSize: 22,
+                  lineHeight: 1.4,
+                  color: "rgba(255,255,255,0.7)",
+                }}
+              >
+                {card.subtitle}
+              </div>
+            ) : null}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              fontFamily: PHOTO_TYPE.mono,
+              fontSize: 12,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.4)",
+            }}
+          >
+            syraa.fun/marketplace
+          </div>
+        </div>
+        <div style={{ display: "flex", flex: 1 }} />
+      </div>
+      <Disclaimer align="left" />
+    </SquareCanvas>
+  );
+}
+
+function PortalBar({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
+  const logoSrc = assets[LOGO_PATH];
+  return (
+    <SquareCanvas bgSrc={assets[card.bgImage]}>
+      <StudioHeader logoSrc={logoSrc} label={card.topLabel} />
+      <div style={{ display: "flex", flex: 1, width: "100%" }} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          background: PHOTO.black,
+          paddingTop: 36,
+          paddingBottom: 22,
+          paddingLeft: S.padX,
+          paddingRight: S.padX,
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            fontFamily: PHOTO_TYPE.display,
+            fontSize: 64,
+            fontWeight: 700,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            color: PHOTO.white,
+          }}
+        >
+          {card.headlineLines.join(" ")}
+        </div>
+        {card.subtitle ? (
+          <div
+            style={{
+              display: "flex",
+              fontFamily: PHOTO_TYPE.mono,
+              fontSize: 15,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.55)",
+            }}
+          >
+            {card.subtitle}
+          </div>
+        ) : null}
+        <div
+          style={{
+            display: "flex",
+            maxWidth: 900,
+            marginTop: 8,
+            fontFamily: PHOTO_TYPE.mono,
+            fontSize: 10,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.38)",
+            lineHeight: 1.5,
+          }}
+        >
+          {PHOTO_XLAYER_DISCLAIMER}
+        </div>
+      </div>
+    </SquareCanvas>
+  );
+}
+
+function PortalCorner({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
+  const logoSrc = assets[LOGO_PATH];
+  return (
+    <SquareCanvas bgSrc={assets[card.bgImage]}>
+      <StudioHeader logoSrc={logoSrc} label={card.topLabel} />
+      <div style={{ display: "flex", flex: 1, width: "100%" }} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: 14,
+          width: "100%",
+          paddingLeft: S.padX,
+          paddingRight: 280,
+          paddingTop: 28,
+          paddingBottom: 8,
+          background:
+            "linear-gradient(90deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.45) 62%, rgba(255,255,255,0) 100%)",
+        }}
+      >
+        <BoxedHeadline lines={card.headlineLines} align="left" size="xl" />
+        <Subtitle text={card.subtitle} align="left" />
+      </div>
+      <Disclaimer align="left" />
+    </SquareCanvas>
+  );
+}
+
 function ChecklistLayout({ card, assets }: { card: XLayerCardDef; assets: Assets }) {
   const logoSrc = assets[LOGO_PATH];
   const items = card.checklist ?? [];
@@ -823,6 +1172,8 @@ export function buildXLayerTemplate(card: XLayerCardDef, assets: Assets): ReactN
       return <ComparisonLayout card={card} assets={assets} />;
     case "checklist":
       return <ChecklistLayout card={card} assets={assets} />;
+    case "portal":
+      return <PortalLayout card={card} assets={assets} />;
     default:
       return <ShowcaseLayout card={card} assets={assets} />;
   }

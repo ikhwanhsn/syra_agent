@@ -25,7 +25,7 @@
 
 | Integrate | How |
 |-----------|-----|
-| **MCP** | Fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest` |
+| **MCP** | Agents: `set up https://api.syraa.fun/skill.md`. Humans: fund ≥ $1 Solana USDC, then `claude mcp add syra -e SYRA_API_BASE_URL=https://api.syraa.fun -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest` |
 | **SDK** | `npm i @syra-ai/sdk` → `createSyraPaidClient` |
 | **Marketplace** | [syraa.fun/marketplace](https://syraa.fun/marketplace) — first paid call in ~5 minutes |
 
@@ -57,6 +57,8 @@ Status is also exposed on `GET /pillars` so agents see the same truth.
 
 **Required before paid tools work:** a Solana wallet with **≥ $1 USDC** (and a little SOL for fees) in `SYRA_PAYER_KEYPAIR`.
 
+Agents: `set up https://api.syraa.fun/skill.md`
+
 ```bash
 claude mcp add syra \
   -e SYRA_API_BASE_URL=https://api.syraa.fun \
@@ -66,7 +68,7 @@ claude mcp add syra \
 
 Or paste Cursor `mcp.json` with the same env keys (replace `your-solana-secret` with your keypair).
 
-Then call **`syra_spend_news`** (e.g. ticker `BTC`) from your MCP host.
+Then **`syra_consult`** with intent `Get BTC news` (free). Call the tool it returns, usually **`syra_spend_news`**.
 
 ### 2. SDK
 
@@ -134,6 +136,12 @@ Syra is built for **agents that hold and move capital**. It is not financial adv
 |----------|-----|
 | Syra docs | [docs.syraa.fun](https://docs.syraa.fun) |
 | Growth strategy | [docs/MACHINE_MONEY_STRATEGY.md](./docs/MACHINE_MONEY_STRATEGY.md) |
+| Agent builder GTM | [docs/AGENT_BUILDER_GTM.md](./docs/AGENT_BUILDER_GTM.md) |
+| Trending partners | [docs/TRENDING_PARTNER_INTEGRATIONS.md](./docs/TRENDING_PARTNER_INTEGRATIONS.md) |
+| OpenClaw → Syra MCP | [docs/OPENCLAW_MCP_QUICKSTART.md](./docs/OPENCLAW_MCP_QUICKSTART.md) · [docs.syraa.fun/docs/build/openclaw](https://docs.syraa.fun/docs/build/openclaw) |
+| Cloudflare Agents → Syra x402 | [docs/CLOUDFLARE_AGENTS_X402_QUICKSTART.md](./docs/CLOUDFLARE_AGENTS_X402_QUICKSTART.md) · [docs site](https://docs.syraa.fun/docs/build/cloudflare-agents-x402) |
+| Nevermined → Syra news pilot | [docs/NEVERMINED_X402_QUICKSTART.md](./docs/NEVERMINED_X402_QUICKSTART.md) |
+| Crossmint → Syra x402 | [docs/CROSSMINT_X402_QUICKSTART.md](./docs/CROSSMINT_X402_QUICKSTART.md) |
 | API gateway | [api.syraa.fun](https://api.syraa.fun) |
 | Marketplace | [syraa.fun/marketplace](https://syraa.fun/marketplace) |
 | Metrics | [syraa.fun](https://syraa.fun) (home) · agent at [/agent](https://syraa.fun/agent) |

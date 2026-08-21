@@ -15,7 +15,7 @@ function PostAmbientShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Body skeleton for /post hub, matches locked banner + format cards + update list. */
+/** Body skeleton for /post hub: latest work zone + template strip + update list. */
 export function PostStudioContentSkeleton() {
   return (
     <div
@@ -24,40 +24,32 @@ export function PostStudioContentSkeleton() {
       aria-label="Loading ship log"
       role="status"
     >
-      <div className="mb-6 rounded-xl border border-white/20 bg-white/[0.04] px-4 py-3 text-left sm:mb-8 sm:px-5 sm:py-4">
-        <div className="mb-2 flex items-center gap-2">
-          <Skeleton className={cn("h-3.5 w-3.5 shrink-0 rounded-sm", bone)} />
-          <Skeleton className={cn("h-2.5 w-40 max-w-[70%]", bone)} />
-        </div>
-        <div className="space-y-1.5">
-          <Skeleton className={cn("h-3 w-full", bone)} />
-          <Skeleton className={cn("h-3 w-[92%] max-w-xl", bone)} />
-          <Skeleton className={cn("h-3 w-[75%] max-w-lg", bone)} />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-          <Skeleton className={cn("h-2.5 w-28", bone)} />
-          <Skeleton className={cn("h-2.5 w-28", bone)} />
-        </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
-          >
-            <Skeleton className={cn("h-12 w-12 rounded-full", bone)} />
-            <div className="w-full space-y-2 text-left">
-              <Skeleton className={cn("h-4 w-16", bone)} />
-              <Skeleton className={cn("h-3 w-44 max-w-full", bone)} />
-            </div>
+      <div className="mb-8 rounded-2xl border border-white/12 bg-white/[0.035] p-4 sm:mb-10 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2 text-left">
+            <Skeleton className={cn("h-5 w-64 max-w-full", bone)} />
+            <Skeleton className={cn("h-3 w-36", bone)} />
           </div>
-        ))}
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Skeleton className={cn("h-11 w-full rounded-lg sm:h-10 sm:w-32", bone)} />
+            <Skeleton className={cn("h-11 w-full rounded-lg sm:h-10 sm:w-32", bone)} />
+            <Skeleton className={cn("h-11 w-full rounded-lg sm:h-10 sm:w-36", bone)} />
+          </div>
+        </div>
+        <Skeleton className={cn("mt-4 h-3 w-full max-w-xl", bone)} />
       </div>
 
-      <div className="mt-8 w-full min-w-0 text-left sm:mt-10">
+      <div className="mb-8 flex flex-col gap-3 rounded-xl border border-white/10 px-4 py-3 sm:mb-10 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <Skeleton className={cn("h-3 w-full max-w-md", bone)} />
+        <div className="flex gap-4">
+          <Skeleton className={cn("h-2.5 w-24", bone)} />
+          <Skeleton className={cn("h-2.5 w-24", bone)} />
+        </div>
+      </div>
+
+      <div className="mt-2 w-full min-w-0 text-left">
         <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <Skeleton className={cn("h-2.5 w-36", bone)} />
+          <Skeleton className={cn("h-4 w-28", bone)} />
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <Skeleton className={cn("h-2.5 w-40", bone)} />
             <Skeleton className={cn("h-2.5 w-16", bone)} />

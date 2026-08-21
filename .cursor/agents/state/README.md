@@ -53,7 +53,10 @@ Written when that division runs (directly or via orchestrator). If missing, crea
 | --- | --- |
 | `last-activation.json` | activation |
 | `last-distribution.json` | distribution |
-| `last-content.json` | content-proof |
+| `last-content.json` | content-proof (ship-log) |
+| `last-ideas.json` | content-proof (`/ideas`) |
+| `last-hype.json` | content-proof (`/hype`, image + short text hype) |
+| `last-incumbent.json` | content-proof (`/incumbent`, incumbent hype text) |
 | `last-token.json` | token-marketcap |
 | `last-revenue.json` | revenue-pricing |
 | `last-product.json` | product |
@@ -61,6 +64,8 @@ Written when that division runs (directly or via orchestrator). If missing, crea
 | `last-payments.json` | payments-security |
 | `last-platform.json` | platform-health |
 | `last-hire.json` | hire (Bench) |
+| `last-prompt-improve.json` | prompt-improve (Hone) |
+| `last-partner.json` | distribution / Compass (trending partner chase) |
 
 Minimum shape for each:
 
@@ -75,9 +80,17 @@ Minimum shape for each:
 
 Divisions may add extra fields (loop health, RICE winner, findings count, etc.). Never invent metric numbers.
 
+Hone `last-prompt-improve.json` extra fields: `mode` (`ask` | `run`), `questionCount` (0 when the brief was already detailed). `ask` = waiting on questions. `run` = brief written and Helix executing. Hone does not fetch metrics during sharpen. If `mode` is `ask` and the next user message answers those questions, treat it as the same `/improve` continuation (rewrite + run).
+
+Chronicle `/ideas` `last-ideas.json` extra fields: `mode` (`ideas`), `fetch` (`ok`, `succeeded`, `failed`, optional `reason`), `ideaCount`, `pickedIdea`, `proofUsed`, `stylesLearned` (short bullets). Tweet cache is `.cursor/agents/state/content-swipe-latest.json` (gitignored). Do not commit it.
+
+Chronicle `/hype` `last-hype.json` extra fields: `mode` (`hype`), `hypeNoticed`, `syraFact`, `metaphor`, `hook`, `layout`, `pickedReference`, `image`, `doNotRepeat`, `fetch`. Spec: `.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`. Never overwrite catalog gold stills.
+
+Chronicle `/incumbent` `last-incumbent.json` extra fields: `mode` (`incumbent`), `angles`, `hooks`, `doNotRepeat`, `oneAction`. Spec: `.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`.
+
 ## Rules for the Agent
 
-1. If the file is missing → create it after fetching live metrics; say “baseline established.”
+1. If the file is missing → create it after fetching live metrics; say “baseline established.” Hone and Bench do not fetch metrics.
 2. Never invent numbers — only write fields present in the API response (or null).
 3. Do not commit secrets. These JSON files are metrics snapshots only.
 4. Prefer updating state with the Write tool at the end of the run.

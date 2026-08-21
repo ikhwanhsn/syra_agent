@@ -1,25 +1,24 @@
 {
-  "date": "2026-08-13",
-  "updatedAt": "2026-08-13T16:50:00.000Z",
-  "mode": "helix-daily-execute",
-  "weekday": "Thu",
-  "isoWeek": 33,
-  "channel": "design-partner-outreach",
-  "oneAction": "EXECUTED: Ampersend catalog email sent (register-ampersend); GTM table logged #1 sent + #2/#3 awaiting_founder_send with paste-ready DMs in docs/AGENT_BUILDER_GTM.md.",
+  "date": "2026-08-18",
+  "updatedAt": "2026-08-18T16:00:00.000Z",
+  "mode": "execute",
+  "weekday": "Tue",
+  "isoWeek": 34,
+  "channel": "partnership-email",
+  "oneAction": "Founder sends APA join email to apa@rain.xyz (Alliance membership + Agentic Startup Program ask). Paste-ready body in chat 2026-08-18. Source: https://www.rain.xyz/resources/rain-launches-the-agentic-payments-alliance",
   "notes": {
-    "ceoOutcome2": "External demand proof: ≥1 net-new mcpPaidCall non-founder OR ≥3 design partners contacted with logged replies",
-    "executed": {
-      "ampersendEmail": "sent via api npm run register-ampersend → ampersend@edgeandnode.com + refreshed ampersend/catalog-registration.json (53 endpoints)",
-      "gtmTable": "3 rows with contactedAt=2026-08-13; replyStatus sent|awaiting_founder_send|awaiting_founder_send",
-      "dmScripts": "paste-ready in AGENT_BUILDER_GTM.md for MCP host + x402/Celo cohort"
-    },
-    "founderNext": "Paste DM #2 and #3 to two real humans today; flip replyStatus to sent.",
-    "killCriteria7d": "If all 3 replyStatus=no-reply and mcpPaidCalls still 1 after 7d → stop same cold-DM template; next pulse = npm @syra-ai/mcp-server x402-mcp keyword publish OR Cursor marketplace submit only.",
+    "diagnosis": "Rain launched Agentic Payments Alliance today. Official join path is apa@rain.xyz. Founding members are Visa/Mastercard-scale; Syra should ask as a technology member (live x402 M2M payments) and separately for the Agentic Startup Program cohort of 5. Complementary to Rain scoped cards, not a card issuer.",
+    "ceoOutcome2": "This is a design-partner / standards inbound, not a substitute for GTM DMs #2/#3. Do not count as mcpPaidCalls.",
+    "killCriteria7d": "If no reply by 2026-08-25, send the short follow-up once. If still silent by 2026-09-01, LinkedIn Farooq Malik / Rain partnerships, then stop. Do not spam press@rain.xyz.",
+    "doNotCount": "Alliance email as unique paying wallet or mcpPaidCall. Do not claim founding-member status in the ask.",
     "liveMetricsQuoted": {
-      "uniquePayingWalletsLast7d": 105,
-      "bySource.mcpPaidCalls": 1,
-      "settleFailRate24h": 0.0031,
-      "meetsLaunchGuardrail": true
+      "source": "https://api.syraa.fun/api/metrics",
+      "quotedFrom": "2026-08-18 evening join-APA turn",
+      "uniquePayingWalletsLast7d": 107,
+      "lifetimeUniquePayingWallets": 126,
+      "paidCallsLast7d": 41487,
+      "usdSettled7d": 5955.72,
+      "bySource.mcpPaidCalls": 1
     }
   }
 }

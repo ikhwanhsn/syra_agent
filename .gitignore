@@ -14,8 +14,14 @@ api/.keys/*
 !api/.keys/b402_public.pem
 # Sensitive / local-only artifacts (signed txs, IDE debug dumps)
 api/scripts/rise-api-snapshot.json
+api/.agentscore-base-payer.env
+api/.x402-ownership-proof.env
 .cursor/debug.log
+# Content swipe tweet cache (contains live tweet text)
+.cursor/agents/state/content-swipe-latest.json
 **/debug.log
+# Remotion / promo local dumps (deliverables live under web/public/videos/)
+web/out/
 # OKX Genesis LLM demo renders (large binaries)
 okx-asp/video-clips/*.mp4
 okx-asp/video-clips/*.job.json

@@ -1,7 +1,7 @@
 # Agent builder GTM — distribution playbook
 
 **ICP:** Agent builders (MCP hosts, SDK apps), not retail chat users.  
-**Primary CTA:** Install MCP → fund Solana USDC → `syra_spend_news` (~5 min).  
+**Primary CTA:** Agents: `set up https://api.syraa.fun/skill.md`. Humans: install MCP → fund Solana USDC → `syra_consult` → `syra_spend_news` (~5 min).  
 **North star:** Weekly settled paid calls + unique paying wallets (`outcome: paid` only).  
 **Prerequisite:** Settlement health green (`settle_failed` rate &lt; 5% of attempts) — see [api/docs/CELO_FACILITATOR_OPS.md](../api/docs/CELO_FACILITATOR_OPS.md).
 
@@ -26,17 +26,22 @@
 
 ---
 
-## Design partners (target: 3)
+## Design partners (target: 3+)
 
 Track in this table; replace placeholders as partners onboard. CEO outcome #2: ≥1 net-new non-founder `mcpPaidCalls`, or ≥3 partners with logged contact + reply status.
+
+**Trending chase (2026-08-20):** OpenClaw (**active**) · Nevermined (**piloting**, code shipped) · Cloudflare. Full scopes: [TRENDING_PARTNER_INTEGRATIONS.md](./TRENDING_PARTNER_INTEGRATIONS.md).
 
 | # | Partner / agent | Surface (MCP/SDK) | contactedAt | replyStatus | First paid date | D7 repeat | Notes |
 |---|-----------------|-------------------|-------------|-------------|-----------------|-----------|-------|
 | 1 | Ampersend / Edge & Node (catalog) | Marketplace listing → agent discovery | 2026-08-13 | sent | | | Catalog email sent via `npm run register-ampersend` → `ampersend@edgeandnode.com` + `ampersend/catalog-registration.json` (53 Base x402 endpoints). Awaiting list confirmation. |
 | 2 | MCP host builder (Cursor / Claude Desktop integrator) | MCP → `syra_spend_news` | 2026-08-13 | awaiting_founder_send | | | Paste-ready DM below. Ask one paid call from **their** Solana USDC wallet (not founder/treasury). |
 | 3 | x402 / Celo builders cohort agent | MCP or SDK first paid | 2026-08-13 | awaiting_founder_send | | | Paste-ready DM below. Same ask: their-wallet `syra_spend_news` in ~5 min. |
+| 4 | Cloudflare Agents / Monetization Gateway | Agents SDK `@x402/fetch` → Syra `/news` (Base) | 2026-08-20 | awaiting_founder_send | | | **Docs shipped.** Quickstart + `/docs/build/cloudflare-agents-x402`. Agent = payer; Syra = merchant. Monetization Gateway deferred. Send outreach from TRENDING_PARTNER_INTEGRATIONS.md. |
+| 5 | OpenClaw | `openclaw mcp set` → `@syra-ai/mcp-server` | 2026-08-20 | awaiting_founder_send | | | **Active chase.** Quickstart shipped: [OPENCLAW_MCP_QUICKSTART.md](./OPENCLAW_MCP_QUICKSTART.md) · https://docs.syraa.fun/docs/build/openclaw. Paste-ready outreach in TRENDING_PARTNER_INTEGRATIONS.md. |
+| 6 | Nevermined | `GET /partners/nevermined/news` (credits) | 2026-08-20 | awaiting_env | | | **Piloting.** SDK path shipped (not Exact failover). Quickstart: [NEVERMINED_X402_QUICKSTART.md](./NEVERMINED_X402_QUICKSTART.md). Set `NEVERMINED_X402_ENABLED` + `NVM_*` for sandbox traffic. |
 
-Recruit via: hackathon winners, MCP host communities, inbound from marketplace Integrate.
+Recruit via: hackathon winners, MCP host communities, inbound from marketplace Integrate, Cloudflare Agents / OpenClaw / Nevermined channels.
 
 ### Outreach drafts (2026-08-13)
 
@@ -61,6 +66,12 @@ Ask: one syra_spend_news paid call from your wallet so we can log a non-founder 
 
 No token pitch — just a real settle receipt. I can pair on the first call if useful.
 ```
+
+### Outreach drafts (2026-08-20) — trending partners
+
+Paste-ready copy + proof line for **Cloudflare** (send first), **OpenClaw**, and **Nevermined**: [TRENDING_PARTNER_INTEGRATIONS.md](./TRENDING_PARTNER_INTEGRATIONS.md).
+
+**Proof line (settled only, 2026-08-20):** last 7d 47,127 paid calls · $6,645.65 settled · 111 unique wallets; lifetime $15,776.12 · 129 wallets; 24h settle fail 1.29%. https://syraa.fun
 
 When you send a DM, flip that row’s `replyStatus` to `sent` (then `replied` / `no-reply`). Do not count founder/treasury self-probes as outcome #2.
 

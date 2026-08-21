@@ -1,6 +1,6 @@
 {
   "name": "@syra-ai/mcp-server",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "MCP server for Syra machine money — 240+ crypto research & agent tools with x402 auto-pay for Cursor, Claude Desktop, and agent frameworks.",
   "type": "module",
   "main": "dist/index.js",
@@ -14,7 +14,8 @@
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "test": "tsx --test src/consult.test.ts"
   },
   "publishConfig": {
     "access": "public"

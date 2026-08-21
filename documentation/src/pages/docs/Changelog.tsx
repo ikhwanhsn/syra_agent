@@ -11,6 +11,8 @@ const changelogEntries: { period: string; items: string[] }[] = [
   {
     period: "August 2026",
     items: [
+      "Docs: OpenClaw → Syra MCP install (/docs/build/openclaw) — openclaw mcp set + skill install, Syra stays x402 merchant",
+      "Docs: Cloudflare Agents → Syra x402 paid-call quickstart (/docs/build/cloudflare-agents-x402) — Agent as Base USDC payer, Syra stays merchant",
       "Hosted x402 refund coverage for external agents: POST /refund/relay (premium per covered call), GET /refund/status and /refund/claims, SDK @syra-ai/x402-refund (gated off until allowlist + caps are set)",
       "In-house on-chain refund layer for Syra's own inbound/outbound x402 calls (replaces Pact Network)",
     ],

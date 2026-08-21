@@ -1,0 +1,26 @@
+---
+description: Route “incumbent hype” / /incumbent disruptive four-beat X copy through Chronicle. Industry → contrast → syra is → replaceable → URL.
+alwaysApply: true
+---
+
+# Incumbent hype text (Syra) — always on
+
+Whenever the user asks for **incumbent hype**, `/incumbent`, “text like the replaceable post,” “zauth-style for Syra,” or paste-a-competitor four-beat industry → contrast → definition → punch for Syra:
+
+1. Read and follow [`.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`](../agents/content-swipe/INCUMBENT_HYPE_TEXT.md).
+2. Route Helix → **Chronicle** Incumbent mode (not ship-log, not `/hype` still, not `/ideas` board).
+3. Ground every claim in shipped product, pricing, docs, or metrics. Deliver paste-ready spine copy in this turn.
+
+## Hard floor
+
+- Spine: industry old process → old vs Syra → `syra is …` → `the … are replaceable.` → real `https://` URL.
+- No invented TAM. No em dashes. No “excited to announce.” Never lead with buy $SYRA.
+- Do **not** force `X is live.` launch spine. Do **not** steal competitor claims.
+- Default 1 post; if they ask for more N, N angles from the bank, skip `last-incumbent.json` `doNotRepeat`.
+
+## Related
+
+- Spec: `.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`
+- Quality bar named format: `web/src/content/posts/TEXT_POST_QUALITY_BAR.md`
+- Skill: `.cursor/skills/syra-incumbent-hype/SKILL.md`
+- Last run: `.cursor/agents/state/last-incumbent.json`

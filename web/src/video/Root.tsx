@@ -37,6 +37,13 @@ import {
 } from "@/video/compositions/BridgePromo";
 import { BRIDGE_PROMO_FPS } from "@/video/content/bridgePromo";
 import {
+  RefundPromo,
+  REFUND_PROMO_DURATION,
+  REFUND_PROMO_HEIGHT,
+  REFUND_PROMO_WIDTH,
+} from "@/video/compositions/RefundPromo";
+import { REFUND_PROMO_FPS } from "@/video/content/refundPromo";
+import {
   POST_VIDEO_LAYOUT_HEIGHT,
   POST_VIDEO_LAYOUT_WIDTH,
 } from "@/video/constants";
@@ -105,6 +112,15 @@ export function RemotionRoot() {
         fps={BRIDGE_PROMO_FPS}
         width={BRIDGE_PROMO_WIDTH}
         height={BRIDGE_PROMO_HEIGHT}
+        defaultProps={{ bgm: true }}
+      />
+      <Composition
+        id="RefundPromo"
+        component={RefundPromo}
+        durationInFrames={REFUND_PROMO_DURATION}
+        fps={REFUND_PROMO_FPS}
+        width={REFUND_PROMO_WIDTH}
+        height={REFUND_PROMO_HEIGHT}
         defaultProps={{ bgm: true }}
       />
     </>

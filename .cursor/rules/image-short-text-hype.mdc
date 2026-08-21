@@ -1,0 +1,27 @@
+---
+description: Route “image + short text hype” / /hype mood-still posts through Chronicle. Swipe 15 watchlist accounts, new still every run.
+alwaysApply: true
+---
+
+# Image + short text hype (Syra) - always on
+
+Whenever the user asks for **image + short text hype**, `/hype`, “content like the portal post,” or a **mood still plus short invite caption** (OKX-Wallet-shaped: atmospheric 1:1 + 2-4 lines + a question):
+
+1. Read and follow [`.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`](../agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md).
+2. Route Helix → **Chronicle** Hype mode (not ship-log, not `/ideas` board).
+3. Fetch the 15-account swipe (`node api/scripts/contentSwipeFetch.mjs`), map **today’s hype** onto one repo-true or metrics-true Syra fact, then **create** the caption and a **new** still in this turn.
+
+## Hard floor
+
+- Caption: invite or first step, real `https://` URL, one question. Do not default to `X is live.` if that ship was already posted.
+- Image: auto-pick between working copy (`syra-xlayer-hype.png`) and original door (`syra-xlayer-portal.png`). **New metaphor/plate every run**. Default: working copy. Never overwrite `syra-xlayer-portal.png`.
+- Steal watchlist **structure and topics**. Never steal their claims, metrics, screenshots, or CTAs.
+- No em dashes. No “excited to announce.” Never lead with buy $SYRA.
+
+## Related
+
+- Spec: `.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`
+- Catalog: `web/src/content/announce/hypeReferences.ts`
+- Watchlist: `.cursor/agents/content-swipe/watchlist.json`
+- Chrome gold: `web/public/images/threads/syra-xlayer-hype.png` (working copy). Other gold: `web/public/images/threads/syra-xlayer-portal.png`.
+- Last run: `.cursor/agents/state/last-hype.json`

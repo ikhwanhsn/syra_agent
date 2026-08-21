@@ -1,0 +1,9 @@
+{
+  "date": "2026-08-17",
+  "updatedAt": "2026-08-17T02:17:00.000Z",
+  "oneAction": "Hired Hone (prompt-improve) behind /improve: ask if ambiguous, rewrite if detailed, do not execute.",
+  "gap": "No lead owned prompt rewriting for /improve",
+  "hiredName": "Hone",
+  "mode": "IMPLEMENT",
+  "notes": "Workflow lead, not weekday /growth. Micro-team: Probe, Query, Craft, Fit. File: .cursor/agents/prompt-improve.md. Command: .cursor/commands/improve.md."
+}

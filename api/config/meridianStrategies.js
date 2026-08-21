@@ -22,11 +22,23 @@ export const MERIDIAN_DEFAULT_SIGNAL_WEIGHTS = Object.freeze({
   ...LP_AGENT_EXPERIMENT_DEFAULT_SIGNAL_WEIGHTS,
 });
 
+/**
+ * Hold window used when projecting expected fees for the paper open EV gate.
+ * 12h matches AyeLabs / the LP desk so calibrated fees can cover round-trip costs.
+ */
+export const MERIDIAN_EV_HOLD_HOURS = 12;
+/**
+ * Expected *calibrated* fees must cover round-trip costs by this multiple before open.
+ * 1.0 is paper break-even after the 0.22 fee haircut.
+ */
+export const MERIDIAN_MIN_FEE_TO_COST_RATIO = 1.0;
+
 export const MERIDIAN_DEFAULTS = Object.freeze({
   startingBankSol: 10,
   maxPositionSol: 1,
   maxConcurrentPositions: 8,
-  maxRunAgeHours: 36,
+  /** Fee-farm hold: long enough for calibrated fees to cover round-trip costs. */
+  maxRunAgeHours: 12,
   winThresholdPct: 0.5,
   positionSizePct: 0.35,
   gasReserve: 0.2,
@@ -38,28 +50,28 @@ export const MERIDIAN_DEFAULTS = Object.freeze({
 });
 
 /**
- * Conservative quality-pool screen (aligned with live engine user-config).
+ * Fee-dense pool screen so the EV gate can find candidates that clear chain costs.
  * The reused LP scoring reads a subset of these keys (minOrganic, minFeeTvlRatio,
  * minVolume24hUsd, minHolderCount, minTvlUsd, maxTvlUsd, maxRiskScore, …). The remaining
  * Meridian-native keys (mcap, bin step, holder-quality) are carried into snapshots.
  */
 export const MERIDIAN_SCREENING_BASE = Object.freeze({
-  minFeeTvlRatio: 0.01,
-  minTvlUsd: 500_000,
-  maxTvlUsd: 50_000_000,
-  minVolume24hUsd: 100_000,
+  minFeeTvlRatio: 0.05,
+  minTvlUsd: 50_000,
+  maxTvlUsd: 5_000_000,
+  minVolume24hUsd: 20_000,
   minOrganic: 60,
-  minHolders: 3_000,
+  minHolders: 500,
   /** Alias so the reused LP screening (passesScreeningOverrides) also enforces holder floor. */
-  minHolderCount: 3_000,
-  minMcap: 5_000_000,
+  minHolderCount: 500,
+  minMcap: 500_000,
   maxMcap: 50_000_000_000,
   minBinStep: 1,
   maxBinStep: 80,
   minTokenFeesSol: 30,
   maxBotHoldersPct: 15,
   maxTop10Pct: 40,
-  minTokenAgeHours: 168,
+  minTokenAgeHours: 48,
 });
 
 export const MERIDIAN_STRATEGIES = Object.freeze([
@@ -97,7 +109,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     binsAbove: 40,
     screeningOverrides: {
       ...MERIDIAN_SCREENING_BASE,
-      minFeeTvlRatio: 0.015,
+      minFeeTvlRatio: 0.055,
       minOrganic: 64,
       minVolume24hUsd: 150_000,
     },
@@ -147,7 +159,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "bid_ask",
     binsBelow: 45,
     binsAbove: 5,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.015 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.055 },
     signalGate: {
       any: [{ field: "fee_tvl_ratio", op: "gte", value: 0.55 }],
       minPasses: 1,
@@ -169,7 +181,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "spot",
     binsBelow: 42,
     binsAbove: 42,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.02, minVolume24hUsd: 150_000 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.06, minVolume24hUsd: 150_000 },
     signalGate: {
       all: [{ field: "fee_tvl_ratio", op: "gte", value: 0.55 }],
       minPasses: 1,
@@ -238,7 +250,7 @@ export const MERIDIAN_STRATEGIES = Object.freeze([
     lpShape: "bid_ask",
     binsBelow: 90,
     binsAbove: 0,
-    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.015 },
+    screeningOverrides: { ...MERIDIAN_SCREENING_BASE, minFeeTvlRatio: 0.055 },
     signalGate: {
       any: [
         { field: "volume", op: "gte", value: 0.55 },

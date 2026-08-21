@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { consultSyraIntent } from "./consult.js";
 import { MCP_TOOL_CATALOG } from "./generated/toolCatalog.js";
 import { callCatalogTool, callFreeRoute, callToolById, postFreeRoute } from "./syraApi.js";
 import { getPaidFetchNetworkLabel, hasPaidFetchConfigured } from "./payment/createPaidFetch.js";
@@ -51,6 +52,14 @@ function mergeToolArgs(entry, args) {
 export function registerSyraTools(server) {
     const catalog = MCP_TOOL_CATALOG;
     const active = catalog.filter(shouldRegister);
+    server.tool("syra_consult", "[Spend] Map a plain-language crypto-intel intent to one existing curated tool. Free. Does not execute or bill. Call this first, then call the returned toolName.", {
+        intent: z
+            .string()
+            .describe("What the user wants, in plain language. Example: Get BTC news"),
+    }, async ({ intent }) => {
+        const result = consultSyraIntent(intent);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    });
     for (const entry of active) {
         const prefix = PILLAR_LABEL[entry.pillar] ?? "";
         const description = `${prefix}${entry.name}. ${entry.description}.${paymentSuffix()}`;

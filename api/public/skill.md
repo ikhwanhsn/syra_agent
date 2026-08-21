@@ -64,6 +64,23 @@ Cursor `mcp.json`:
 
 Docs: https://docs.syraa.fun/docs/build/mcp
 
+### OpenClaw
+
+Fund ≥ $1 Solana USDC, then register Syra as an OpenClaw-managed MCP server:
+
+```bash
+openclaw mcp set syra '{"command":"npx","args":["-y","@syra-ai/mcp-server@latest"],"env":{"SYRA_API_BASE_URL":"https://api.syraa.fun","SYRA_MCP_TOOL_PROFILE":"curated","SYRA_PAYER_KEYPAIR":"your-solana-secret"}}'
+openclaw mcp doctor syra --probe
+```
+
+Install the consult-first skill from a local Syra repo clone:
+
+```bash
+openclaw skills install ./.agents/skills/syra --as syra
+```
+
+Docs: https://docs.syraa.fun/docs/build/openclaw
+
 ### App / script agents (SDK)
 
 ```bash

@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-17",
+  "notes": "15 accounts: 8 niche (x402 / AI-agent / machine-money) + 7 blue-chip. Handles without @. Edit here; unknown or renamed accounts fail per-row on fetch.",
+  "accounts": [
+    {
+      "handle": "PayAINetwork",
+      "tier": "niche",
+      "watchFor": "x402 marketplace, pay-per-call rails, agent buyer CTAs"
+    },
+    {
+      "handle": "dexteraisol",
+      "tier": "niche",
+      "watchFor": "agent DEX, x402 trading, execution proof posts"
+    },
+    {
+      "handle": "coinbase",
+      "tier": "niche",
+      "watchFor": "x402 protocol, builder explainers, launch threads"
+    },
+    {
+      "handle": "virtuals_io",
+      "tier": "niche",
+      "watchFor": "AI agent launches, agent plus token narrative, ship cadence"
+    },
+    {
+      "handle": "elizaOS",
+      "tier": "niche",
+      "watchFor": "open agent framework, ship logs, contributor how-tos"
+    },
+    {
+      "handle": "BankrBot",
+      "tier": "niche",
+      "watchFor": "agents that spend onchain, demo clips, execution receipts"
+    },
+    {
+      "handle": "zauthinc",
+      "tier": "niche",
+      "watchFor": "x402 auth and identity, agent login, integration posts"
+    },
+    {
+      "handle": "autonolas",
+      "tier": "niche",
+      "watchFor": "autonomous agent services, machine-to-machine money"
+    },
+    {
+      "handle": "solana",
+      "tier": "bluechip",
+      "watchFor": "L1 ecosystem cadence, builder and devrel threads"
+    },
+    {
+      "handle": "ethereum",
+      "tier": "bluechip",
+      "watchFor": "protocol plus ecosystem narrative, long-form threads"
+    },
+    {
+      "handle": "base",
+      "tier": "bluechip",
+      "watchFor": "L2 growth, onchain app launches, founder-plain posts"
+    },
+    {
+      "handle": "Phantom",
+      "tier": "bluechip",
+      "watchFor": "wallet product ships, feature explainers, consumer hooks"
+    },
+    {
+      "handle": "JupiterExchange",
+      "tier": "bluechip",
+      "watchFor": "Solana DeFi, ship cadence, mechanic explainers"
+    },
+    {
+      "handle": "uniswap",
+      "tier": "bluechip",
+      "watchFor": "DEX product launches, mechanism posts"
+    },
+    {
+      "handle": "HyperliquidX",
+      "tier": "bluechip",
+      "watchFor": "high-engagement perps, concise product proof"
+    }
+  ]
+}

@@ -23,6 +23,7 @@ const ARCHETYPE_LABEL: Record<XLayerCardDef["archetype"], string> = {
   quote: "Quote",
   comparison: "Comparison",
   checklist: "Checklist",
+  portal: "Portal",
 };
 
 export function XLayerAnnounceDeck() {

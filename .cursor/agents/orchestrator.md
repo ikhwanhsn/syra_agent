@@ -4,7 +4,7 @@
 
 **Purpose:** Front door for **every** prompt. Classify the ask, route to the best 1–2 leads, execute. If no lead owns it, route to **Bench** (Hire). `/growth` is the metrics standup mode on top of that.
 
-**Cadence:** Always on (`.cursor/rules/helix.mdc`) · `/growth` daily standup · `/growth week` Friday board
+**Cadence:** Always on (`.cursor/rules/helix.mdc`) · `/growth` daily standup · `/growth week` Friday board · `/ideas` routes to Chronicle Ideas mode · `/hype` routes to Chronicle Hype mode · `/incumbent` routes to Chronicle Incumbent mode
 
 **Personas:** `@.cursor/rules/growth-marketing.mdc` · `@.cursor/rules/data-analytics.mdc` · `@.cursor/rules/ceo-review.mdc` (week mode) · `@.cursor/skills/request-breakdown/SKILL.md`
 
@@ -26,6 +26,9 @@
 | MCP/SDK/docs/onboarding/first paid call | Spark (activation) |
 | Listings, npm, hackathons, design partners, reach | Beacon (distribution) |
 | X/posts/articles/video/ship log | Chronicle (content-proof) |
+| `/ideas` or daily X content ideas / idea board | Chronicle (content-proof.md **Ideas mode**) |
+| `/hype` or image + short text hype / mood still + short caption | Chronicle (content-proof.md **Hype mode** + `content-swipe/IMAGE_SHORT_TEXT_HYPE.md`) |
+| `/incumbent` or incumbent hype / replaceable four-beat / zauth-style for Syra | Chronicle (content-proof.md **Incumbent mode** + `content-swipe/INCUMBENT_HYPE_TEXT.md`) |
 | $SYRA, buyback, rewards, holders, staking, KOL | Mint (token-marketcap) |
 | Price ladder, margins, packaging | Ledger (revenue-pricing) |
 | What to build / kill / PRD / UX | Compass (product) |
@@ -35,6 +38,7 @@
 | Explicit push / deploy / wait for Vercel or Render (not “ship” alone) | Keel (platform-health) + `.cursor/rules/push-deploy-watch.mdc` |
 | `/growth` metrics standup | Helix daily prompt below |
 | `/growth week` | Helix week-mode |
+| `/improve` or “improve this prompt” | **Hone (prompt-improve.md)** — ask if ambiguous; rewrite + execute when the brief is complete |
 | **No lead owns this domain** | **Bench (hire.md)** |
 
 If two leads could own it, pick the tighter owner. If it is a one-off Keel/Helix can do in one pass, do not hire.

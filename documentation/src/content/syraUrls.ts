@@ -20,6 +20,7 @@ export const SYRA_PLAYGROUND_URL = "https://www.syraa.fun/marketplace?tab=custom
 export const SYRA_OVERVIEW_URL = `${SYRA_WEB_ORIGIN}/overview`;
 
 export const SYRA_API_URL = "https://api.syraa.fun";
+export const SYRA_SKILL_URL = `${SYRA_API_URL}/skill.md`;
 export const SYRA_DOCS_URL = "https://docs.syraa.fun";
 
 export const SYRA_TELEGRAM_BOT_URL = "https://t.me/syra_trading_bot";

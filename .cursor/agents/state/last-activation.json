@@ -1,0 +1,25 @@
+{
+  "date": "2026-08-17",
+  "updatedAt": "2026-08-17T03:30:00.000Z",
+  "source": "https://api.syraa.fun/api/metrics",
+  "mode": "implement",
+  "oneAction": "Implemented consult-first MCP activation: syra_consult + set up https://api.syraa.fun/skill.md aligned across skill.md, homepage, Integrate, docs, README, llms.txt.",
+  "topFriction": "Agents could not pick among 47 named tools and had no paste-one-line skill CTA. mcpPaidCalls still 1 until an external wallet pays.",
+  "notes": "Settlement gate green. No starter credits. Payer keypair still required. Beacon Vaaya listing not in this slice.",
+  "funnel": {
+    "paymentRequiredToPaidRate": 1,
+    "d7RepeatRate": 0.738
+  },
+  "settlement": {
+    "settleFailRate24h": 0.0219,
+    "meetsLaunchGuardrail24h": true
+  },
+  "bySource": {
+    "api": 165419,
+    "mcpPaidCalls": 1
+  },
+  "northStar": {
+    "paidCallsLast7d": 43227,
+    "uniquePayingWalletsLast7d": 104
+  }
+}

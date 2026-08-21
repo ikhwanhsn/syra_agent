@@ -60,6 +60,7 @@ const CURATED_TOOL_IDS = new Set([
   'pumpfun-scout',
   'rise-scout',
   'coingecko-scout',
+  'agent-economy-summary',
   '8004-stats',
   '8004-leaderboard',
   '8004-agents-search',

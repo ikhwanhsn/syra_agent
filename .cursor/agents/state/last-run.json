@@ -1,34 +1,34 @@
 {
-  "date": "2026-08-13",
-  "updatedAt": "2026-08-13T16:50:00.000Z",
+  "date": "2026-08-18",
+  "updatedAt": "2026-08-18T00:30:00.000Z",
   "source": "https://api.syraa.fun/api/metrics",
-  "mode": "daily-execute",
-  "weekday": "Thu",
-  "isoWeek": 33,
-  "routedAgents": ["distribution", "platform-health"],
+  "mode": "daily",
+  "weekday": "Tue",
+  "isoWeek": 34,
+  "routedAgents": ["distribution", "token-marketcap"],
   "northStar": {
-    "paidCallsLast7d": 28524,
-    "uniquePayingWalletsLast7d": 105
+    "paidCallsLast7d": 42992,
+    "uniquePayingWalletsLast7d": 106
   },
   "last7d": {
-    "calls": 28524,
-    "usdSettled": 3095.47
+    "calls": 42992,
+    "usdSettled": 6006.13
   },
   "buyback": {
-    "totalBuybackUsdSpent": 3680.02,
+    "totalBuybackUsdSpent": 4323.8,
     "totalSyraAcquired": 39918011.903536,
     "treasurySyraBalance": 172452.066761,
     "lastBuybackSignature": "mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7"
   },
   "rewards": {
-    "uniqueEarners": 108,
+    "uniqueEarners": 110,
     "totalClaimableSyra": 50000,
     "totalClaimedSyra": 0
   },
   "settlement": {
-    "settleFailRate24h": 0.0031,
+    "settleFailRate24h": 0.0211,
     "meetsLaunchGuardrail24h": true
   },
-  "oneAction": "DONE batch: Ampersend catalog email sent + GTM logged; /ansem web surface deleted. Founder still pastes DM #2/#3.",
+  "oneAction": "PROPOSE: founder names 2 humans and sends GTM DM #2 + #3 (docs/AGENT_BUILDER_GTM.md); flip replyStatus to sent. Ampersend already counts as partner 1 → closes CEO #2 OR-path (≥3 contacted).",
   "bottleneck": "distribution"
 }

@@ -33,11 +33,11 @@ test("Meridian Blue-Chip Spot is strategy 0 with conservative screening", () => 
   assert.equal(core.exit?.trailingTriggerPct, 3);
   assert.equal(core.exit?.trailingDropPct, 1.5);
   assert.equal(core.screeningOverrides?.minFeeTvlRatio, MERIDIAN_SCREENING_BASE.minFeeTvlRatio);
-  assert.equal(core.screeningOverrides?.minTvlUsd, 500_000);
+  assert.equal(core.screeningOverrides?.minTvlUsd, 50_000);
   assert.equal(core.screeningOverrides?.minOrganic, 60);
-  assert.equal(MERIDIAN_SCREENING_BASE.minFeeTvlRatio, 0.01);
-  assert.equal(MERIDIAN_SCREENING_BASE.minHolders, 3_000);
-  assert.equal(MERIDIAN_SCREENING_BASE.minVolume24hUsd, 100_000);
+  assert.equal(MERIDIAN_SCREENING_BASE.minFeeTvlRatio, 0.05);
+  assert.equal(MERIDIAN_SCREENING_BASE.minHolders, 500);
+  assert.equal(MERIDIAN_SCREENING_BASE.minVolume24hUsd, 20_000);
 });
 
 test("Meridian roster includes mirror 98 and static count", () => {

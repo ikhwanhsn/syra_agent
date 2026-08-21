@@ -1,64 +1,74 @@
 {
-  "date": "2026-08-12",
-  "updatedAt": "2026-08-12T02:55:00.000Z",
+  "date": "2026-08-18",
+  "updatedAt": "2026-08-18T00:32:00.000Z",
   "source": "https://api.syraa.fun/api/metrics",
   "loopHealth": "Open",
-  "checklistItem": "Publish weekly proof #34 (Revenue → $SYRA) from /post with live metrics + Solscan; CTAs /marketplace + /token|/rewards.",
+  "checklistItem": "Publish from /post using update #34 Revenue → $SYRA Proof: refresh live GET /api/metrics + lastBuybackSolscan, CTA /marketplace + /token. Propose only.",
   "northStar": {
-    "paidCallsLast7d": 27770,
-    "uniquePayingWalletsLast7d": 111,
-    "usdSettled7d": 2364.43
+    "paidCallsLast7d": 43005,
+    "uniquePayingWalletsLast7d": 106,
+    "usdSettled7d": 6012.01
   },
   "buyback": {
     "buybackShareOfRevenue": 0.8,
-    "pendingRevenueUsd": 0.54,
+    "pendingRevenueUsd": 0.57,
     "totalFlushedUsd": 0.87,
-    "totalBuybackUsdSpent": 23.82,
-    "totalSyraAcquired": 172452.066761,
+    "totalAccumulatedUsd": 1.44,
+    "totalBuybackUsdSpent": 4323.8,
+    "totalSyraAcquired": 39918011.903536,
     "treasurySyraBalance": 172452.066761,
-    "lastFlushAt": "2026-08-06T15:54:52.754Z",
-    "lastBuybackSignature": "s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG",
-    "lastBuybackSolscan": "https://solscan.io/tx/s3n9W9kLMMu1xZTBooGdENoznfF38bbieZMrTY13TunK6bgG3uepFQTN1C9s3R1bnHwTi7a5VjKYNGcLfszykVG",
-    "x402SchedulerSolscan": "https://solscan.io/tx/mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7",
-    "note": "skipRevenueBuyback on Labs/partner payTo; totalBuybackUsdSpent is portfolio-maxed vs totalFlushedUsd 0.87"
+    "treasuryPortfolioUsd": 24.01,
+    "lastFlushAt": "2026-08-15T09:37:10.814Z",
+    "lastBuybackSignature": "mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7",
+    "lastBuybackSolscan": "https://solscan.io/tx/mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7",
+    "recentBuybacksHead": {
+      "at": "2026-07-28T19:25:12.416Z",
+      "buybackUsd": 0.44,
+      "source": "x402_scheduler",
+      "solscanUrl": "https://solscan.io/tx/mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7"
+    },
+    "note": "totalBuybackUsdSpent / totalSyraAcquired are portfolio-maxed (silent wallets). Proof copy must lead flushed/pending + primary treasury + Solscan, not $4323.8 / 39.9M."
   },
   "rewards": {
-    "uniqueEarners": 108,
+    "uniqueEarners": 110,
     "totalClaimableSyra": 50000,
     "totalClaimedSyra": 0,
-    "totalPendingPoints": 8375.776650000022,
-    "claimBlocker": "RewardsPage claim uses x-connected-wallet only; POST /rewards/claim requires session (auth_required)"
+    "totalPendingPoints": 13601.406150000084,
+    "claimBlocker": "RewardsPage POST /rewards/claim with credentials include + body wallet; API requireSession (auth_required). No re-fund this week."
   },
   "holders": {
     "mint": "8a3sEw2kizHxVnT9oLEVLADx8fTMPkjbEGSraqNWpump",
-    "marketCapUsd": 57857,
-    "liquidityUsd": 22682.71,
-    "volume24hUsd": 894.1,
-    "priceChange24hPct": -9.67,
-    "top10ConcentrationPct": 44.64,
+    "marketCapUsd": 59492,
+    "liquidityUsd": 22934.47,
+    "volume24hUsd": 1072.56,
+    "priceChange24hPct": -0.46,
     "uniqueStakers": 1,
     "totalStakedFormatted": "2147163"
   },
   "settlement": {
-    "settleFailRate24h": 0.0446,
+    "settleFailRate24h": 0.021,
     "meetsLaunchGuardrail24h": true,
-    "settleFailRate1h": 0.0355,
+    "settleFailRate1h": 0.0097,
     "meetsLaunchGuardrail1h": true,
     "tokenHypeOk": true
+  },
+  "bySource": {
+    "mcpPaidCalls": 1,
+    "note": "self-generated mcpPaidCalls still not distribution proof"
   },
   "publish": {
     "status": "ready_to_ship",
     "postVideo": "https://www.syraa.fun/post/video/34",
     "postPhoto": "https://www.syraa.fun/post/photo/34",
     "draftReady": true,
-    "reason": "24h settleFailRate 0.0446 < 0.05 and 1h green; hold for 5-day streak lifted for Mint weekly proof"
+    "reason": "CEO outcome 3 unlocked (settle 24h 0.021 green). #34 still unpublished since 2026-08-12; registry shareCopy still stale (24291 / $711.43 / 75 wallets / 3jz7qTsz). Propose refresh then founder paste. Not implemented this run."
   },
   "microTeam": {
-    "Receipt": "Open — public Solscan + metrics exist; rewards/claims and x402 flush volume do not close loop",
-    "Claim": "Funded but claimed=0; claim UX missing session auth",
-    "Lock": "1 unique staker; do not touch staking this week",
-    "Desk": "ONE item = publish #34 proof with live metrics + Solscan"
+    "Receipt": "Open — public Solscan + metrics exist; flushed $0.87 vs portfolio-maxed spend $4323.8; last fill mC1hT19K…WPZySvzS2Y7",
+    "Claim": "Funded 50k claimable; claimed=0; RewardsPage missing session for POST /rewards/claim; no re-fund",
+    "Lock": "1 unique staker (real active Streamflow lock); do not touch staking this week",
+    "Desk": "ONE item = publish overdue #34 proof with live 7d + Solscan; skip KOL/CEX/DexScreener/TG"
   },
-  "oneAction": "Ship #34 X proof today (live 7d + Solscan). Parallel follow-up (not today's checklist): wire RewardsPage claim to session auth so totalClaimedSyra can move.",
-  "notes": "Mint Wed 2026-08-12. Loop Open. Desk #34 over CEX/KOL. Claim: no re-fund needed. Lock: N. Founder mcap levers ranked in Mint output."
+  "oneAction": "Propose only: refresh #34 shareCopy to live 7d (43005 paid, $6012.01 settled, 106 wallets) + Solscan mC1hT19K… then founder publishes one X from /post/video/34. CTAs /marketplace + /token. Do not implement this run.",
+  "notes": "Mint Tue 2026-08-18. Loop Open. Product GTM paid-calls-first. Wallets 7d flat ~106 vs CEO-week 106 / last-token 111: after this one proof, no more token posts until wallets move. Helix may give Beacon the day for outcome 2."
 }

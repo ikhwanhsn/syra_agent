@@ -36,6 +36,16 @@ Code:
 | `quote` | Thesis, pull-quote, manifesto line | `web/public/images/threads/syra-xlayer-quote.png` | `web/public/images/threads/bg/bg-quote.png` |
 | `comparison` | Before/after, vs, old vs Syra, keys vs wallets | `web/public/images/threads/syra-xlayer-comparison.png` | `web/public/images/threads/bg/bg-compare.png` |
 | `checklist` | Ship log, shipped this week, bullet wins, done list | `web/public/images/threads/syra-xlayer-checklist.png` | `web/public/images/threads/bg/bg-checklist.png` |
+| `portal` | Original door. Foot-sticker mood still. | `web/public/images/threads/syra-xlayer-portal.png` | `web/public/images/threads/bg/bg-portal.png` |
+
+### Image + short text hype (auto-pick)
+
+When `/hype` or mood-still + short caption: call `findBestHypeReference()` in [`hypeReferences.ts`](hypeReferences.ts). **Read the matched PNG.** Reuse that layout. Generate a **new** plate. Default: working copy (left thesis).
+
+| ID | Layout | Reference PNG | Pick when |
+|----|--------|---------------|-----------|
+| `hype-working` | Left thesis (default) | `web/public/images/threads/syra-xlayer-hype.png` | One-liner, manifesto, invite |
+| `hype-door` | Foot sticker | `web/public/images/threads/syra-xlayer-portal.png` | Centered caption on the still |
 
 Public URL paths (when web is served): `/images/threads/syra-xlayer-<id>.png`.
 

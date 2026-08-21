@@ -39,7 +39,7 @@ SYRA_MCP_API_KEY=your-mcp-bridge-key
 
 4. **Reload MCP** — Restart Cursor or use Developer: Reload Window.
 
-5. **Verify** — Ask in chat: "Check Syra API health status" — should call `syra_spend_health`.
+5. **Verify** — Ask in chat: "set up https://api.syraa.fun/skill.md" or "Get BTC news" — should call `syra_consult` then `syra_spend_news`.
 
 ## Local development
 

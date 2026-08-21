@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMemo } from "react";
-import { ImageIcon, Lock, Video } from "lucide-react";
+import { ImageIcon, LayoutTemplate, Lock, Video } from "lucide-react";
 import { PostBackLink } from "@/components/post/PostBackLink";
 import { PostShipLogUpdateList } from "@/components/post/PostShipLogUpdateList";
 import { PostStudioContentSkeleton } from "@/components/post/PostStudioSkeleton";
@@ -19,8 +19,13 @@ import {
 } from "@/lib/postRegistryVisibility";
 import { usePostRegistryRefresh } from "@/lib/usePostRegistryRefresh";
 import { usePostStudioQuery } from "@/hooks/usePostStudio";
+import { cn } from "@/lib/utils";
 
-/** Hub for ship-log social formats, video deck or photo templates. */
+const formatActionClass = cn(
+  "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F3BA2F]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#030303] sm:min-h-10 sm:flex-none",
+);
+
+/** Hub for ship-log social formats: open latest, then archive every update. */
 export default function PostPage() {
   const { isLoading } = usePostStudioQuery();
   const statusTick = usePostRegistryRefresh();
@@ -45,129 +50,134 @@ export default function PostPage() {
     return [...locked, ...rest];
   }, [statusTick]);
 
+  const latestBundle = useMemo(
+    () =>
+      updates.find((bundle) => bundle.video.meta.updateNumber === latestVisible) ??
+      null,
+    [updates, latestVisible],
+  );
+
   return (
     <div className="post-root relative flex min-h-[100dvh] w-full flex-col overflow-x-hidden bg-[#030303] text-white">
       <div
         className="post-ambient pointer-events-none absolute inset-0"
         aria-hidden
       />
-      <div
-        className="post-orb post-orb-a pointer-events-none absolute rounded-full"
-        aria-hidden
-      />
-      <div
-        className="post-orb post-orb-b pointer-events-none absolute rounded-full"
-        aria-hidden
-      />
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-        <div className="mb-4 flex justify-start sm:mb-5">
+      <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+        <div className="mb-5 flex justify-start sm:mb-6">
           <PostBackLink />
         </div>
 
-        <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-center gap-3">
+        <header className="mb-8 text-left sm:mb-10">
+          <div className="flex items-start gap-3 sm:items-center">
             <img
               src="/images/logo.jpg"
               alt=""
-              className="h-10 w-10 shrink-0 rounded-xl border border-white/10 object-cover sm:h-11 sm:w-11"
+              className="mt-0.5 h-11 w-11 shrink-0 rounded-xl border border-white/10 object-cover sm:mt-0 sm:h-12 sm:w-12"
             />
-            <div className="min-w-0 text-left">
-              <h1 className="font-display text-lg font-medium tracking-tight sm:text-xl">
-                Syra Ship Log
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl font-medium tracking-tight text-white sm:text-3xl">
+                Ship Log
               </h1>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/35">
-                Social post studio
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/55 sm:text-[15px]">
+                Turn each update into an X-ready video deck or photo set. Open
+                the latest ship, or pick any update below.
               </p>
             </div>
           </div>
-          <p className="max-w-xl text-left text-sm text-white/55 sm:text-right">
-            Turn each ship log into a growth-ready X post. Record the video deck
-            or export branded photos with one-click share copy.
-          </p>
         </header>
 
         {isLoading ? (
           <PostStudioContentSkeleton />
         ) : (
           <>
-            <div className="mb-6 rounded-xl border border-white/20 bg-white/[0.04] px-4 py-3 text-left sm:mb-8 sm:px-5 sm:py-4">
-              <div className="mb-2 flex items-center gap-2">
-                <Lock className="h-3.5 w-3.5 shrink-0 text-white/80" aria-hidden />
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-white/80">
-                  Locked format · #{POST_TEMPLATE_UPDATE_NUMBER}
+            <section
+              aria-labelledby="post-latest-heading"
+              className="mb-8 rounded-2xl border border-white/12 bg-white/[0.035] p-4 sm:mb-10 sm:p-6"
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+                <div className="min-w-0 text-left">
+                  <h2
+                    id="post-latest-heading"
+                    className="text-base font-medium text-white sm:text-lg"
+                  >
+                    {latestBundle
+                      ? `#${latestBundle.video.meta.updateNumber} · ${latestBundle.video.meta.title}`
+                      : "Latest update"}
+                  </h2>
+                  <p className="mt-1 font-mono text-[11px] text-white/40">
+                    {latestBundle?.video.meta.published
+                      ? `Published ${latestBundle.video.meta.published}`
+                      : "Open video or photo for the newest ship log"}
+                  </p>
+                </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+                  <Link
+                    to={`/post/video/${latestVisible}`}
+                    className={cn(
+                      formatActionClass,
+                      "border-[#F3BA2F]/45 bg-[#F3BA2F]/15 text-[#F3BA2F] hover:border-[#F3BA2F]/70 hover:bg-[#F3BA2F]/25 hover:text-[#F8D56A]",
+                    )}
+                  >
+                    <Video className="h-4 w-4 shrink-0" aria-hidden />
+                    Open video
+                  </Link>
+                  <Link
+                    to={`/post/photo/${latestVisible}`}
+                    className={cn(
+                      formatActionClass,
+                      "border-white/20 bg-white/[0.06] text-white/90 hover:border-white/35 hover:bg-white/[0.1] hover:text-white",
+                    )}
+                  >
+                    <ImageIcon className="h-4 w-4 shrink-0" aria-hidden />
+                    Open photo
+                  </Link>
+                  <Link
+                    to="/post/announce"
+                    className={cn(
+                      formatActionClass,
+                      "border-white/12 bg-transparent text-white/70 hover:border-white/25 hover:bg-white/[0.05] hover:text-white/90",
+                    )}
+                  >
+                    <LayoutTemplate className="h-4 w-4 shrink-0" aria-hidden />
+                    Announce cards
+                  </Link>
+                </div>
+              </div>
+              <p className="mt-4 border-t border-white/8 pt-3 text-left text-xs leading-relaxed text-white/40">
+                Video: {POST_VIDEO_SLIDE_COUNT} slides (
+                {POST_VIDEO_SLIDE_SLOTS.map((s) => s.kind).join(" → ")}). Photo:{" "}
+                {POST_PHOTO_CARD_COUNT} cards with matched share copy.
+              </p>
+            </section>
+
+            <aside className="mb-8 flex flex-col gap-3 rounded-xl border border-white/10 bg-transparent px-4 py-3 text-left sm:mb-10 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5">
+              <div className="flex min-w-0 items-start gap-2.5 sm:items-center">
+                <Lock
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-white/50 sm:mt-0"
+                  aria-hidden
+                />
+                <p className="text-xs leading-relaxed text-white/50 sm:text-sm">
+                  Format template #{POST_TEMPLATE_UPDATE_NUMBER} is locked. Every
+                  new ship log follows the same video and photo roles.
                 </p>
               </div>
-              <p className="text-xs leading-relaxed text-white/55 sm:text-sm">
-                Every future ship log follows this structure:{" "}
-                <span className="text-white/75">
-                  {POST_VIDEO_SLIDE_COUNT} video slides
-                </span>{" "}
-                ({POST_VIDEO_SLIDE_SLOTS.map((s) => s.kind).join(" → ")}) and{" "}
-                <span className="text-white/75">
-                  {POST_PHOTO_CARD_COUNT} photo cards
-                </span>{" "}
-                in fixed role order. The Format Template cannot be removed from the
-                studio.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+              <div className="flex shrink-0 flex-wrap gap-x-4 gap-y-2 pl-6 sm:pl-0">
                 <Link
                   to={`/post/video/${POST_TEMPLATE_UPDATE_NUMBER}`}
-                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
+                  className="min-h-9 font-mono text-[10px] uppercase tracking-[0.12em] text-white/55 transition-colors hover:text-white sm:min-h-0"
                 >
-                  Open video template
+                  Video template
                 </Link>
                 <Link
                   to={`/post/photo/${POST_TEMPLATE_UPDATE_NUMBER}`}
-                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
+                  className="min-h-9 font-mono text-[10px] uppercase tracking-[0.12em] text-white/55 transition-colors hover:text-white sm:min-h-0"
                 >
-                  Open photo template
-                </Link>
-                <Link
-                  to="/post/announce"
-                  className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/80 transition-colors hover:text-white"
-                >
-                  Open X-Layer announce
+                  Photo template
                 </Link>
               </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-              <Link
-                to={`/post/video/${latestVisible}`}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/30 hover:bg-white/[0.06] sm:p-6"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white">
-                  <Video className="h-5 w-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-display text-sm font-medium text-white/90 sm:text-base">
-                    Video
-                  </p>
-                  <p className="mt-1 text-xs text-white/45 sm:text-sm">
-                    16:9 slide deck · {POST_VIDEO_SLIDE_COUNT} fixed kinds ·
-                    proof-first
-                  </p>
-                </div>
-              </Link>
-
-              <Link
-                to={`/post/photo/${latestVisible}`}
-                className="group flex flex-col items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-white/30 hover:bg-white/[0.06] sm:p-6"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white">
-                  <ImageIcon className="h-5 w-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-display text-sm font-medium text-white/90 sm:text-base">
-                    Photo
-                  </p>
-                  <p className="mt-1 text-xs text-white/45 sm:text-sm">
-                    {POST_PHOTO_CARD_COUNT} cards per update · matched X copy
-                  </p>
-                </div>
-              </Link>
-            </div>
+            </aside>
 
             <PostShipLogUpdateList updates={updates} />
           </>

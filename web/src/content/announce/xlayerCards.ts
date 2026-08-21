@@ -11,7 +11,8 @@ export type XLayerArchetype =
   | "flow"
   | "quote"
   | "comparison"
-  | "checklist";
+  | "checklist"
+  | "portal";
 
 export interface XLayerWinnerIcon {
   id: string;
@@ -41,6 +42,9 @@ export interface XLayerComparePanel {
   body: string;
 }
 
+/** Portal / hype still compositions. `bottom` is the gold sticker-at-foot layout. */
+export type PortalVariant = "bottom" | "top" | "thesis" | "panel" | "bar" | "corner";
+
 export interface XLayerCardDef {
   id: string;
   archetype: XLayerArchetype;
@@ -53,6 +57,8 @@ export interface XLayerCardDef {
   /** Lines inside black sticker boxes (stacked). */
   headlineLines: string[];
   subtitle?: string;
+  /** Portal family layout. Ignored on other archetypes. */
+  portalVariant?: PortalVariant;
   /** Content modules (archetype picks which one it renders). */
   winnerIcons?: XLayerWinnerIcon[];
   stats?: XLayerStat[];
@@ -183,6 +189,32 @@ export const XLAYER_CARDS: XLayerCardDef[] = [
     ],
     shareCopy:
       "Shipped this week: x402 on Base and Solana, MCP tools, the typed SDK, and signed receipts.\n\nsyraa.fun",
+  },
+  {
+    id: "xlayer-portal",
+    archetype: "portal",
+    slug: "syra-xlayer-portal",
+    bgImage: "/images/threads/bg/bg-portal.png",
+    topLabel: "Skill",
+    headlineLines: ["First call"],
+    subtitle: "Consult first. Then call.",
+    portalVariant: "bottom",
+    shareCopy:
+      "The catalog is on the other side.\n\nPaste set up https://api.syraa.fun/skill.md into your agent.\nsyra_consult first. Then the tool it names.\n\nhttps://syraa.fun/marketplace\n\nWhat are you calling first?",
+  },
+  {
+    id: "xlayer-hype",
+    archetype: "portal",
+    slug: "syra-xlayer-hype",
+    bgImage: "/images/threads/bg/bg-hype.png",
+    topLabel: "Live",
+    headlineLines: ["Agents pay"],
+    subtitle: "47,303 paid calls this week.",
+    quote: "Agents pay.",
+    quoteBy: "Syra",
+    portalVariant: "thesis",
+    shareCopy:
+      "Agents are already paying for calls.\n\nSyra settled 47,303 paid calls in the last 7 days.\n\nPaste https://api.syraa.fun/skill.md into your agent.\n\nhttps://syraa.fun/marketplace\n\nWhat will yours call first?",
   },
 ];
 

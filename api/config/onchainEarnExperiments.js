@@ -94,6 +94,29 @@ export const MERIDIAN_ENGINE = Object.freeze({
 });
 
 /**
+ * Delphi — Polymarket smart-money mirror into Jupiter Solana spot.
+ * Paper cron on; real layer stays off until paper graduation.
+ */
+export const DELPHI_CRON = Object.freeze({
+  paperSignalMs: 12 * 60_000,
+  paperResolveMs: 3 * 60_000,
+  realSignalMs: 12 * 60_000,
+  realResolveMs: 3 * 60_000,
+  realEnabled: false,
+  evolution: Object.freeze({
+    enabled: true,
+    intervalMs: 45 * 60_000,
+    removeCount: 2,
+    minDecided: 5,
+  }),
+  caps: Object.freeze({
+    maxPositionSol: 0.3,
+    maxConcurrentPositions: 2,
+    maxPositionUsd: 50,
+  }),
+});
+
+/**
  * AyeLabs — GMGN V/L radar desk (paper + gated real, no external engine child).
  * Paper signal interval matches gmgn-vl-radar cron (every 5 minutes).
  */
@@ -136,6 +159,7 @@ export function requireEarnExperimentCronSecret(req, res, next) {
       req.get('x-sniper-experiment-secret') ||
       req.get('x-meridian-experiment-secret') ||
       req.get('x-ayelabs-experiment-secret') ||
+      req.get('x-delphi-experiment-secret') ||
       '',
   ).trim();
   if (got !== secret) {

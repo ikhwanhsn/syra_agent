@@ -1,0 +1,39 @@
+{
+  "date": "2026-08-17",
+  "updatedAt": "2026-08-17T04:30:00.000Z",
+  "weekday": "Mon",
+  "mode": "ideas",
+  "oneAction": "Paste the in-house x402 refund ship post (main + tighter + how-to reply). Hosted coverage is gated; say check GET /refund/status. Do not attach Pact #10. IMPLEMENT registry #49 later.",
+  "fetch": {
+    "ok": false,
+    "succeeded": 0,
+    "failed": 0,
+    "reason": "X_BEARER_TOKEN_MISSING"
+  },
+  "ideaCount": 10,
+  "pickedIdea": "In-house x402 refunds shipped (text-only, docs CTA)",
+  "proofUsed": {
+    "git": "c6ad794e in-house x402 refund layer + @syra-ai/x402-refund",
+    "paidCallsLast7d": 43379,
+    "uniquePayingWalletsLast7d": 104,
+    "usdSettled7d": 5918.47,
+    "calls24h": 5460,
+    "usdSettled24h": 856.1,
+    "lifetimeUsdSettled": 12945.06,
+    "lifetimeWallets": 136,
+    "settleFailRate24h": 0.0205,
+    "meetsLaunchGuardrail24h": true,
+    "solscanLast": "https://solscan.io/tx/mC1hT19KDutbeo4W3qxwJ3H21GFvvt92HyFjGcidC9osbSaiacF5DoMnDCBDNFLHBUfy7mdopfagWPZySvzS2Y7",
+    "treasurySyra": 172452.066761,
+    "hostedRefundDefault": "REFUND_HOSTED_ENABLED=false",
+    "docs": "https://docs.syraa.fun/docs/build/refund"
+  },
+  "stylesLearned": [
+    "ship-first single",
+    "how-to in the reply",
+    "receipt object in the open",
+    "one-fact proof singles",
+    "do not mix ship + traction in one post"
+  ],
+  "notes": "Live X swipe skipped. Held MCP (1 paid call), LLM Exchange usage (0), rewards claim CTA (claimed=0). Frame: text-only today for refund; LLM Exchange can reuse LlmExchangePromo if used as a later card."
+}

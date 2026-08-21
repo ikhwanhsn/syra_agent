@@ -173,5 +173,16 @@ export async function promoteAllExperimentChampions() {
     results.meridian = { error: e instanceof Error ? e.message : String(e) };
   }
 
+  try {
+    const { getDelphiStats } = await import("./delphiService.js");
+    const delphi = await getDelphiStats();
+    results.delphi = await promoteDeskChampion("delphi", delphi.agents || [], {
+      metric: "usd",
+      minDecided: 3,
+    });
+  } catch (e) {
+    results.delphi = { error: e instanceof Error ? e.message : String(e) };
+  }
+
   return results;
 }

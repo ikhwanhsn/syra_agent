@@ -149,6 +149,27 @@ export const STUDIO_REFERENCES: StudioReference[] = [
     bgPlate: "web/public/images/threads/bg/bg-checklist.png",
     publicUrl: "/images/threads/syra-xlayer-checklist.png",
   },
+  {
+    id: "portal",
+    name: "Portal",
+    useWhen: "Original foot-sticker mood still. Hype posts should use findBestHypeReference() instead.",
+    matchTerms: [
+      "portal",
+      "step through",
+      "enter",
+      "door",
+      "threshold",
+      "mood",
+      "atmospheric",
+      "meet the catalog",
+      "hype",
+      "image + short text hype",
+      "short text hype",
+    ],
+    referencePng: "web/public/images/threads/syra-xlayer-portal.png",
+    bgPlate: "web/public/images/threads/bg/bg-portal.png",
+    publicUrl: "/images/threads/syra-xlayer-portal.png",
+  },
 ];
 
 export type ArchetypeMatch =

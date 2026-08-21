@@ -25,6 +25,9 @@ export function TiltCard({ children, max = 12, glare = true, className }: TiltCa
   const srx = useSpring(rx, SPRING_MOUSE);
   const sry = useSpring(ry, SPRING_MOUSE);
 
+  const glareOp = useMotionValue(0);
+  const sGlareOp = useSpring(glareOp, SPRING_MOUSE);
+
   const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = ref.current;
     if (!el || !enabled) return;
@@ -35,15 +38,19 @@ export function TiltCard({ children, max = 12, glare = true, className }: TiltCa
     rx.set((0.5 - py) * max);
     gx.set(px * 100);
     gy.set(py * 100);
+    glareOp.set(1);
   };
 
   const onLeave = () => {
     rx.set(0);
     ry.set(0);
+    gx.set(50);
+    gy.set(50);
+    glareOp.set(0);
   };
 
   const transform = useMotionTemplate`perspective(1000px) rotateX(${srx}deg) rotateY(${sry}deg)`;
-  const glareBg = useMotionTemplate`radial-gradient(circle at ${gx}% ${gy}%, hsl(var(--foreground)), transparent 50%)`;
+  const glareBg = useMotionTemplate`radial-gradient(280px circle at ${gx}% ${gy}%, hsl(var(--foreground) / 0.12), transparent 62%)`;
 
   return (
     <motion.div
@@ -57,8 +64,8 @@ export function TiltCard({ children, max = 12, glare = true, className }: TiltCa
       {glare && enabled ? (
         <motion.div
           aria-hidden
-          style={{ background: glareBg }}
-          className="pointer-events-none absolute inset-0 opacity-15"
+          style={{ background: glareBg, opacity: sGlareOp }}
+          className="pointer-events-none absolute inset-0"
         />
       ) : null}
     </motion.div>

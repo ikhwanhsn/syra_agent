@@ -14,7 +14,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-import { SYRA_ONE_LINER } from "@/content/syraFocus";
+import { SYRA_ONE_LINER, SYRA_SKILL_SETUP_LINE, SYRA_SKILL_URL } from "@/content/syraFocus";
 import { SYRA_LIVE_SUBLINE } from "@/lib/syraBranding";
 
 import { resolveApiBaseUrl } from "@/lib/resolveApiBaseUrl";
@@ -58,6 +58,7 @@ const SNIPPET_TABS: {
 
 const INTEGRATION_LINKS = [
   { label: "MCP setup", href: "https://docs.syraa.fun/docs/build/mcp" },
+  { label: "Agent skill", href: SYRA_SKILL_URL },
   { label: "SDK guide", href: "https://docs.syraa.fun/docs/build/sdk" },
   { label: "x402 discovery", href: "https://api.syraa.fun/.well-known/x402" },
   { label: "Agent tools", href: "https://api.syraa.fun/agent/tools" },
@@ -72,13 +73,13 @@ const STEPS = [
   },
   {
     n: "02",
-    title: "Install MCP with payer env",
-    body: "Copy the mcp.json snippet below. Paste your Solana secret into SYRA_PAYER_KEYPAIR (do not leave a placeholder).",
+    title: "Paste the skill or install MCP",
+    body: `Agents: ${SYRA_SKILL_SETUP_LINE}. Humans: copy the mcp.json snippet below. Paste your Solana secret into SYRA_PAYER_KEYPAIR (do not leave a placeholder).`,
   },
   {
     n: "03",
-    title: "Call syra_spend_news",
-    body: "Ask your agent for BTC news (or invoke syra_spend_news). Expect structured JSON after a settled 402.",
+    title: "Consult, then syra_spend_news",
+    body: "Ask your agent to syra_consult the intent (free), then call the tool it returns. For the first paid call: Get BTC news.",
   },
   {
     n: "04",
@@ -98,7 +99,7 @@ const TROUBLESHOOTING = [
   },
   {
     title: "Tool not found / empty tools",
-    fix: 'Set SYRA_MCP_TOOL_PROFILE=curated (default) and restart the MCP host. Use syra_call_tool with a toolId from GET /agent/tools as escape hatch.',
+    fix: 'Set SYRA_MCP_TOOL_PROFILE=curated (default) and restart the MCP host. Call syra_consult first, or syra_call_tool with a toolId from GET /agent/tools.',
   },
 ] as const;
 
@@ -150,7 +151,8 @@ console.log(news);`,
 # One-liner (Claude Code), payer env required:
 # claude mcp add syra -e SYRA_API_BASE_URL=${base} -e SYRA_PAYER_KEYPAIR=your-solana-secret -- npx -y @syra-ai/mcp-server@latest
 
-# Then call: syra_spend_news with ticker BTC
+# Agents: ${SYRA_SKILL_SETUP_LINE}
+# Then: syra_consult with intent "Get BTC news", then the tool it returns
 
 # Local only (skips payment):
 # SYRA_USE_DEV_ROUTES=true + local api base URL`,
@@ -180,7 +182,7 @@ export function PlaygroundQuickstart() {
       <PlaygroundHero
         kicker="First paid call"
         title="First paid call in 5 minutes"
-        description={`${SYRA_LIVE_SUBLINE}. Install MCP, fund ≥ $1 USDC on Solana, call syra_spend_news, settle x402 and get JSON agents can act on.`}
+        description={`${SYRA_LIVE_SUBLINE}. ${SYRA_SKILL_SETUP_LINE}, fund ≥ $1 USDC on Solana, syra_consult then syra_spend_news, settle x402 and get JSON agents can act on.`}
         badges={
           <>
             <span className={playgroundStatPillClass}>
@@ -358,7 +360,7 @@ export function PlaygroundQuickstart() {
         style={{ animationDelay: "120ms" }}
       >
         <p className="text-xs text-muted-foreground">
-          Next: fund USDC, call <span className="font-mono text-foreground/80">syra_spend_news</span>, then explore
+          Next: fund USDC, {SYRA_SKILL_SETUP_LINE}, consult, then <span className="font-mono text-foreground/80">syra_spend_news</span>, then explore
           Invest / Earn betas via <span className="font-mono text-foreground/80">GET /pillars</span>.
         </p>
         <a

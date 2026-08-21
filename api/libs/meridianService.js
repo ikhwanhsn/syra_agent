@@ -14,6 +14,8 @@ import MeridianLesson from "../models/MeridianLesson.js";
 import MeridianPoolMemory from "../models/MeridianPoolMemory.js";
 import {
   MERIDIAN_DEFAULTS,
+  MERIDIAN_EV_HOLD_HOURS,
+  MERIDIAN_MIN_FEE_TO_COST_RATIO,
   MERIDIAN_REAL_MIRROR_STRATEGY_ID,
 } from "../config/meridianStrategies.js";
 import {
@@ -62,6 +64,52 @@ function normalizeLimit(limit) {
   return Math.min(MAX_LIST_LIMIT, Math.floor(n));
 }
 
+/**
+ * Paper open EV gate: calibrated expected fees over the fee-farm hold must beat
+ * round-trip tx+slippage by MERIDIAN_MIN_FEE_TO_COST_RATIO (default 1x after haircut).
+ */
+export function evaluateMeridianOpenEv({
+  depositSol,
+  tvlUsd,
+  volume24hUsd,
+  feeTvlRatio,
+  volatilityScore,
+  binsBelow,
+  binsAbove,
+  holdHours = MERIDIAN_EV_HOLD_HOURS,
+  minFeeToCostRatio = MERIDIAN_MIN_FEE_TO_COST_RATIO,
+} = {}) {
+  const deposit = toNum(depositSol);
+  const needsSidecar = strategyLikelyNeedsSidecarSwap(binsBelow, binsAbove);
+  const tx = computeSimTransactionCostsSol(deposit, { needsSidecarSwap: needsSidecar });
+  const roundTripCostSol = tx.openFeeSol + tx.closeFeeSol;
+  const rr = computeLpRiskRewardProfile({
+    tvlUsd,
+    volume24hUsd,
+    feeTvlRatio,
+    volatilityScore,
+    binsBelow,
+    binsAbove,
+    holdHours,
+  });
+  const expectedFeeSol =
+    deposit * (toNum(rr.expectedFeePct) / 100) * getLpSimFeeCalibrationMult();
+  const required = roundTripCostSol * toNum(minFeeToCostRatio, MERIDIAN_MIN_FEE_TO_COST_RATIO);
+  const pass = expectedFeeSol > 0 && expectedFeeSol >= required;
+  return {
+    pass,
+    reason: pass ? null : "fees_below_chain_costs",
+    expectedFeeSol,
+    expectedFeePct: rr.expectedFeePct,
+    roundTripCostSol,
+    minFeeToCostRatio: toNum(minFeeToCostRatio, MERIDIAN_MIN_FEE_TO_COST_RATIO),
+    riskScore: rr.riskScore,
+    riskRewardRatio: rr.ratio,
+    needsSidecar,
+    holdHours: Math.max(0.5, toNum(holdHours, MERIDIAN_EV_HOLD_HOURS)),
+  };
+}
+
 /** Mongo expression: net PnL in USD using SOL PnL × (depositUsd/depositSol) at open. */
 const mongoNetPnlUsdExpr = {
   $multiply: [
@@ -85,6 +133,7 @@ function mergedSimConfig(stateDoc) {
       s.maxConcurrentPositions,
       MERIDIAN_DEFAULTS.maxConcurrentPositions,
     ),
+    maxRunAgeHours: toNum(s.maxRunAgeHours, MERIDIAN_DEFAULTS.maxRunAgeHours),
     openFeeBps: toNum(s.openFeeBps, MERIDIAN_DEFAULTS.openFeeBps),
     closeFeeBps: toNum(s.closeFeeBps, MERIDIAN_DEFAULTS.closeFeeBps),
   };
@@ -188,7 +237,7 @@ export async function ensureMeridianBootstrapped() {
  * desk stays byte-for-byte aligned on DLMM fee/IL math, but reads Meridian's `trailingDropPct`
  * exit key (mapped onto the shared trailing-giveback logic).
  */
-function evaluateMeridianRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults) {
+export function evaluateMeridianRunResolution(run, detail, strategyExit, hoursElapsed, simDefaults) {
   const priceDriftPct = computePriceDriftPct(toNum(run.entryPriceUsd), toNum(detail.currentPrice));
   const inRange = !isPositionOutOfRange(
     run.activeBinAtOpen,
@@ -254,7 +303,7 @@ function evaluateMeridianRunResolution(run, detail, strategyExit, hoursElapsed, 
   const peakPnlPct = Math.min(maxPeak, Math.max(priorPeak, netPnlPct));
   let status = "open";
   let resolution = null;
-  if (priceDriftPct <= toNum(exit.stopLossPct, -15)) {
+  if (netPnlPct <= toNum(exit.stopLossPct, -15)) {
     status = "loss";
     resolution = "stop_loss";
   } else if (netPnlPct >= toNum(exit.takeProfitPct, 5)) {
@@ -354,7 +403,7 @@ function scoreUniverseForStrategy(strategy, universe, effectiveBins) {
         volatilityScore: synthetic.volatilityScore,
         binsBelow: effectiveBins.binsBelow,
         binsAbove: effectiveBins.binsAbove,
-        holdHours: 4,
+        holdHours: MERIDIAN_EV_HOLD_HOURS,
       });
       const enriched = {
         ...pool,
@@ -516,10 +565,26 @@ async function runMeridianMirrorSignalCycle(universe) {
   const leaderBins = resolveEffectiveBins(leader.binsBelow, leader.binsAbove);
   const scored = scoreUniverseForStrategy(leader, universe, leaderBins);
   const memoryMap = await loadPoolMemoryMap(scored.map((s) => s.pool.poolAddress));
+  const depositSol = simCfg.maxPositionSol;
   let best = null;
+  let evSkipCount = 0;
   for (const cand of scored) {
     if (applyPoolMemoryPenalty(memoryMap.get(cand.pool.poolAddress)) <= 0) continue;
     if (await hasRecentPosition(experimentId, mirrorId, cand.pool.poolAddress)) continue;
+    const ev = evaluateMeridianOpenEv({
+      depositSol,
+      tvlUsd: cand.pool.tvlUsd,
+      volume24hUsd: cand.pool.volume24hUsd,
+      feeTvlRatio: cand.pool.feeTvlRatio,
+      volatilityScore: cand.synthetic.volatilityScore,
+      binsBelow: leaderBins.binsBelow,
+      binsAbove: leaderBins.binsAbove,
+    });
+    cand.ev = ev;
+    if (!ev.pass) {
+      evSkipCount += 1;
+      continue;
+    }
     best = cand;
     break;
   }
@@ -529,13 +594,18 @@ async function runMeridianMirrorSignalCycle(universe) {
       skipped: 1,
       errors: [],
       openedRuns: [],
-      skippedRows: [{ strategyId: mirrorId, reason: "no_candidate", leaderStrategyId: leader.id }],
+      skippedRows: [
+        {
+          strategyId: mirrorId,
+          reason: evSkipCount > 0 ? "fees_below_chain_costs" : "no_candidate",
+          leaderStrategyId: leader.id,
+        },
+      ],
     };
   }
 
   try {
     const solPrice = await fetchSolPriceUsd();
-    const depositSol = simCfg.maxPositionSol;
     const depositUsd = depositSol * solPrice;
     const openFeeSol = computeSimTransactionCostsSol(depositSol, {
       needsSidecarSwap: strategyLikelyNeedsSidecarSwap(leaderBins.binsBelow, leaderBins.binsAbove),
@@ -573,6 +643,8 @@ async function runMeridianMirrorSignalCycle(universe) {
         followMode: "real_mirror",
         binsClamped: leaderBins.clamped,
         peakPnlPct: 0,
+        expectedFeeSol: best.ev?.expectedFeeSol,
+        roundTripCostSol: best.ev?.roundTripCostSol,
       },
       status: "open",
       openedAt: new Date(),
@@ -689,13 +761,32 @@ export async function runMeridianSignalCycle() {
           1 + Math.log1p(Math.max(0, cashSol - simCfg.startingBankSol)) / 20;
         return { ...row, penalty, score: row.score * penalty * compoundBoost };
       });
-      const best = scored.filter((x) => x.penalty > 0).sort((a, b) => b.score - a.score)[0];
-      if (!best) {
-        skipped.push({ strategyId: strategy.id, reason: "no_candidate" });
-        continue;
+      let best = null;
+      let evSkipCount = 0;
+      for (const cand of scored.filter((x) => x.penalty > 0).sort((a, b) => b.score - a.score)) {
+        if (blockedPoolKeys.has(`${strategy.id}:${cand.pool.poolAddress}`)) continue;
+        const ev = evaluateMeridianOpenEv({
+          depositSol,
+          tvlUsd: cand.pool.tvlUsd,
+          volume24hUsd: cand.pool.volume24hUsd,
+          feeTvlRatio: cand.pool.feeTvlRatio,
+          volatilityScore: cand.synthetic.volatilityScore,
+          binsBelow: effectiveBins.binsBelow,
+          binsAbove: effectiveBins.binsAbove,
+        });
+        cand.ev = ev;
+        if (!ev.pass) {
+          evSkipCount += 1;
+          continue;
+        }
+        best = cand;
+        break;
       }
-      if (blockedPoolKeys.has(`${strategy.id}:${best.pool.poolAddress}`)) {
-        skipped.push({ strategyId: strategy.id, reason: "cooldown_or_open" });
+      if (!best) {
+        skipped.push({
+          strategyId: strategy.id,
+          reason: evSkipCount > 0 ? "fees_below_chain_costs" : "no_candidate",
+        });
         continue;
       }
 
@@ -746,6 +837,9 @@ export async function runMeridianSignalCycle() {
             riskRewardRatio: best.synthetic.riskRewardRatio,
             poolMemoryPenalty: best.penalty,
             peakPnlPct: 0,
+            expectedFeeSol: best.ev?.expectedFeeSol,
+            roundTripCostSol: best.ev?.roundTripCostSol,
+            evHoldHours: best.ev?.holdHours,
           },
           status: "open",
           openedAt: new Date(),
