@@ -9,7 +9,8 @@ Full roster: `.cursor/agents/ORG.md`
 - Daily growth: `/growth`
 - Board review: `/growth week`
 - Daily content ideas: `/ideas` → Chronicle (style-swipe watchlist + proof-grounded idea board)
-- Image + short text hype: `/hype` → Chronicle (swipe 15 watchlist accounts, map today’s hype onto one Syra fact, new still + short caption). Spec: `.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`
+- Ship-log studio: `/post` → Chronicle (git ship → create or update locked 8+15 bundle). Spec: `.cursor/agents/content-swipe/POST_SHIP_LOG.md`
+- Image + short text hype: `/hype` → Chronicle (swipe 15 watchlist accounts, map today's hype onto one Syra fact, new still + short caption). Spec: `.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`
 - Incumbent hype text: `/incumbent` → Chronicle (four-beat industry → contrast → `syra is` → replaceable → URL). Spec: `.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`
 - Hire on gap: `.cursor/agents/hire.md` (Bench)
 - Prompt improve: `/improve` → **Hone** (`.cursor/agents/prompt-improve.md`) — ask if ambiguous; once the brief is complete (or the user answered Hone’s questions), rewrite and Helix executes in the same turn. Do not wait for “run it.”

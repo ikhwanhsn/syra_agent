@@ -5,7 +5,7 @@
 import type { HttpMethod } from "@/types/api";
 import type { RequestParam } from "@/types/api";
 
-export const X402_PLAYGROUND_GENERATED_AT = "2026-08-13T11:11:01.652Z";
+export const X402_PLAYGROUND_GENERATED_AT = "2026-08-22T13:16:44.636Z";
 
 export interface X402PlaygroundResourceTemplate {
   segment: string;
@@ -702,6 +702,36 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
     }
   },
   {
+    "segment": "agent-economy/on-chain",
+    "id": "x402-agent-economy-on-chain",
+    "label": "Agent Economy On-Chain: Full on-chain agent-economy feed from agenteconomy.to",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "agent-economy/on-chain",
+      "name": "Agent Economy On-Chain",
+      "summary": "Full on-chain agent-economy feed from agenteconomy.to",
+      "description": "Full measured on-chain agent-payment feed from agenteconomy.to (data.json): x402, Olas, Virtuals ACP, ERC-8004 registry, Base agentic, Temp…",
+      "priceUsd": "0.001",
+      "category": "analytics"
+    }
+  },
+  {
+    "segment": "agent-economy/off-chain",
+    "id": "x402-agent-economy-off-chain",
+    "label": "Agent Economy Off-Chain: Full off-chain agent-economy feed from agenteconomy.to",
+    "method": "GET",
+    "params": [],
+    "catalogMeta": {
+      "segment": "agent-economy/off-chain",
+      "name": "Agent Economy Off-Chain",
+      "summary": "Full off-chain agent-economy feed from agenteconomy.to",
+      "description": "Full sourced off-chain agent-economy feed from agenteconomy.to (web-sources.json): agentTokens, x402Services, agentSupply, virtuals, devAdo…",
+      "priceUsd": "0.001",
+      "category": "analytics"
+    }
+  },
+  {
     "segment": "rugcheck/report",
     "id": "x402-rugcheck-report",
     "label": "RugCheck Token Report: Solana token risk report from RugCheck",
@@ -1262,6 +1292,21 @@ export const X402_PLAYGROUND_RESOURCE_TEMPLATES: X402PlaygroundResourceTemplate[
       "description": "Return lending deposits, borrows, and net value for a Solana wallet across Kamino, marginfi, Jupiter Lend, Loopscale, and more. Use when an…",
       "priceUsd": "0.00048",
       "category": "analytics"
+    }
+  },
+  {
+    "segment": "refund/relay",
+    "id": "x402-refund-relay",
+    "label": "Syra Hosted x402 Refund Coverage: Insure an agent x402 call: Syra refunds USDC if the paid upstream fails",
+    "method": "POST",
+    "params": [],
+    "catalogMeta": {
+      "segment": "refund/relay",
+      "name": "Syra Hosted x402 Refund Coverage",
+      "summary": "Insure an agent x402 call: Syra refunds USDC if the paid upstream fails",
+      "description": "Relay a paid x402 request through Syra. Use when an agent wants failed paid upstream calls refunded on-chain. Syra observes the upstream st…",
+      "priceUsd": "0.002",
+      "category": "payments"
     }
   }
 ];

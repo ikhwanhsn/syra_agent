@@ -53,7 +53,8 @@ Written when that division runs (directly or via orchestrator). If missing, crea
 | --- | --- |
 | `last-activation.json` | activation |
 | `last-distribution.json` | distribution |
-| `last-content.json` | content-proof (ship-log) |
+| `last-content.json` | content-proof (ship-log outline) |
+| `last-post.json` | content-proof (`/post`, ship-log studio bundle) |
 | `last-ideas.json` | content-proof (`/ideas`) |
 | `last-hype.json` | content-proof (`/hype`, image + short text hype) |
 | `last-incumbent.json` | content-proof (`/incumbent`, incumbent hype text) |
@@ -87,6 +88,8 @@ Chronicle `/ideas` `last-ideas.json` extra fields: `mode` (`ideas`), `fetch` (`o
 Chronicle `/hype` `last-hype.json` extra fields: `mode` (`hype`), `hypeNoticed`, `syraFact`, `metaphor`, `hook`, `layout`, `pickedReference`, `image`, `doNotRepeat`, `fetch`. Spec: `.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`. Never overwrite catalog gold stills.
 
 Chronicle `/incumbent` `last-incumbent.json` extra fields: `mode` (`incumbent`), `angles`, `hooks`, `doNotRepeat`, `oneAction`. Spec: `.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`.
+
+Chronicle `/post` `last-post.json` extra fields: `mode` (`post`), `action` (`create` | `update`), `updateNumber`, `id`, `title`, `proofUsed`, `studioPaths`, `files`, `oneAction`. Spec: `.cursor/agents/content-swipe/POST_SHIP_LOG.md`.
 
 ## Rules for the Agent
 

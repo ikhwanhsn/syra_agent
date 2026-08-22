@@ -26,6 +26,7 @@
 | MCP/SDK/docs/onboarding/first paid call | Spark (activation) |
 | Listings, npm, hackathons, design partners, reach | Beacon (distribution) |
 | X/posts/articles/video/ship log | Chronicle (content-proof) |
+| `/post` or ship-log studio bundle (create/update template) | Chronicle (content-proof.md **Post mode** + `POST_SHIP_LOG.md`) |
 | `/ideas` or daily X content ideas / idea board | Chronicle (content-proof.md **Ideas mode**) |
 | `/hype` or image + short text hype / mood still + short caption | Chronicle (content-proof.md **Hype mode** + `content-swipe/IMAGE_SHORT_TEXT_HYPE.md`) |
 | `/incumbent` or incumbent hype / replaceable four-beat / zauth-style for Syra | Chronicle (content-proof.md **Incumbent mode** + `content-swipe/INCUMBENT_HYPE_TEXT.md`) |

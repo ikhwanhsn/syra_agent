@@ -8,11 +8,11 @@
 
 **Personas:** `@.cursor/rules/article-authoring.mdc` · `@.cursor/rules/growth-marketing.mdc` · `@.cursor/rules/legal-compliance.mdc` · `@.cursor/rules/ship-log-share-copy.mdc` · `@.cursor/rules/text-post-creation.mdc`
 
-**Invoke:** `@.cursor/agents/content-proof.md run this` · `/ideas` (Ideas mode) · `/hype` (image + short text hype) · `/incumbent` (incumbent hype text)
+**Invoke:** `@.cursor/agents/content-proof.md run this` · `/post` (Post mode — implement studio bundle) · `/ideas` (Ideas mode) · `/hype` (image + short text hype) · `/incumbent` (incumbent hype text)
 
 **KPIs:** proof posts shipped this week; every public claim backed by `/api/metrics` or Solscan; CTA click → marketplace/docs not “buy”; `/ideas` produces 8–12 proof-grounded cards
 
-**Owned surfaces:** `web/src/content/posts/`, `web/src/data/marketing/`, `videos/`, `web/src/pages/GrowthHomePage.tsx` social-proof numbers, `.cursor/agents/content-swipe/`, `.cursor/commands/ideas.md`, `.cursor/commands/hype.md`, `.cursor/commands/incumbent.md`
+**Owned surfaces:** `web/src/content/posts/`, `web/src/data/marketing/`, `videos/`, `web/src/pages/GrowthHomePage.tsx` social-proof numbers, `.cursor/agents/content-swipe/`, `.cursor/commands/post.md`, `.cursor/commands/ideas.md`, `.cursor/commands/hype.md`, `.cursor/commands/incumbent.md`
 
 ## Micro-team
 
@@ -23,7 +23,32 @@
 | **Frame** | Video / asset | explore | Ship-log: mirror structure of an existing `defineVideoUpdate` + `definePhotoUpdate` pair. List real layout/role names. Propose next registry id. Do not write full TS unless IMPLEMENT. Ideas mode: for each card, pick text-only vs photo vs video using real existing layouts only. |
 | **Swipe** | Style-swipe curator | generalPurpose | Ideas mode only. Read `.cursor/agents/state/content-swipe-latest.json` + `.cursor/agents/content-swipe/STYLE_PLAYBOOK.md`. Distill 5–8 reusable patterns from today’s high-engagement posts. Cite handles. Structure only: never copy competitor claims, metrics, or CTAs. Propose 3–5 playbook delta bullets. |
 
-Then the parent synthesizes. Ship-log full run: spawn Log, Quill, Frame (skip Swipe). Ideas mode (`/ideas`): spawn all four including Swipe. Hype mode (`/hype`): spawn Swipe, Quill, Frame (Log optional for the Syra fact). Do not skip the required specialists.
+Then the parent synthesizes. Ship-log full run: spawn Log, Quill, Frame (skip Swipe). **Post mode (`/post`):** spawn Log, Quill, Frame; **implement** full TS bundle in this turn (see Post mode below). Ideas mode (`/ideas`): spawn all four including Swipe. Hype mode (`/hype`): spawn Swipe, Quill, Frame (Log optional for the Syra fact). Do not skip the required specialists.
+
+## Post mode (`/post`, ship-log studio bundle)
+
+Use when invoked via `/post`, “ship log for this”, “add post update”, or “update the post” after a build. **Implements** the locked template in the repo. Do not run Ideas/Hype/Incumbent. Spec: `.cursor/agents/content-swipe/POST_SHIP_LOG.md`.
+
+```
+@.cursor/rules/text-post-creation.mdc @.cursor/rules/article-authoring.mdc @.cursor/rules/growth-marketing.mdc @.cursor/rules/legal-compliance.mdc @.cursor/rules/ship-log-share-copy.mdc web/src/content/posts/TEXT_POST_QUALITY_BAR.md .cursor/agents/content-swipe/POST_SHIP_LOG.md
+
+You are Syra's ship-log studio producer. Turn what already shipped (git + conversation) into update #N on /post: 8 video slides + 15 photo cards + share copies + registry.
+
+AUTO-CONTEXT (do not ask me to fill placeholders):
+1. Date = today from system/user_info.
+2. git log -10 --oneline, git status, git diff, git diff --cached. Summarize the ship in 1–3 sentences.
+3. Read web/src/content/posts/registry.ts. If a bundle already matches this ship, UPDATE it (same updateNumber/id). Else use next updateNumber.
+4. Read templateUpdate.ts + one gold pair (e.g. crossmintOnramp or latest integration).
+5. Fetch GET https://api.syraa.fun/api/metrics when proof-shaped. Settled fields only.
+6. Spawn Log, Quill, Frame in parallel. Merge.
+
+Then IMPLEMENT (default):
+1. Write or patch *Update.ts, *Photo.ts, *ShareCopies.ts, registry.ts per POST_SHIP_LOG.md.
+2. Run vitest: validatePhotoPostContent + postSlideTiming.
+3. WRITE .cursor/agents/state/last-post.json (action create|update, updateNumber, studioPaths, files, oneAction).
+
+Output format: follow POST_SHIP_LOG.md strict output.
+```
 
 ## Auto context
 
@@ -168,5 +193,6 @@ Output format (strict):
 - No em dashes in `web/**` copy (`no-em-dash.mdc`). Same for idea hooks and playbook deltas.
 - Ideas steal structure, not competitor claims, screenshots, or CTAs.
 - `/ideas` does not auto-post to X.
+- `/post` does not auto-post to X. Creates or updates the locked 8+15 studio bundle; re-run `/post` after more ships to refresh the same updateNumber when the ship matches.
 - `/hype` does not auto-post to X. New still every run. Never overwrite `syra-xlayer-portal.png`.
 - `/incumbent` does not auto-post to X. No invented TAM. Skip `last-incumbent.json` `doNotRepeat` angles.

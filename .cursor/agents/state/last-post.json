@@ -1,0 +1,27 @@
+{
+  "date": "2026-08-22",
+  "updatedAt": "2026-08-22T14:50:00.000Z",
+  "mode": "post",
+  "action": "create",
+  "updateNumber": 51,
+  "id": "openclaw-mcp",
+  "title": "OpenClaw × Syra MCP",
+  "proofUsed": [
+    "docs/OPENCLAW_MCP_QUICKSTART.md",
+    "docs.syraa.fun/docs/build/openclaw",
+    "openclaw mcp set + skills install path",
+    "7d settled: 43,001 paid calls · $5,893.75 · 114 wallets (api/metrics)"
+  ],
+  "studioPaths": {
+    "hub": "/post",
+    "video": "/post/video/51",
+    "photo": "/post/photo/51"
+  },
+  "files": [
+    "web/src/content/posts/openclawMcpUpdate.ts",
+    "web/src/content/posts/photo/openclawMcpPhoto.ts",
+    "web/src/content/posts/photo/shareCopies/openclawMcpShareCopies.ts",
+    "web/src/content/posts/registry.ts"
+  ],
+  "oneAction": "Open /post/video/51, record or export; paste share copy from /post/photo/51 cards"
+}

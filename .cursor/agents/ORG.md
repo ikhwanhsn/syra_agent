@@ -6,7 +6,7 @@ Three-tier Cursor-native org. **Goal:** move a north-star metric every day, even
 Helix — Orchestrator (always on: every Cursor prompt)
   ├── Spark      Activation          time-to-first-paid-call
   ├── Beacon     Distribution        new unique payers / reach
-  ├── Chronicle  Content & Proof     proof posts / articles / video / `/ideas` / `/hype` / `/incumbent`
+  ├── Chronicle  Content & Proof     proof posts / articles / video / `/post` / `/ideas` / `/hype` / `/incumbent`
   ├── Mint       Token & Marketcap   buyback / holders / treasury SYRA
   ├── Ledger     Revenue & Pricing   USDC settled / ARPU
   ├── Compass    Product             ship items that move north star
@@ -18,7 +18,7 @@ Helix — Orchestrator (always on: every Cursor prompt)
         └── each division spawns a 3–4 named specialist micro-team
 ```
 
-Always-on rule: `.cursor/rules/helix.mdc` (`alwaysApply: true`). If no lead owns the ask, Helix routes to **Bench**. `/improve` routes to **Hone** (ask if ambiguous; rewrite + Helix executes when the brief is complete). `/ideas` routes to **Chronicle** Ideas mode. `/hype` routes to **Chronicle** Hype mode (image + short text hype). `/incumbent` routes to **Chronicle** Incumbent mode (incumbent hype text).
+Always-on rule: `.cursor/rules/helix.mdc` (`alwaysApply: true`). If no lead owns the ask, Helix routes to **Bench**. `/improve` routes to **Hone** (ask if ambiguous; rewrite + Helix executes when the brief is complete). `/post` routes to **Chronicle** Post mode. `/ideas` routes to **Chronicle** Ideas mode. `/hype` routes to **Chronicle** Hype mode (image + short text hype). `/incumbent` routes to **Chronicle** Incumbent mode (incumbent hype text).
 
 ## Named roster
 
@@ -126,6 +126,14 @@ or `@.cursor/agents/prompt-improve.md`
 
 or `@.cursor/agents/content-proof.md` Ideas mode
 
+**Ship-log studio bundle (create or update from what you built):**
+
+```
+/post
+```
+
+Spec: `.cursor/agents/content-swipe/POST_SHIP_LOG.md` · Command: `.cursor/commands/post.md`
+
 **Image + short text hype (mood still + short caption, new photograph every run):**
 
 ```
@@ -178,6 +186,7 @@ The Agent must:
 - Unique paying wallets 7d flat ≥14 days → co-route **Spark**, not token posts.
 - User message names a division or callsign → that division only.
 - `/improve` → **Hone** first (no metrics during sharpen). Ask if ambiguous. When the brief is complete, Helix executes the rewritten prompt in the same turn. Do not wait for “run it.”
+- `/post` → **Chronicle** Post mode (`.cursor/agents/content-swipe/POST_SHIP_LOG.md`). Git ship → create or update locked 8+15 bundle. Do not run Ideas/Hype/Incumbent.
 - `/ideas` → **Chronicle** Ideas mode (run `contentSwipeFetch.mjs`; do not run the ship-log prompt).
 - `/hype` or **image + short text hype** → **Chronicle** Hype mode (`.cursor/agents/content-swipe/IMAGE_SHORT_TEXT_HYPE.md`). Swipe 15 accounts, create caption + new still. Do not run the idea board.
 - `/incumbent` or **incumbent hype** → **Chronicle** Incumbent mode (`.cursor/agents/content-swipe/INCUMBENT_HYPE_TEXT.md`). Four-beat industry → contrast → `syra is` → replaceable → URL. Do not force launch spine.
@@ -215,7 +224,7 @@ See [state/README.md](state/README.md). Orchestrator writes `last-run.json`. Fri
 | Helix | [orchestrator.md](orchestrator.md) | Always-on routing + `/growth` + Friday board |
 | Spark | [activation.md](activation.md) | Time-to-first-paid-call |
 | Beacon | [distribution.md](distribution.md) | New payers / reach |
-| Chronicle | [content-proof.md](content-proof.md) | Proof posts / articles / video / `/ideas` / `/hype` / `/incumbent` |
+| Chronicle | [content-proof.md](content-proof.md) | Proof posts / articles / video / `/post` / `/ideas` / `/hype` / `/incumbent` |
 | Mint | [token-marketcap.md](token-marketcap.md) | Buyback / rewards / holders |
 | Ledger | [revenue-pricing.md](revenue-pricing.md) | Unit economics / price ladder |
 | Compass | [product.md](product.md) | RICE / kill / ship |
