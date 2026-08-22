@@ -48,6 +48,7 @@ import { LLM_EXCHANGE_POST } from "./llmExchangeUpdate";
 import { AGENT_ECONOMY_APIS_POST } from "./agentEconomyApisUpdate";
 import { CLOUDFLARE_AGENTS_X402_POST } from "./cloudflareAgentsX402Update";
 import { OPENCLAW_MCP_POST } from "./openclawMcpUpdate";
+import { NEVERMINED_X402_POST } from "./neverminedX402Update";
 import { TEMPLATE_POST } from "./templateUpdate";
 import { AGENTSCORE_PHOTO } from "./photo/agentscorePhoto";
 import { INDICATOR_PHOTO } from "./photo/indicatorPhoto";
@@ -99,6 +100,7 @@ import { LLM_EXCHANGE_PHOTO } from "./photo/llmExchangePhoto";
 import { AGENT_ECONOMY_APIS_PHOTO } from "./photo/agentEconomyApisPhoto";
 import { CLOUDFLARE_AGENTS_X402_PHOTO } from "./photo/cloudflareAgentsX402Photo";
 import { OPENCLAW_MCP_PHOTO } from "./photo/openclawMcpPhoto";
+import { NEVERMINED_X402_PHOTO } from "./photo/neverminedX402Photo";
 import { TEMPLATE_PHOTO } from "./photo/templatePhoto";
 import type { PostPhotoUpdate } from "./photo/types";
 import type { PostUpdate } from "./types";
@@ -169,6 +171,7 @@ const POST_UPDATE_BUNDLES: PostUpdateBundle[] = [
   { video: AGENT_ECONOMY_APIS_POST, photo: AGENT_ECONOMY_APIS_PHOTO },
   { video: CLOUDFLARE_AGENTS_X402_POST, photo: CLOUDFLARE_AGENTS_X402_PHOTO },
   { video: OPENCLAW_MCP_POST, photo: OPENCLAW_MCP_PHOTO },
+  { video: NEVERMINED_X402_POST, photo: NEVERMINED_X402_PHOTO },
 ];
 
 function assertBundleMeta(bundle: PostUpdateBundle): void {
